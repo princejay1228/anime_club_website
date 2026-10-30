@@ -15,11 +15,11 @@ Open **index.html** in any modern browser. No build step, server or internet con
 | 0.83–0.89 | Eyes brighten `#780012 → #B00020 → #DC0628`, glow spreads |
 | 0.865–0.935 | Glow becomes a full deep crimson frame (`#900018`) and holds |
 | 0.935–1.00 | Frame cools to black; SIMATS ANIME CLUB logo + ENTER |
-| hold | The finished logo stays on screen for one extra screen of scrolling |
+| hold | The finished logo stays on screen while you read it |
 | header | Logo glides up and shrinks into a header bar |
 | team | One officer fills the screen at a time (President → Vice President → Secretary → Treasurer → closing panel → Benio's self-intro); each new panel rises over the last as you scroll, while the narrator walks left → right → left → right and talks in a speech bubble |
 
-Every scene has about 75% more scroll distance than V2, so the whole sequence plays slowly. Everything is driven by scroll position and reverses when scrolling back.
+**Guided scrolling:** the page moves in beats, one scroll gesture (wheel flick, swipe, arrow/space/page key) per beat: sakura tree → oni mask → SIMATS logo → President → Vice President → Secretary → Treasurer → closing line → Benio → footer. Each glide plays the animation at a set pace (`DUR` in the script, in ms). Scrolling again while a glide is still playing skips ahead to the following beat (`SKIP_MS`). Everything reverses when scrolling back up. The whole sequence takes about 30 seconds with one flick per beat.
 
 ## Files
 
@@ -37,7 +37,19 @@ At the top of the script, find the `TEAM INTRO` block:
 - `NARRATOR_OUTRO_IMAGE`: her second pose (from your character sheet), cross-faded in on the closing screen. Set to `''` to keep the main pose.
 - `OUTRO`: the closing line.
 - `SELF`: the mascot's playful self-introduction after the closing line. She is **Sakuraba Benio (桜庭 紅緒)**, nickname Beni-chan. For this beat she switches to her chibi form (`assets/benio-chibi.webp`, from the SIMATS Fox Girl character kit), hops, and two hearts float up.
-- Guided scrolling: inside the team section one wheel flick, swipe or arrow/space/page key glides to the next officer and stops once the narrator has finished. Tune `GLIDE_MS` (glide length) and `STOP_U` (where each stop rests). Skip/Enter/Join links bypass it.
+- Guided scrolling: tune `DUR` (glide length into each beat), `SKIP_MS`, `ONI_STOP` (where the oni beat rests) and `STOP_U` (where each team beat rests). Links bypass it.
+- `CLUB_CONTACT`: fill in the club's Instagram handle, email and WhatsApp community link to show them in the footer.
+
+## Recent meets gallery
+
+Below the join section, `#meets` shows photos and clips from recent meets in one row that drifts slowly sideways (pauses on hover). Files live in `assets/meets/`. To add a new photo or clip, add a `<figure class="meet">` to **both halves** of `#meetsTrack` (the second half is a copy that makes the loop seamless). Clips are muted and only play while the gallery is on screen. Change the drift speed with `animation` on `.meets-track` (70s on desktop, 55s on phones).
+
+The Join buttons and the footer link go to the club's WhatsApp community (`CLUB_CONTACT.whatsapp`).
+
+## Footer and legal pages
+
+- `index.html` ends with a join section and a footer (about, explore links, contact, legal, copyright and an anime-rights disclaimer).
+- `terms.html`, `privacy.html` and `conduct.html` are the Terms & Conditions, Privacy Policy and Code of Conduct. They are a general template for a student club; review them with the faculty coordinator so they match SIMATS policy.
 
 ## Tuning
 

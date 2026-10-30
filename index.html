@@ -123,6 +123,37 @@
     .chapter { min-height:75vh; background:radial-gradient(ellipse at 50% 0%,rgba(144,0,24,.28),transparent 55%),#050203; padding:110px 24px 130px; display:grid; place-items:center; text-align:center; border-top:1px solid rgba(201,149,69,.25); }
     .chapter h2 { font-family:"Dela Gothic One",Manrope,sans-serif; font-weight:400; font-size:clamp(34px,6vw,72px); line-height:1.15; margin:0 0 20px; color:#f6dca0; }
     .chapter p { font-size:14px; line-height:2; color:#dbbdbe; max-width:540px; margin:auto; font-weight:500; }
+    .chapter .cta { display:inline-block; margin-top:30px; border:1px solid rgba(230,192,111,.75); padding:14px 28px; color:#f6dca0; text-decoration:none; font-size:11px; letter-spacing:.32em; font-weight:800; background:rgba(10,4,4,.6); transition:background .2s,box-shadow .2s; }
+    .chapter .cta:hover,.chapter .cta:focus-visible { background:rgba(144,0,24,.85); box-shadow:0 0 24px rgba(220,6,40,.45); outline:none; }
+    .meets { background:#030102; padding:70px 0 80px; overflow:hidden; border-top:1px solid rgba(201,149,69,.18); }
+    .meets-head { text-align:center; padding:0 20px; margin-bottom:34px; }
+    .meets-kicker { display:inline-block; background:#a8001c; color:#fff3dc; font-size:10px; font-weight:800; letter-spacing:.3em; padding:6px 12px; }
+    .meets-head h2 { font-family:"Dela Gothic One",Manrope,sans-serif; font-weight:400; color:#f6dca0; font-size:clamp(30px,5vw,58px); margin:14px 0 8px; letter-spacing:.02em; }
+    .meets-head p { color:#cdb4b6; font-size:14px; margin:0 auto; max-width:520px; line-height:1.8; font-weight:500; }
+    .meets-rail { position:relative; -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent); mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent); }
+    .meets-track { display:flex; gap:18px; width:max-content; animation:meetsDrift 70s linear infinite; will-change:transform; }
+    .meets-rail:hover .meets-track, .meets-rail:focus-within .meets-track { animation-play-state:paused; }
+    @keyframes meetsDrift { from { transform:translateX(0); } to { transform:translateX(calc(-50% - 9px)); } }
+    .meet { position:relative; margin:0; height:clamp(190px,34vh,330px); aspect-ratio:4/3; border-radius:14px; overflow:hidden; border:1px solid rgba(230,192,111,.45); background:#120206; box-shadow:0 18px 40px rgba(0,0,0,.55); flex:none; }
+    .meet.wide { aspect-ratio:16/9; }
+    .meet img, .meet video { width:100%; height:100%; object-fit:cover; display:block; }
+    .meet .vtag { position:absolute; left:10px; top:10px; font-size:9px; font-weight:800; letter-spacing:.2em; color:#fff3dc; background:rgba(168,0,28,.85); padding:4px 8px; border-radius:2px; }
+    @media (max-width:700px) { .meet { height:210px; } .meets-track { animation-duration:55s; } }
+    @media (prefers-reduced-motion:reduce) { .meets-track { animation:none; } .meets-rail { overflow-x:auto; } }
+    .site-footer { background:#030102; border-top:1px solid rgba(201,149,69,.25); padding:56px clamp(20px,6vw,90px) 28px; color:#cdb4b6; font-size:13px; line-height:1.8; font-weight:500; }
+    .foot-grid { display:grid; grid-template-columns:1.6fr 1fr 1.2fr 1fr; gap:36px; max-width:1180px; margin:0 auto; }
+    .foot-name { font-family:"Dela Gothic One",Manrope,sans-serif; font-size:22px; color:#f6dca0; letter-spacing:.04em; }
+    .foot-name span { color:#c4243f; }
+    .foot-brand p { margin:10px 0 0; max-width:340px; }
+    .foot-host span { color:#ffd6e3; font-family:"Dela Gothic One",sans-serif; font-size:16px; letter-spacing:.06em; }
+    .foot-col h3 { margin:0 0 12px; font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:#e6c06f; font-weight:800; }
+    .foot-col a { display:block; color:#ecd9da; text-decoration:none; padding:2px 0; }
+    .foot-col a:hover,.foot-col a:focus-visible { color:#ff9fb2; outline:none; text-decoration:underline; }
+    .foot-col p { margin:0 0 8px; }
+    .foot-credit { max-width:1180px; margin:22px auto 0; padding-top:16px; border-top:1px solid rgba(201,149,69,.18); text-align:center; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:#8f7779; }
+    .foot-credit strong { color:#e6c06f; font-weight:800; }
+    .foot-bottom { max-width:1180px; margin:40px auto 0; padding-top:20px; border-top:1px solid rgba(255,255,255,.08); display:flex; flex-wrap:wrap; gap:8px 26px; font-size:11px; color:#8f7779; }
+    @media (max-width:760px) { .foot-grid { grid-template-columns:1fr 1fr; gap:28px; } .foot-brand { grid-column:1 / -1; } .foot-bottom { flex-direction:column; } }
 
     @media (max-width:700px) {
       .experience { height:1920vh; }
@@ -349,17 +380,76 @@
       <div class="layer vignette"></div>
       <div class="layer grain"></div>
       <a class="skip" href="#club">Skip</a>
-      <div class="hud left" aria-hidden="true"><div class="bar"><span id="bar"></span></div><span id="pct">00</span></div>
       <div class="hud right" id="hint" aria-hidden="true"><span>Scroll</span><span class="arrow">↓</span></div>
     </div>
   </section>
 
-  <section class="chapter" id="club" aria-label="Club home">
+  <section class="chapter" id="club" aria-label="Join SIMATS Anime Club">
     <div>
       <h2>YOUR NEXT CHAPTER<br />STARTS HERE.</h2>
-      <p>Welcome to SIMATS Anime Club. Club events, anime discussions, cosplay, gallery and community sections begin here.</p>
+      <p>Screenings, cosplay, fan art, quizzes and fests, run by students who love anime. Everyone at SIMATS is welcome.</p>
+      <a class="cta" href="https://chat.whatsapp.com/GHwQzTsmPQr5xxNzGjINWb?s=cl&amp;p=a&amp;mlu=4&amp;ilr=4&amp;iam=2" target="_blank" rel="noopener">JOIN THE CLUB ↗</a>
     </div>
   </section>
+
+  <section class="meets" id="meets" aria-label="Recent meets">
+    <div class="meets-head">
+      <span class="meets-kicker">GALLERY</span>
+      <h2>RECENT MEETS</h2>
+      <p>Moments from our latest club meet-up: quizzes, spin-the-wheel rounds and a room full of anime fans.</p>
+    </div>
+    <div class="meets-rail">
+      <div class="meets-track" id="meetsTrack">
+        <figure class="meet"><img src="assets/meets/meet-photo-1.webp" alt="SIMATS Anime Club meet, photo 1" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet wide"><video src="assets/meets/meet-video-1.mp4" poster="assets/meets/meet-video-1-poster.jpg" muted loop playsinline preload="metadata" aria-label="SIMATS Anime Club meet, video 1"></video><span class="vtag">▶ CLIP</span></figure>
+        <figure class="meet"><img src="assets/meets/meet-photo-2.webp" alt="SIMATS Anime Club meet, photo 2" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet"><img src="assets/meets/meet-photo-3.webp" alt="SIMATS Anime Club meet, photo 3" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet wide"><video src="assets/meets/meet-video-2.mp4" poster="assets/meets/meet-video-2-poster.jpg" muted loop playsinline preload="metadata" aria-label="SIMATS Anime Club meet, video 2"></video><span class="vtag">▶ CLIP</span></figure>
+        <figure class="meet"><img src="assets/meets/meet-photo-4.webp" alt="SIMATS Anime Club meet, photo 4" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet"><img src="assets/meets/meet-photo-5.webp" alt="SIMATS Anime Club meet, photo 5" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet"><img src="assets/meets/meet-photo-6.webp" alt="SIMATS Anime Club meet, photo 6" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet" aria-hidden="true"><img src="assets/meets/meet-photo-1.webp" alt="" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet wide" aria-hidden="true"><video src="assets/meets/meet-video-1.mp4" poster="assets/meets/meet-video-1-poster.jpg" muted loop playsinline preload="none"></video><span class="vtag">▶ CLIP</span></figure>
+        <figure class="meet" aria-hidden="true"><img src="assets/meets/meet-photo-2.webp" alt="" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet" aria-hidden="true"><img src="assets/meets/meet-photo-3.webp" alt="" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet wide" aria-hidden="true"><video src="assets/meets/meet-video-2.mp4" poster="assets/meets/meet-video-2-poster.jpg" muted loop playsinline preload="none"></video><span class="vtag">▶ CLIP</span></figure>
+        <figure class="meet" aria-hidden="true"><img src="assets/meets/meet-photo-4.webp" alt="" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet" aria-hidden="true"><img src="assets/meets/meet-photo-5.webp" alt="" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+        <figure class="meet" aria-hidden="true"><img src="assets/meets/meet-photo-6.webp" alt="" loading="lazy" decoding="async" width="1100" height="825" /></figure>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer" id="contact">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="foot-name">SIMATS <span>ANIME CLUB</span></div>
+        <p>A student-run anime community at Saveetha School of Engineering, SIMATS, Chennai.</p>
+        <p class="foot-host">Hosted by our mascot, <strong>Sakuraba Benio</strong> <span lang="ja">桜庭 紅緒</span>.</p>
+      </div>
+      <nav class="foot-col" aria-label="Explore">
+        <h3>Explore</h3>
+        <a href="#experience">Intro</a>
+        <a href="#club">Join the club</a>
+      </nav>
+      <div class="foot-col">
+        <h3>Contact</h3>
+        <p id="contactLines">Reach any office bearer on campus, or write to us at the links below.</p>
+        <div id="contactLinks"></div>
+      </div>
+      <nav class="foot-col" aria-label="Legal">
+        <h3>Legal</h3>
+        <a href="terms.html">Terms &amp; Conditions</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="conduct.html">Code of Conduct</a>
+      </nav>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="year">2026</span> SIMATS Anime Club. All rights reserved.</span>
+      <span>Anime titles, characters and artwork belong to their respective creators and rights holders. This club is not affiliated with any studio or publisher.</span>
+    </div>
+    <div class="foot-credit">Designed by <strong>Jayadeep J</strong> &amp; <strong>Darshan A</strong></div>
+  </footer>
 </main>
 
 <script src="assets/oni-mask.js"></script>
@@ -373,8 +463,7 @@
   const landFar=$('#landFar'), landNear=$('#landNear');
   const sky=$('#sky'), sun=$('#sun'), clouds=$('#clouds'), fuji=$('#fuji'), tree=$('#tree'), darkness=$('#darkness');
   const logo=$('#logo'), enterBtn=$('#enterBtn'), slashLine=$('#slashLine'), crest=$('#crest'), title=$('#titleCut'), cutLower=$('#cutLower'), banner=$('#banner');
-  const bar=$('#bar'), pct=$('#pct'), hint=$('#hint');
-  const hudL=document.querySelector('.hud.left');
+  const hint=$('#hint');
   const logoSvg=$('#logoSvg'), topbar=$('#topbar'), team=$('#team'), cardsEl=$('#cards'), bubble=$('#bubble'), bubbleWho=$('#bubbleWho'), bubbleText=$('#bubbleText'), bubbleTail=$('#bubbleTail');
   const narrator=$('#narrator'), narratorImg=$('#narratorImg'), narratorImg2=$('#narratorImg2'), narratorChibi=$('#narratorChibi'), heartEls=[...document.querySelectorAll('#hearts i')], narratorSvg=$('#narratorSvg');
   const nTail=$('#nTail'), nBody=$('#nBody'), nLegL=$('#nLegL'), nLegR=$('#nLegR'), nArmF=$('#nArmF'), nArmB=$('#nArmB'), nHead=$('#nHead'), nMouthC=$('#nMouthC'), nMouthO=$('#nMouthO');
@@ -394,6 +483,8 @@
   // Her playful self-introduction after the closing line. She switches to her chibi form for this beat.
   const SELF={who:'桜庭 紅緒 · Sakuraba Benio', line:"Ahh!! I forgot to introduce myself, watashi wa SAKURABA Benio desu!! ❤️❤️", image:'assets/benio-chibi.webp'};
   const OUTRO={who:'SIMATS Anime Club', line:"Together, we're SIMATS Anime Club: anime screenings, cosplay, art jams, quizzes and fests all year. Keep scrolling and join the crew!"};
+  // Footer contact links: fill in the club's handles to show them (leave '' to hide).
+  const CLUB_CONTACT={ instagram:'', email:'', whatsapp:'https://chat.whatsapp.com/GHwQzTsmPQr5xxNzGjINWb?s=cl&p=a&mlu=4&ilr=4&iam=2' };
   // ==================================================================================
 
   const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
@@ -698,7 +789,7 @@
     cardsEl.appendChild(d); return d;
   });
   const outroEl=document.createElement('section'); outroEl.className='panel outro';
-  outroEl.innerHTML=`${XMARK}<div class="info"><span class="role">The Crew</span><div class="name">SIMATS<br>ANIME CLUB</div><div class="tags">Screenings · Cosplay · Art · Quizzes · Fests</div><a class="join" href="#club">JOIN US ↗</a></div><div class="dim"></div>`;
+  outroEl.innerHTML=`${XMARK}<div class="info"><span class="role">The Crew</span><div class="name">SIMATS<br>ANIME CLUB</div><div class="tags">Screenings · Cosplay · Art · Quizzes · Fests</div><a class="join" href="https://chat.whatsapp.com/GHwQzTsmPQr5xxNzGjINWb?s=cl&amp;p=a&amp;mlu=4&amp;ilr=4&amp;iam=2" target="_blank" rel="noopener">JOIN US ↗</a></div><div class="dim"></div>`;
   cardsEl.appendChild(outroEl);
   const panels=[...panelEls,outroEl];
   if(NARRATOR_IMAGE){ narratorImg.onload=()=>{ if(ready){ layoutTeam(); render(0); } }; narratorImg.src=NARRATOR_IMAGE; narratorImg.hidden=false; narratorSvg.style.display='none';
@@ -739,8 +830,7 @@
     logoSvg.style.transform=e>0?`translateY(${(dyH*e).toFixed(2)}px) scale(${mix(1,hs,e).toFixed(4)})`:'none';
     enterBtn.style.opacity=String(1-smooth(0,.35,hdrP));
     topbar.style.opacity=String(smooth(.35,1,hdrP));
-    hudL.style.opacity=String(1-smooth(0,.03,teamP));
-    hint.style.opacity=String(Math.max(1-smooth(.9,.97,prog),.0));
+    hint.style.opacity=String(Math.max(1-smooth(.02,.12,prog),.0));
 
     // 2) team intro
     const t=teamP, key=t.toFixed(5)+'|'+W+'|'+H;
@@ -918,9 +1008,6 @@
     banner.style.opacity=String(smooth(.95,.995,p));
     slashLine.setAttribute('stroke-dashoffset',(1-smooth(.95,.995,p)).toFixed(3));
 
-    const all=sCur/totalPx;
-    bar.style.width=(all*100).toFixed(1)+'%';
-    pct.textContent=String(Math.round(all*100)).padStart(2,'0');
     hint.style.opacity=String(1-smooth(.9,.97,p));
 
     renderTeam();
@@ -950,52 +1037,68 @@
   if('ResizeObserver' in window) new ResizeObserver(queueResize).observe(stage);   // catches panes/iframes that resize without a window resize
   document.addEventListener('visibilitychange',()=>{ last=performance.now(); });
 
-  // ---------- Guided scrolling through the team section ----------
-  // Inside the team section one wheel flick, swipe or key press glides to the next officer and stops
-  // once the narrator has finished speaking, so the view never rests half-way between two people.
-  const STOP_U=[.82,.82,.82,.82,.84,.86];      // where in each beat to stop (text fully typed)
-  const GLIDE_MS=2300;                          // how long the glide to the next person takes
+  // ---------- Guided scrolling for the whole page ----------
+  // Each scroll gesture (wheel flick, swipe, arrow/space/page key) glides to the next "beat" at a set pace:
+  //   sakura tree -> oni mask -> SIMATS logo -> President -> VP -> Secretary -> Treasurer -> closing line -> Benio -> footer
+  // Scrolling again while a glide is still playing skips ahead to the following beat.
+  const ONI_STOP=.745;                                   // intro progress where the oni has fully emerged
+  const STOP_U=[.82,.82,.82,.82,.84,.86];               // where in each team beat to stop (text fully typed)
+  // glide length (ms) INTO each stop, in the same order as stops(): tree, oni, logo, 4 officers, closing, Benio, footer
+  const DUR=[3200, 6200, 5200, 3600, 2300, 2300, 2300, 2300, 2300, 1500];
+  const SKIP_MS=1300;                                   // how fast a "skip" (second scroll mid-glide) catches up
   let glide=null, suppressUntil=0, lastWheelT=0, wheelUsed=false, settleT=0, lastScrollT=0, gestureStartY=0, settledY=0;
   const pageTop=()=>scene.getBoundingClientRect().top+window.scrollY;
+  const maxScroll=()=>document.documentElement.scrollHeight-window.innerHeight;
   function stops(){
-    const base=pageTop()+animPx+(HOLD_VH+HEADER_VH)*H, span=TEAM_VH*H;
-    // first stop = the logo still large (end of its hold); one flick from there runs the header move and lands on the President
-    return [base-HEADER_VH*H, ...STOP_U.map((u,k)=>base+(k+u)/NSEG*span)].map(v=>Math.round(v));
+    const top=pageTop(), base=top+animPx+(HOLD_VH+HEADER_VH)*H, span=TEAM_VH*H;
+    const footer=Math.min(maxScroll(), document.getElementById('club').getBoundingClientRect().top+window.scrollY);
+    return [top, top+ONI_STOP*animPx, top+animPx, ...STOP_U.map((u,k)=>base+(k+u)/NSEG*span), footer].map(v=>Math.round(v));
   }
   const inZone=(y,dir)=>{ const st=stops(); return dir>0 ? (y>=st[0]-2 && y<st[st.length-1]-2) : (y>st[0]+2 && y<=st[st.length-1]+2); };
   function nextStop(from,dir){ const st=stops(); return dir>0 ? st.find(v=>v>from+2) : [...st].reverse().find(v=>v<from-2); }
-  const ease=(t)=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
-  function glideTo(target){
+  const ease=(t)=>.5-.5*Math.cos(Math.PI*t);            // gentle in/out, keeps the animation at an even pace
+  function glideTo(target,durOverride){
     if(target==null) return;
-    const from=window.scrollY;
-    if(reduced||Math.abs(target-from)<2){ window.scrollTo({top:target,behavior:'instant'}); settledY=target; return; }
-    const dur=GLIDE_MS*clamp(Math.abs(target-from)/(TEAM_VH/NSEG*H),.45,1.15), t0=performance.now();
-    glide={target};
+    const from=window.scrollY, st=stops();
+    if(reduced||Math.abs(target-from)<2){ window.scrollTo({top:target,behavior:'instant'}); settledY=target; glide=null; return; }
+    const i=st.indexOf(target), down=target>from;
+    // going back up uses the duration of the stop we are leaving, so reversing feels the same speed
+    const base=durOverride||(down?DUR[i]:DUR[Math.min(DUR.length-1,i+1)])||2300;
+    const dur=durOverride?base:base*clamp(Math.abs(target-from)/Math.max(1,Math.abs(st[Math.min(st.length-1,down?i:i+1)]-st[Math.max(0,down?i-1:i)])),.35,1);
+    const t0=performance.now(), g={target,from,dur,t0}; glide=g;
     const step=(now)=>{
-      if(!glide) return;
+      if(glide!==g) return;
       const k=clamp((now-t0)/dur), y=from+(target-from)*ease(k);
       window.scrollTo({top:y,behavior:'instant'});
-      if(k<1) requestAnimationFrame(step); else { glide=null; settledY=target; lastWheelT=performance.now(); }
+      if(k<1) requestAnimationFrame(step); else { glide=null; settledY=target; }
     };
     requestAnimationFrame(step);
   }
-  function advance(dir){ if(glide) return; glideTo(nextStop(glide?glide.target:window.scrollY,dir)); }
+  // one gesture = one beat; a new gesture during a glide skips to the beat after the current target
+  function advance(dir){
+    if(glide){
+      const goingDown=glide.target>glide.from;
+      if((dir>0)===goingDown){ const nxt=nextStop(glide.target,dir); if(nxt!=null) glideTo(nxt,SKIP_MS); }
+      else glideTo(nextStop(window.scrollY,dir),SKIP_MS*.8);    // changed direction mid-glide: head back
+      return;
+    }
+    glideTo(nextStop(window.scrollY,dir));
+  }
   const suppressed=()=>performance.now()<suppressUntil;
 
   window.addEventListener('wheel',(e)=>{
     if(suppressed()||e.ctrlKey) return;
     const dir=Math.sign(e.deltaY); if(!dir) return;
-    const y=window.scrollY;
-    if(!glide && !inZone(y,dir)) return;
+    if(!glide && !inZone(window.scrollY,dir)) return;
     e.preventDefault();
     const now=performance.now(), fresh=now-lastWheelT>240; lastWheelT=now;
     if(fresh) wheelUsed=false;
-    if(glide||wheelUsed||Math.abs(e.deltaY)<2) return;   // trackpad inertia keeps one gesture = one person
+    if(wheelUsed||Math.abs(e.deltaY)<2) return;          // trackpad inertia: one physical gesture counts once
     wheelUsed=true; advance(dir);
   },{passive:false});
 
-  let ty0=0, tyLast=0, sy0=0;
-  window.addEventListener('touchstart',(e)=>{ ty0=tyLast=e.touches[0].clientY; sy0=window.scrollY; },{passive:true});
+  let ty0=0, tyLast=0, sy0=0, tGlide=false;
+  window.addEventListener('touchstart',(e)=>{ ty0=tyLast=e.touches[0].clientY; sy0=glide?glide.target:window.scrollY; tGlide=!!glide; },{passive:true});
   window.addEventListener('touchmove',(e)=>{
     tyLast=e.touches[0].clientY;
     if(suppressed()) return;
@@ -1003,21 +1106,23 @@
     if(glide||(dir&&inZone(sy0,dir))){ if(e.cancelable) e.preventDefault(); }
   },{passive:false});
   window.addEventListener('touchend',(e)=>{
-    if(suppressed()||glide) return;
+    if(suppressed()) return;
     const yEnd=e.changedTouches[0]?e.changedTouches[0].clientY:tyLast, dy=ty0-yEnd, dir=Math.sign(dy);
-    if(Math.abs(dy)<24||!inZone(sy0,dir)) return;
-    glideTo(nextStop(sy0,dir));                  // one swipe = one person, measured from where the swipe began
+    if(Math.abs(dy)<24) return;
+    if(glide||tGlide){ advance(dir); return; }           // swipe during a glide = skip ahead
+    if(!inZone(sy0,dir)) return;
+    glideTo(nextStop(sy0,dir));
   },{passive:true});
 
   window.addEventListener('keydown',(e)=>{
     if(suppressed()||e.altKey||e.ctrlKey||e.metaKey) return;
-    const t=e.target; if(t&&(t.isContentEditable||/INPUT|TEXTAREA|SELECT/.test(t.tagName))) return;
+    const t=e.target; if(t&&(t.isContentEditable||/INPUT|TEXTAREA|SELECT|BUTTON|A/.test(t.tagName)&&e.key===' ')) return;
     const dir={ArrowDown:1,PageDown:1,' ':e.shiftKey?-1:1,ArrowUp:-1,PageUp:-1}[e.key]; if(!dir) return;
     if(!glide && !inZone(window.scrollY,dir)) return;
     e.preventDefault(); advance(dir);
   });
 
-  // Safety net: if the page comes to rest between two people (scrollbar drag, momentum), finish the move.
+  // Safety net: if the page comes to rest between two beats (scrollbar drag, momentum), finish the move.
   window.addEventListener('scroll',()=>{
     const now=performance.now();
     if(now-lastScrollT>260 && !glide) gestureStartY=settledY;
@@ -1031,9 +1136,24 @@
       glideTo(nextStop(dir>0?Math.min(gestureStartY,y):Math.max(gestureStartY,y),dir));
     },170);
   },{passive:true});
-  // "Skip", "Enter" and "Join us" jump straight past the intro without being caught by the guide.
-  document.querySelectorAll('a[href="#club"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; suppressUntil=performance.now()+2500; }));
+  // "Skip", "Enter", "Join us" and footer links jump directly without being caught by the guide.
+  document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; suppressUntil=performance.now()+2500; }));
   settledY=window.scrollY;
+
+  (()=>{ // footer: contact links + year
+    const box=$('#contactLinks'), L=[];
+    if(CLUB_CONTACT.instagram) L.push(`<a href="https://instagram.com/${encodeURIComponent(CLUB_CONTACT.instagram.replace(/^@/,''))}" target="_blank" rel="noopener">Instagram @${esc(CLUB_CONTACT.instagram.replace(/^@/,''))}</a>`);
+    if(CLUB_CONTACT.email) L.push(`<a href="mailto:${esc(CLUB_CONTACT.email)}">${esc(CLUB_CONTACT.email)}</a>`);
+    if(CLUB_CONTACT.whatsapp) L.push(`<a href="${esc(CLUB_CONTACT.whatsapp)}" target="_blank" rel="noopener">WhatsApp community ↗</a>`);
+    box.innerHTML=L.join(''); $('#contactLines').textContent=L.length?'Join our WhatsApp community, or reach any office bearer on campus.':'Reach any office bearer on campus to join or ask a question.';
+    $('#year').textContent=String(new Date().getFullYear());
+  })();
+
+  (()=>{ // Recent meets: play the clips only while the gallery is visible (saves data and battery on phones)
+    const vids=[...document.querySelectorAll('#meetsTrack video')];
+    const play=(on)=>vids.forEach(v=>{ if(on){ if(v.preload==='none') v.preload='auto'; const pr=v.play(); pr&&pr.catch(()=>{}); } else v.pause(); });
+    if('IntersectionObserver' in window) new IntersectionObserver(es=>es.forEach(e=>play(e.isIntersecting&&!reduced)),{rootMargin:'200px'}).observe($('#meets'));
+  })();
 
   const at=(px)=>{ sCur=sTarget=px; derive(); if(ready) render(0); };
   window.__intro={ seek(v){ at(clamp(v)*animPx); }, seekHeader(v){ at(animPx+(HOLD_VH+clamp(v)*HEADER_VH)*H); }, seekTeam(v){ at(animPx+(HOLD_VH+HEADER_VH+clamp(v)*TEAM_VH)*H); },
