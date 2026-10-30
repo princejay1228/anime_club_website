@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="SIMATS Anime Club — a scroll-driven cinematic opening." />
+  <title>SIMATS Anime Club</title>
+  <style>
+    @font-face { font-family:"Dela Gothic One"; src:url("assets/fonts/dela-gothic-one-logo.woff2") format("woff2"); font-weight:400; font-display:block; }
+    @font-face { font-family:"Manrope"; src:url("assets/fonts/manrope-latin-700-normal.woff2") format("woff2"); font-weight:700; font-display:swap; }
+    @font-face { font-family:"Manrope"; src:url("assets/fonts/manrope-latin-800-normal.woff2") format("woff2"); font-weight:800; font-display:swap; }
+
+    :root { color-scheme:dark; --pink:#FFD6E3; --gold:#e6c06f; --crimson:#900018; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; overflow-x:hidden; background:#000; color:#fff1eb; font-family:Manrope, system-ui, sans-serif; font-weight:700; }
+    a { color:inherit; }
+    a { -webkit-tap-highlight-color:transparent; }
+
+    .experience { height:1930vh; position:relative; } /* intro + logo hold + header move + team intro */ /* +40% scroll per scene, plus a hold on the logo */
+    .stage { position:sticky; top:0; height:100vh; height:100svh; min-height:460px; overflow:hidden; background:#000; isolation:isolate; }
+    .layer { position:absolute; inset:0; pointer-events:none; }
+
+    /* ---------- Opening: red sky + Mount Fuji ---------- */
+    .sky { background:
+        radial-gradient(ellipse 50% 40% at 80% 66%, rgba(255,120,92,.55) 0%, rgba(232,58,52,.25) 40%, transparent 72%),
+        linear-gradient(180deg,#2a030b 0%,#5c0716 24%,#9a1124 52%,#c92a2c 74%,#e2503a 88%,#b8241f 100%);
+      will-change:opacity; }
+    .sun { position:absolute; left:80%; top:62%; width:min(17vw,230px); aspect-ratio:1; transform:translate(-50%,-50%); border-radius:50%;
+      background:radial-gradient(circle,#ffd7c2 0%,#ffb08f 34%,#ff7b62 58%,rgba(255,94,77,.0) 72%); opacity:.9; will-change:opacity,transform; }
+    .clouds { background:
+        linear-gradient(180deg,transparent 0%,transparent 52%,rgba(120,8,24,.0) 52%),
+        radial-gradient(ellipse 34% 3% at 30% 36%, rgba(255,160,140,.22), transparent 70%),
+        radial-gradient(ellipse 28% 2.4% at 78% 44%, rgba(255,170,150,.20), transparent 70%),
+        radial-gradient(ellipse 40% 2.6% at 58% 24%, rgba(255,140,130,.14), transparent 70%);
+      will-change:transform,opacity; }
+    .fuji { position:absolute; left:45%; bottom:4%; width:70%; height:34%; overflow:visible; will-change:transform,opacity; }
+    .land { position:absolute; left:0; bottom:0; width:100%; pointer-events:none; will-change:transform; }
+    .land.far { height:14%; bottom:2%; }
+    .land.near { height:9%; bottom:-1px; }
+    .mist { background:linear-gradient(180deg,transparent 58%,rgba(120,10,24,.35) 80%,rgba(40,2,8,.85) 100%); }
+
+    .tree { z-index:1; transform-origin:12% 100%; will-change:transform,opacity; }
+    #treeCanvas { display:block; width:100%; height:100%; }
+
+    .darkness { z-index:2; background:#000; opacity:0; will-change:opacity; }
+
+    /* ---------- Oni ---------- */
+    #maskCanvas { z-index:3; width:100%; height:100%; display:block; }
+    #petalCanvas, #fxCanvas, #treeCanvas { width:100%; height:100%; display:block; }
+    #petalCanvas { z-index:4; }
+    #fxCanvas { z-index:5; }
+
+    /* ---------- Logo ---------- */
+    .logo-screen { position:absolute; z-index:8; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; pointer-events:none; will-change:opacity,transform; }
+    .logo-screen svg { width:min(94vw,960px); height:auto; overflow:visible; transform-origin:50% 50%; will-change:transform; }
+    .enter { display:inline-flex; gap:14px; align-items:center; text-decoration:none; border:1px solid rgba(230,192,111,.75); padding:13px 26px; margin-top:clamp(4px,2vh,22px);
+      background:rgba(10,4,4,.6); color:#f6dca0; font-size:11px; letter-spacing:.32em; font-weight:800; transition:background .2s,box-shadow .2s,transform .2s; }
+    .enter:hover,.enter:focus-visible { background:rgba(144,0,24,.85); box-shadow:0 0 24px rgba(220,6,40,.45); transform:translateY(-2px); outline:none; }
+
+    .vignette { z-index:9; background:radial-gradient(ellipse 90% 80% at 50% 48%,transparent 50%,rgba(0,0,0,.45) 100%); }
+    .grain { z-index:10; opacity:.07; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' fill='%23fff' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E"); background-size:180px; }
+
+    .hud { position:absolute; z-index:11; bottom:clamp(20px,4.5vh,48px); font-size:10px; letter-spacing:.26em; text-transform:uppercase; display:flex; align-items:center; gap:14px; color:#ffe9e2; }
+    .hud.left { left:clamp(18px,4.5vw,72px); }
+    .hud.right { right:clamp(18px,4.5vw,72px); }
+    .bar { width:clamp(70px,11vw,160px); height:1px; background:rgba(255,233,226,.35); position:relative; }
+    .bar span { position:absolute; left:0; top:-.5px; height:2px; width:0; background:#fff0d1; box-shadow:0 0 10px #fff; }
+    .hud .arrow { font-size:18px; font-weight:400; animation:hint 1.8s ease-in-out infinite; }
+    @keyframes hint { 0%,100%{transform:translateY(-3px);opacity:.7} 55%{transform:translateY(4px);opacity:1} }
+    .skip { position:absolute; z-index:11; top:clamp(18px,4vh,40px); right:clamp(18px,4.5vw,72px); font-size:10px; letter-spacing:.24em; text-transform:uppercase; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.5); padding-bottom:6px; opacity:.8; }
+    .skip:hover,.skip:focus-visible { opacity:1; }
+
+    /* ---------- Header + team intro ---------- */
+    .topbar { position:absolute; z-index:7; left:0; right:0; top:0; height:120px; opacity:0; pointer-events:none; background:linear-gradient(180deg,rgba(0,0,0,.94) 0%,rgba(0,0,0,.7) 55%,transparent 100%); }
+    .team { position:absolute; inset:0; z-index:6; pointer-events:none; opacity:0; }
+    .panel { position:absolute; inset:0; overflow:hidden; visibility:hidden; will-change:transform; }
+    .panel .art { position:absolute; inset:0; will-change:transform; }
+    .panel .art img { width:100%; height:100%; object-fit:cover; object-position:50% 28%; display:block; }
+    .panel .art svg { position:absolute; bottom:0; height:94%; width:auto; left:50%; transform:translateX(-50%); }
+    .panel.fig-right .art svg { left:70%; }
+    .panel.fig-left .art svg { left:30%; }
+    .panel .xmark { position:absolute; inset:0; width:100%; height:100%; opacity:.10; }
+    .panel .shade { position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.15) 26%,transparent 50%,rgba(0,0,0,.55) 74%,rgba(0,0,0,.9) 100%); }
+    .panel .dim { position:absolute; inset:0; background:#000; opacity:0; }
+    .panel .info { position:absolute; left:7vw; top:24%; max-width:44vw; }
+    .panel.fig-left .info { left:auto; right:7vw; text-align:right; }
+    .panel .num { font-size:11px; font-weight:800; letter-spacing:.3em; color:#e6c06f; margin-bottom:14px; }
+    .panel .role { display:inline-block; background:#a8001c; color:#fff3dc; font-size:12px; font-weight:800; letter-spacing:.3em; padding:7px 13px; text-transform:uppercase; }
+    .panel .name { font-family:"Dela Gothic One",Manrope,sans-serif; font-weight:400; color:#f6dca0; font-size:clamp(34px,4.6vw,76px); line-height:1.02; margin-top:14px; text-shadow:0 3px 0 #3a0008,0 10px 30px rgba(0,0,0,.6); }
+    .panel .soon { position:absolute; right:clamp(18px,4.5vw,72px); top:92px; font-size:9px; font-weight:800; letter-spacing:.2em; color:#e6c06f; border:1px solid rgba(230,192,111,.6); padding:5px 8px; background:rgba(0,0,0,.45); }
+    .panel.outro { background:radial-gradient(ellipse 70% 60% at 50% 42%,#5a0716 0%,#1a0207 55%,#000 100%); }
+    .panel.outro .info { left:50%; right:auto; top:16%; transform:translateX(-50%); text-align:center; max-width:90vw; width:max-content; }
+    .panel.outro .name { font-size:clamp(34px,6vw,92px); }
+    .panel.outro .tags { margin-top:16px; color:#ffd6e3; font-size:clamp(11px,1.3vw,15px); font-weight:800; letter-spacing:.24em; text-transform:uppercase; }
+    .panel.outro .join { display:inline-block; margin-top:26px; border:1px solid rgba(230,192,111,.75); padding:13px 26px; color:#f6dca0; text-decoration:none; font-size:11px; letter-spacing:.32em; font-weight:800; background:rgba(10,4,4,.6); pointer-events:auto; }
+    @media (max-width:759px) {
+      .panel .art svg, .panel.fig-right .art svg, .panel.fig-left .art svg { left:50%; height:82%; bottom:12%; }
+      .panel .info, .panel.fig-left .info { left:20px; right:20px; top:84px; max-width:none; text-align:left; }
+      .panel .name { font-size:clamp(30px,9vw,44px); }
+      .panel .soon { top:auto; bottom:calc(30% + 10px); }
+      .panel.outro .info { left:50%; right:auto; top:12%; text-align:center; }
+      .panel.outro .join { margin-top:16px; }
+    }
+    .narrator { position:absolute; z-index:30; left:0; top:0; transform-origin:50% 100%; will-change:transform; }
+    .narrator svg, .narrator img { width:100%; height:100%; display:block; object-fit:contain; object-position:50% 100%; }
+    .narrator img[hidden] { display:none; }
+    .narrator img.alt { position:absolute; right:0; bottom:0; left:auto; top:auto; width:auto; height:100%; opacity:0;
+      -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 93%,transparent 100%); mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 93%,transparent 100%); }
+    .narrator img { -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 16%); mask-image:linear-gradient(90deg,transparent 0,#000 16%); }
+    .bubble { position:absolute; z-index:31; left:0; top:0; background:linear-gradient(180deg,rgba(26,4,9,.94),rgba(12,2,5,.94)); color:#ffe9ee; border:1.5px solid #c4243f; border-radius:4px; padding:14px 18px 16px; opacity:0; outline:1px solid rgba(230,192,111,.55); outline-offset:4px;
+      font-size:clamp(13px,1.55vh + .2vw,16px); line-height:1.55; font-weight:700; box-shadow:0 12px 32px rgba(0,0,0,.5); will-change:transform,opacity; }
+    .bubble .who { font-size:10px; font-weight:800; letter-spacing:.24em; color:#e6c06f; text-transform:uppercase; margin-bottom:4px; }
+    .bubble .tail { position:absolute; bottom:-13px; width:0; height:0; border-left:11px solid transparent; border-right:11px solid transparent; border-top:13px solid #a8001c; }
+    .bubble .tail::after { content:""; position:absolute; left:-8px; top:-15px; border-left:8px solid transparent; border-right:8px solid transparent; border-top:10px solid #12030a; }
+    .bubble .sak { position:absolute; right:8px; bottom:6px; width:30px; height:30px; opacity:.85; pointer-events:none; }
+
+    .chapter { min-height:75vh; background:radial-gradient(ellipse at 50% 0%,rgba(144,0,24,.28),transparent 55%),#050203; padding:110px 24px 130px; display:grid; place-items:center; text-align:center; border-top:1px solid rgba(201,149,69,.25); }
+    .chapter h2 { font-family:"Dela Gothic One",Manrope,sans-serif; font-weight:400; font-size:clamp(34px,6vw,72px); line-height:1.15; margin:0 0 20px; color:#f6dca0; }
+    .chapter p { font-size:14px; line-height:2; color:#dbbdbe; max-width:540px; margin:auto; font-weight:500; }
+
+    @media (max-width:700px) {
+      .experience { height:1780vh; }
+      .fuji { left:22%; width:110%; height:26%; bottom:3%; }
+      .sun { left:77%; top:70%; width:30vw; }
+      .hud.right span:first-child { display:none; }
+    }
+    @media (prefers-reduced-motion:reduce) { html{scroll-behavior:auto;} .hud .arrow{animation:none;} .enter{transition:none;} }
+  </style>
+</head>
+<body>
+<main>
+  <section id="experience" class="experience" aria-label="SIMATS Anime Club opening — scroll to play">
+    <div id="stage" class="stage">
+      <div class="layer sky" id="sky"></div>
+      <div class="sun" id="sun"></div>
+      <div class="layer clouds" id="clouds"></div>
+      <svg class="land far" id="landFar" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs><linearGradient id="farHills" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5e0d1c"/><stop offset="1" stop-color="#1e0309"/></linearGradient></defs>
+        <path d="M0 100 L0 34 C 60 18, 120 30, 190 26 C 260 22, 320 40, 400 36 C 480 32, 540 22, 620 28 C 700 34, 780 18, 860 24 C 920 28, 960 22, 1000 26 L1000 100 Z" fill="url(#farHills)" opacity=".8"/>
+      </svg>
+      <svg class="fuji" id="fuji" viewBox="0 0 1600 600" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+        <defs>
+          <linearGradient id="fujiBody" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#4a0b18"/><stop offset=".45" stop-color="#2e0610"/><stop offset="1" stop-color="#140207"/>
+          </linearGradient>
+          <linearGradient id="fujiSnow" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ffe6ec"/><stop offset=".55" stop-color="#f4c3cf"/><stop offset="1" stop-color="#c98894"/>
+          </linearGradient>
+                  </defs>
+        <!-- Fuji -->
+        <path d="M180 600 C 440 470, 660 300, 755 192 L 775 186 L 790 194 L 810 184 L 845 196 C 940 300, 1160 470, 1420 600 Z" fill="url(#fujiBody)"/>
+        <!-- light-side flank -->
+        <path d="M845 196 C 940 300, 1160 470, 1420 600 L 1260 600 C 1080 470, 930 330, 845 196 Z" fill="#ff8a7a" opacity=".07"/>
+        <!-- snow cap -->
+        <path d="M755 192 L775 186 L790 194 L810 184 L845 196 C 875 228, 900 258, 918 282 L 892 270 L 880 302 L 858 276 L 840 314 L 820 282 L 800 320 L 782 284 L 762 308 L 748 278 L 725 298 L 710 272 L 684 288 C 705 252, 730 222, 755 192 Z" fill="url(#fujiSnow)"/>
+        <path d="M790 194 L 800 320 M 810 184 L 840 314 M 775 186 L 762 308" stroke="#9e5a66" stroke-width="2" opacity=".35" fill="none"/>
+      </svg>
+      <svg class="land near" id="landNear" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 100 L0 40 C 80 28, 160 46, 250 38 C 340 30, 420 52, 520 46 C 620 40, 700 26, 800 34 C 880 40, 940 30, 1000 36 L1000 100 Z" fill="#12020a"/>
+      </svg>
+      <div class="layer mist"></div>
+      <div class="layer tree" id="tree"><canvas id="treeCanvas" aria-hidden="true"></canvas></div>
+      <div class="layer darkness" id="darkness"></div>
+
+      <canvas id="maskCanvas" class="layer" role="img" aria-label="Gold oni mask with glowing red eyes"></canvas>
+      <canvas id="petalCanvas" class="layer" aria-hidden="true"></canvas>
+      <canvas id="fxCanvas" class="layer" aria-hidden="true"></canvas>
+
+      <div class="logo-screen" id="logo">
+        <svg id="logoSvg" viewBox="0 0 1000 600" role="img" aria-label="SIMATS Anime Club">
+          <defs>
+            <linearGradient id="bladeHi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff4c4"/><stop offset=".45" stop-color="#f0c875"/><stop offset="1" stop-color="#b9772c"/></linearGradient>
+            <linearGradient id="bladeLo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a8641f"/><stop offset=".5" stop-color="#6e3812"/><stop offset="1" stop-color="#c88a3c"/></linearGradient>
+            <linearGradient id="titleGold" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#fffbe2"/><stop offset=".30" stop-color="#ffe6a3"/><stop offset=".49" stop-color="#e9b85e"/>
+              <stop offset=".51" stop-color="#8c4a17"/><stop offset=".66" stop-color="#d0923f"/><stop offset=".86" stop-color="#ffe3a0"/><stop offset="1" stop-color="#b8742c"/>
+            </linearGradient>
+            <linearGradient id="shine" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="220" y2="60">
+              <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+              <animateTransform id="shineAnim" attributeName="gradientTransform" type="translate" values="-400 0; 1300 0; 1300 0" keyTimes="0;.55;1" dur="5.5s" repeatCount="indefinite"/>
+            </linearGradient>
+            <filter id="softGlow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="14"/></filter>
+            <g id="titleArt" font-family="Dela Gothic One, sans-serif" font-size="172" text-anchor="middle">
+            <text x="500" y="374" textLength="780" lengthAdjust="spacingAndGlyphs" fill="#5a000f" stroke="#5a000f" stroke-width="34" stroke-linejoin="round" transform="translate(0 8)">SIMATS</text>
+            <text x="500" y="374" textLength="780" lengthAdjust="spacingAndGlyphs" fill="#9a0018" stroke="#b00020" stroke-width="30" stroke-linejoin="round">SIMATS</text>
+            <text x="500" y="374" textLength="780" lengthAdjust="spacingAndGlyphs" fill="#140604" stroke="#140604" stroke-width="13" stroke-linejoin="round">SIMATS</text>
+            <text x="500" y="374" textLength="780" lengthAdjust="spacingAndGlyphs" fill="url(#titleGold)">SIMATS</text>
+            <text x="500" y="374" textLength="780" lengthAdjust="spacingAndGlyphs" fill="url(#shine)" id="shineText">SIMATS</text>
+          </g>
+            <clipPath id="cutTop"><path d="M0 0 H1000 V269 L0 384 Z"/></clipPath>
+            <clipPath id="cutBot"><path d="M0 391 L1000 276 V600 H0 Z"/></clipPath>
+          </defs>
+
+          <!-- X emblem: two crossed blades, wider and thinner than V2 -->
+          <g id="crest" opacity=".92">
+            <ellipse cx="500" cy="300" rx="430" ry="200" fill="#900018" opacity=".22" filter="url(#softGlow)"/>
+            <path d="M500 18 L962 300 L500 582 L38 300 Z" fill="none" stroke="#bf8840" stroke-width="1.4" opacity=".5"/>
+            <path d="M500 34 L936 300 L500 566 L64 300 Z" fill="none" stroke="#e7bb71" stroke-width="1" stroke-dasharray="6 12" opacity=".4"/>
+            <g id="bladeA">
+              <polygon points="128,52 207,143.1 757.5,510.1 872,548" fill="url(#bladeHi)"/>
+              <polygon points="128,52 242.5,89.9 793,456.9 872,548" fill="url(#bladeLo)"/>
+            </g>
+            <polygon points="872,52 757.5,89.9 207,456.9 128,548 242.5,510.1 793,143.1" fill="none" stroke="#1a0905" stroke-width="10" stroke-linejoin="miter"/>
+            <g id="bladeB">
+              <polygon points="872,52 757.5,89.9 207,456.9 128,548" fill="url(#bladeHi)"/>
+              <polygon points="872,52 793,143.1 242.5,510.1 128,548" fill="url(#bladeLo)"/>
+            </g>
+            <path d="M128 52 L872 548 M872 52 L128 548" stroke="#fff3c2" stroke-width="1.4" opacity=".55"/>
+            <path d="M500 4 L507 40 L500 58 L493 40 Z M500 596 L507 560 L500 542 L493 560 Z" fill="#ffd38a" opacity=".75"/>
+          </g>
+
+          <!-- small katakana line -->
+          <text x="500" y="196" text-anchor="middle" font-family="Dela Gothic One, sans-serif" font-size="26" letter-spacing="14" fill="#f3d391" stroke="#000" stroke-width="6" paint-order="stroke">アニメクラブ</text>
+
+          <!-- SIMATS wordmark (layered anime-title treatment), sliced by a sword cut -->
+          <g id="titleCut" aria-hidden="true">
+            <g clip-path="url(#cutTop)"><use href="#titleArt"/></g>
+            <g id="cutLower" clip-path="url(#cutBot)"><use href="#titleArt"/></g>
+          </g>
+          <path id="slashLine" d="M92 377 L908 283" stroke="#fff1c8" stroke-width="2.6" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+
+          <!-- ANIME CLUB on a crimson brush stroke -->
+          <g id="banner">
+            <path d="M229.3 479.0 L239.5 463.9 L246.8 455.8 L257.7 447.9 L267.8 441.5 L278.6 441.3 L284.6 440.8 L294.1 438.5 L304.9 440.7 L314.7 438.8 L323.1 439.3 L331.6 437.8 L342.9 439.0 L351.0 436.6 L358.8 436.9 L371.5 438.4 L379.7 437.5 L388.6 436.4 L398.6 434.7 L406.9 436.0 L415.3 438.5 L424.5 437.7 L433.7 436.6 L445.9 434.5 L453.4 434.2 L462.0 437.1 L473.0 436.8 L481.5 435.2 L491.4 434.8 L502.3 433.9 L509.6 435.5 L517.6 436.9 L528.0 436.8 L536.4 435.1 L547.8 436.0 L556.1 435.9 L565.9 434.1 L574.7 434.9 L582.8 431.6 L594.2 435.7 L604.8 432.4 L611.3 431.9 L621.3 434.3 L632.7 431.4 L639.6 432.6 L648.1 433.5 L661.2 432.6 L670.5 432.8 L676.8 433.4 L688.7 431.9 L695.0 430.9 L707.0 431.6 L714.7 431.5 L724.3 434.7 L732.5 441.5 L741.9 443.1 L752.1 448.0 L763.9 452.1 L771.1 456.4 L779.7 462.2 L789.0 469.0 L788.5 469.0 L779.6 476.3 L772.6 480.9 L762.1 487.8 L751.2 489.1 L745.3 496.1 L735.6 501.1 L725.6 501.5 L717.2 506.8 L704.7 511.1 L698.3 511.3 L687.9 511.5 L678.5 512.4 L667.5 507.9 L661.1 513.4 L649.0 511.5 L640.1 507.0 L632.6 512.1 L623.2 514.0 L612.8 512.7 L602.4 510.0 L594.1 514.5 L584.8 508.8 L576.6 509.1 L564.3 508.8 L558.1 515.2 L546.3 510.9 L536.1 514.7 L526.7 509.8 L518.2 510.1 L508.4 513.6 L502.2 514.9 L492.0 509.8 L483.8 514.4 L470.7 512.7 L462.3 513.3 L455.8 511.2 L443.8 513.2 L435.5 516.6 L425.6 516.7 L414.9 516.2 L405.4 514.2 L399.3 513.1 L386.9 516.2 L380.7 518.1 L370.8 515.8 L361.7 515.8 L349.9 515.4 L343.9 512.9 L332.8 518.4 L324.5 517.3 L313.3 516.7 L302.9 514.2 L295.9 515.5 L285.2 518.8 L278.1 515.3 L267.6 512.3 L256.5 506.2 L246.9 499.8 L237.6 493.9 L230.6 479.0 Z" fill="#a8001c"/>
+            <path d="M677 466 Q753 460 829 453 M713 470 Q769 464 825 460 M641 475 Q732 469 822 469 M704 446 Q756 440 809 437 M685 487 Q750 481 816 477" stroke="#a8001c" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>
+            <text x="500" y="492" text-anchor="middle" textLength="440" lengthAdjust="spacingAndGlyphs" font-family="Dela Gothic One, sans-serif" font-size="50" fill="#fff3dc" stroke="#3a0008" stroke-width="5" paint-order="stroke">ANIME CLUB</text>
+          </g>
+        </svg>
+        <a class="enter" href="#club" id="enterBtn" tabindex="-1">ENTER <span aria-hidden="true">↗</span></a>
+      </div>
+
+      <div class="team" id="team" aria-label="Meet the core team">
+        <div id="cards"></div>
+        <div class="bubble" id="bubble" aria-live="polite"><div class="who" id="bubbleWho"></div><div id="bubbleText"></div><span class="tail" id="bubbleTail"></span><svg class="sak" viewBox="-15 -15 30 30" aria-hidden="true"><g fill="#f7a8bd"><use href="#nSak" transform="translate(-4 4) scale(1.5)"/></g><g fill="#e6b85c"><use href="#nSak" transform="translate(7 -6) scale(1)"/></g></svg></div>
+        <div class="narrator" id="narrator">
+          <img id="narratorImg" alt="" hidden />
+          <img id="narratorImg2" class="alt" alt="" hidden />
+          <!-- placeholder narrator (an original character). Set NARRATOR_IMAGE in the script to use your own art. -->
+          <svg id="narratorSvg" viewBox="0 0 240 320" aria-hidden="true" style="overflow:visible">
+            <defs>
+              <linearGradient id="nKimono" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cf1e38"/><stop offset=".6" stop-color="#9c0f24"/><stop offset="1" stop-color="#5e0614"/></linearGradient>
+              <linearGradient id="nSleeve" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d42a43"/><stop offset="1" stop-color="#6e0818"/></linearGradient>
+              <linearGradient id="nHair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6a1824"/><stop offset=".55" stop-color="#43101a"/><stop offset="1" stop-color="#22050a"/></linearGradient>
+              <linearGradient id="nTailG" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#4a1019"/><stop offset=".55" stop-color="#8f2a35"/><stop offset=".8" stop-color="#e9b2b0"/><stop offset="1" stop-color="#fff6ee"/></linearGradient>
+              <linearGradient id="nGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2bf"/><stop offset=".5" stop-color="#e6b85c"/><stop offset="1" stop-color="#9a6420"/></linearGradient>
+              <radialGradient id="nIris" cx=".5" cy=".66" r=".62"><stop offset="0" stop-color="#ff6d7c"/><stop offset=".5" stop-color="#cc1530"/><stop offset="1" stop-color="#4a0010"/></radialGradient>
+              <radialGradient id="nSkin" cx=".5" cy=".42" r=".65"><stop offset="0" stop-color="#fff0e6"/><stop offset="1" stop-color="#f6d2c2"/></radialGradient>
+              <g id="nSak"><ellipse cx="0" cy="-3.2" rx="2.2" ry="3.2"/><ellipse cx="0" cy="-3.2" rx="2.2" ry="3.2" transform="rotate(72)"/><ellipse cx="0" cy="-3.2" rx="2.2" ry="3.2" transform="rotate(144)"/><ellipse cx="0" cy="-3.2" rx="2.2" ry="3.2" transform="rotate(216)"/><ellipse cx="0" cy="-3.2" rx="2.2" ry="3.2" transform="rotate(288)"/></g>
+            </defs>
+            <g id="nBody">
+              <!-- fluffy fox tail -->
+              <g id="nTail" style="transform-origin:122px 236px">
+                <path d="M124 238 C 78 262, 24 240, 22 192 C 20 150, 46 124, 36 86 C 66 100, 82 138, 72 176 C 66 204, 90 222, 120 212 Z" fill="url(#nTailG)"/>
+                <path d="M42 110 Q52 120 56 134 M34 160 Q40 146 50 138 M40 208 Q50 196 60 190 M62 226 Q76 216 86 214" stroke="#fff3ea" stroke-width="1.6" fill="none" opacity=".55" stroke-linecap="round"/>
+              </g>
+              <!-- long hair behind -->
+              <path d="M70 92 C 56 160, 58 232, 78 272 Q 96 262 120 270 Q 144 262 162 272 C 182 232, 184 160, 170 92 Z" fill="url(#nHair)"/>
+              <!-- feet: white tabi and black-red zori -->
+              <g id="nLegL" style="transform-origin:104px 286px"><ellipse cx="104" cy="303" rx="12" ry="6" fill="#f7f0ea"/><rect x="91" y="306" width="27" height="5" rx="2.5" fill="#1a0508"/><path d="M98 304 L104 298 L110 304" stroke="#c4102e" stroke-width="2" fill="none"/></g>
+              <g id="nLegR" style="transform-origin:136px 286px"><ellipse cx="136" cy="303" rx="12" ry="6" fill="#f7f0ea"/><rect x="123" y="306" width="27" height="5" rx="2.5" fill="#1a0508"/><path d="M130 304 L136 298 L142 304" stroke="#c4102e" stroke-width="2" fill="none"/></g>
+              <!-- back sleeve -->
+              <g id="nArmB" style="transform-origin:90px 176px">
+                <path d="M90 168 Q60 176 54 210 L52 256 Q74 268 94 256 L98 196 Z" fill="url(#nSleeve)"/>
+                <path d="M52 256 Q74 268 94 256" stroke="url(#nGold)" stroke-width="3" fill="none"/>
+                <path d="M54 246 Q74 256 94 246" stroke="#1a0508" stroke-width="3" fill="none" opacity=".7"/>
+                <use href="#nSak" transform="translate(68 222) scale(0.9)" fill="#f1c46a" opacity="1"/><use href="#nSak" transform="translate(80 240) scale(0.7)" fill="#f7a8bd" opacity="0.85"/>
+              </g>
+              <!-- kimono -->
+              <path d="M86 166 Q120 158 154 166 L172 300 Q120 314 68 300 Z" fill="url(#nKimono)"/>
+              <path d="M120 214 L118 304" stroke="#5e0614" stroke-width="2" opacity=".6"/>
+              <use href="#nSak" transform="translate(92 268) scale(1.0)" fill="#f1c46a" opacity="1"/><use href="#nSak" transform="translate(150 284) scale(1.2)" fill="#f7a8bd" opacity="0.9"/><use href="#nSak" transform="translate(142 250) scale(0.8)" fill="#f1c46a" opacity="1"/><use href="#nSak" transform="translate(98 244) scale(0.7)" fill="#f7a8bd" opacity="0.85"/><use href="#nSak" transform="translate(160 266) scale(0.9)" fill="#f1c46a" opacity="1"/><use href="#nSak" transform="translate(80 288) scale(0.75)" fill="#f7a8bd" opacity="0.8"/><use href="#nSak" transform="translate(124 292) scale(0.7)" fill="#f1c46a" opacity="1"/>
+              <path d="M68 300 Q120 314 172 300" stroke="url(#nGold)" stroke-width="3.5" fill="none"/>
+              <path d="M70 292 Q120 305 170 292" stroke="#1a0508" stroke-width="3" fill="none" opacity=".75"/>
+              <!-- collar: black/gold outer, white inner -->
+              <path d="M100 164 L121 214 L140 164" fill="none" stroke="#1a0508" stroke-width="10" stroke-linejoin="round"/>
+              <path d="M100 164 L121 214 L140 164" fill="none" stroke="url(#nGold)" stroke-width="2" stroke-linejoin="round" transform="translate(0 -4)"/>
+              <path d="M106 164 L121 202 L134 164" fill="none" stroke="#f7f0ea" stroke-width="4" stroke-linejoin="round"/>
+              <!-- obi with cord, knot and tassels -->
+              <path d="M84 210 Q120 219 156 210 L159 238 Q120 247 81 238 Z" fill="#1a0508"/>
+              <path d="M84 211 Q120 220 156 211 M81 237 Q120 246 159 237" stroke="url(#nGold)" stroke-width="2" fill="none"/>
+              <path d="M83 225 Q120 233 157 225" stroke="#c4102e" stroke-width="3.2" fill="none"/>
+              <path d="M110 226 Q120 236 130 226 M114 232 Q120 222 126 232" stroke="#c4102e" stroke-width="2.4" fill="none"/>
+              <use href="#nSak" transform="translate(120 229) scale(1.6)" fill="url(#nGold)" opacity="1"/>
+              <circle cx="120" cy="229" r="1.8" fill="#c4102e"/>
+              <path d="M117 233 L112 258 M123 233 L128 258" stroke="url(#nGold)" stroke-width="1.6"/>
+              <path d="M109 256 L115 256 L114 272 L110 272 Z M125 256 L131 256 L130 272 L126 272 Z" fill="url(#nGold)"/>
+              <!-- neck -->
+              <path d="M111 146 L129 146 L128 166 Q120 170 112 166 Z" fill="#f2cbb9"/>
+              <!-- head -->
+              <g id="nHead">
+                <!-- fox ears -->
+                <path d="M80 72 L66 14 Q98 26 108 58 Z" fill="#5a1420"/>
+                <path d="M84 66 L74 28 Q95 38 102 58 Z" fill="#f8e2d8"/>
+                <path d="M80 50 L86 44 M78 40 L85 38 M84 58 L91 52" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".8"/>
+                <path d="M160 72 L174 14 Q142 26 132 58 Z" fill="#5a1420"/>
+                <path d="M156 66 L166 28 Q145 38 138 58 Z" fill="#f8e2d8"/>
+                <path d="M160 50 L154 44 M162 40 L155 38 M156 58 L149 52" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".8"/>
+                <!-- face -->
+                <path d="M76 110 Q76 68 120 66 Q164 68 164 110 Q164 148 120 160 Q76 148 76 110 Z" fill="url(#nSkin)"/>
+                <!-- hair cap, side locks and bangs -->
+                <path d="M70 110 Q64 50 120 44 Q176 50 170 110 Q162 80 140 74 Q120 68 100 74 Q78 80 70 110 Z" fill="url(#nHair)"/>
+                <path d="M76 98 Q66 150 74 214 Q82 170 88 112 Z" fill="url(#nHair)"/>
+                <path d="M164 98 Q174 150 166 214 Q158 170 152 112 Z" fill="url(#nHair)"/>
+                <path d="M78 104 Q84 64 120 60 Q156 64 162 104 L154 86 L148 108 L139 80 L130 102 L121 76 L111 102 L102 80 L94 108 L87 86 Z" fill="url(#nHair)"/>
+                <path d="M96 66 Q108 58 122 60 M132 64 Q146 66 154 76 M80 130 Q78 160 80 190" stroke="#94303e" stroke-width="2" fill="none" opacity=".75" stroke-linecap="round"/>
+                <!-- brows and eyes -->
+                <path d="M92 100 Q100 94 110 96 M130 96 Q140 94 148 100" stroke="#5a1420" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <g>
+                  <ellipse cx="102" cy="120" rx="11" ry="13" fill="#fff"/><ellipse cx="102" cy="122" rx="9" ry="11" fill="url(#nIris)"/><ellipse cx="102" cy="123" rx="3.6" ry="5.4" fill="#2a0008"/>
+                  <circle cx="98.5" cy="116.5" r="3.2" fill="#fff"/><circle cx="106" cy="127" r="1.6" fill="#fff" opacity=".85"/>
+                  <path d="M115 112 Q102 103 89 112 L85 107" stroke="#2a0609" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+                  <ellipse cx="138" cy="120" rx="11" ry="13" fill="#fff"/><ellipse cx="138" cy="122" rx="9" ry="11" fill="url(#nIris)"/><ellipse cx="138" cy="123" rx="3.6" ry="5.4" fill="#2a0008"/>
+                  <circle cx="134.5" cy="116.5" r="3.2" fill="#fff"/><circle cx="142" cy="127" r="1.6" fill="#fff" opacity=".85"/>
+                  <path d="M125 112 Q138 103 151 112 L155 107" stroke="#2a0609" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+                </g>
+                <ellipse cx="92" cy="138" rx="8" ry="4" fill="#ff8fa0" opacity=".5"/><ellipse cx="148" cy="138" rx="8" ry="4" fill="#ff8fa0" opacity=".5"/>
+                <path d="M88 136 L92 132 M93 137 L97 133 M144 136 L148 132 M149 137 L153 133" stroke="#ff7088" stroke-width="1" opacity=".6"/>
+                <path id="nMouthC" d="M114 142 Q120 147 126 142" stroke="#7a1622" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+                <g id="nMouthO" opacity="0"><path d="M112 140 Q120 154 128 140 Z" fill="#7a1622"/><ellipse cx="120" cy="148" rx="4.5" ry="2.6" fill="#ff8a9a"/></g>
+                <!-- kanzashi: gold flowers, red bloom, ribbon, tassels and a bell -->
+                <path d="M84 84 Q74 76 78 68 Q86 72 88 82 Z M86 86 Q96 80 100 88 Q92 92 86 86 Z" fill="#c4102e"/>
+                <use href="#nSak" transform="translate(84 84) scale(2.0)" fill="url(#nGold)" opacity="1"/><use href="#nSak" transform="translate(96 78) scale(1.4)" fill="#e0283f" opacity="1"/><use href="#nSak" transform="translate(76 92) scale(1.1)" fill="url(#nGold)" opacity="1"/>
+                <circle cx="84" cy="84" r="2" fill="#c4102e"/>
+                <path d="M80 90 L74 124 M84 90 L82 130 M88 90 L90 120" stroke="url(#nGold)" stroke-width="1.3"/>
+                <path d="M71 122 L77 122 L76 138 L72 138 Z M79 128 L85 128 L84 144 L80 144 Z" fill="url(#nGold)"/>
+                <circle cx="90" cy="122" r="3.2" fill="url(#nGold)"/>
+              </g>
+              <!-- front sleeve: swings out palm-up while she presents -->
+              <g id="nArmF" style="transform-origin:150px 176px">
+                <path d="M150 168 Q180 176 186 210 L188 256 Q166 268 146 256 L142 196 Z" fill="url(#nSleeve)"/>
+                <path d="M146 256 Q166 268 188 256" stroke="url(#nGold)" stroke-width="3" fill="none"/>
+                <path d="M146 246 Q166 256 186 246" stroke="#1a0508" stroke-width="3" fill="none" opacity=".7"/>
+                <use href="#nSak" transform="translate(170 220) scale(0.9)" fill="#f1c46a" opacity="1"/><use href="#nSak" transform="translate(160 238) scale(0.7)" fill="#f7a8bd" opacity="0.85"/>
+                <path d="M160 258 Q166 272 180 270 Q186 266 178 262 L184 258 Q178 254 170 256 Z" fill="#f6d2c2"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="topbar" id="topbar"></div>
+      <div class="layer vignette"></div>
+      <div class="layer grain"></div>
+      <a class="skip" href="#club">Skip</a>
+      <div class="hud left" aria-hidden="true"><div class="bar"><span id="bar"></span></div><span id="pct">00</span></div>
+      <div class="hud right" id="hint" aria-hidden="true"><span>Scroll</span><span class="arrow">↓</span></div>
+    </div>
+  </section>
+
+  <section class="chapter" id="club" aria-label="Club home">
+    <div>
+      <h2>YOUR NEXT CHAPTER<br />STARTS HERE.</h2>
+      <p>Welcome to SIMATS Anime Club. Club events, anime discussions, cosplay, gallery and community sections begin here.</p>
+    </div>
+  </section>
+</main>
+
+<script src="assets/oni-mask.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const scene=$('#experience'), stage=$('#stage');
+  const treeCanvas=$('#treeCanvas'), petalCanvas=$('#petalCanvas'), fxCanvas=$('#fxCanvas'), maskCanvas=$('#maskCanvas');
+  const tctx=treeCanvas.getContext('2d'), pctx=petalCanvas.getContext('2d'), fctx=fxCanvas.getContext('2d'), mctx=maskCanvas.getContext('2d');
+  const landFar=$('#landFar'), landNear=$('#landNear');
+  const sky=$('#sky'), sun=$('#sun'), clouds=$('#clouds'), fuji=$('#fuji'), tree=$('#tree'), darkness=$('#darkness');
+  const logo=$('#logo'), enterBtn=$('#enterBtn'), slashLine=$('#slashLine'), crest=$('#crest'), title=$('#titleCut'), cutLower=$('#cutLower'), banner=$('#banner');
+  const bar=$('#bar'), pct=$('#pct'), hint=$('#hint');
+  const hudL=document.querySelector('.hud.left');
+  const logoSvg=$('#logoSvg'), topbar=$('#topbar'), team=$('#team'), cardsEl=$('#cards'), bubble=$('#bubble'), bubbleWho=$('#bubbleWho'), bubbleText=$('#bubbleText'), bubbleTail=$('#bubbleTail');
+  const narrator=$('#narrator'), narratorImg=$('#narratorImg'), narratorImg2=$('#narratorImg2'), narratorSvg=$('#narratorSvg');
+  const nTail=$('#nTail'), nBody=$('#nBody'), nLegL=$('#nLegL'), nLegR=$('#nLegR'), nArmF=$('#nArmF'), nArmB=$('#nArmB'), nHead=$('#nHead'), nMouthC=$('#nMouthC'), nMouthO=$('#nMouthO');
+
+  // ================= TEAM INTRO: edit names, lines and photos here =================
+  // photo: path to an image file, e.g. 'assets/team/president.jpg'. Leave '' to show the placeholder character.
+  // NARRATOR_IMAGE: path to a transparent PNG of the narrator character you want walking across the screen.
+  //                 Leave '' to use the built-in placeholder narrator.
+  const NARRATOR_IMAGE='assets/narrator.webp';
+  const NARRATOR_OUTRO_IMAGE='assets/narrator-outro.webp';   // her pose on the closing screen ('' = keep the main pose)
+  const TEAM=[
+    {role:'President',      name:'Sudharshshini R', photo:'', line:"First up, Sudharshshini R, our President! She leads SIMATS Anime Club, plans our screenings, events and fests, and keeps the whole crew moving forward."},
+    {role:'Vice President', name:'Darshan A',       photo:'', line:"This is Darshan A, our Vice President! He backs every plan, runs our events on the ground, and makes sure every new member feels at home."},
+    {role:'Secretary',      name:'Jayadeep J',      photo:'', line:"Here's Jayadeep J, our Secretary! He keeps our records, sends out every announcement, and built this very website for the club."},
+    {role:'Treasurer',      name:'Lohithaksha D',   photo:'', line:"And Lohithaksha D, our Treasurer! He manages the club budget, so every screening, cosplay meet and fest stall has what it needs."},
+  ];
+  const OUTRO={who:'SIMATS Anime Club', line:"Together, we're SIMATS Anime Club: anime screenings, cosplay, art jams, quizzes and fests all year. Keep scrolling and join the crew!"};
+  // ==================================================================================
+
+  const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
+  const mix=(a,b,t)=>a+(b-a)*t;
+  const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t);};
+  const rng=(seed)=>()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  const hex=(h)=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+  const mixCol=(a,b,t)=>a.map((v,i)=>Math.round(mix(v,b[i],t)));
+  const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduced){ const a=$('#shineAnim'); a&&a.remove(); $('#shineText').remove(); }
+
+  // Mask geometry (image space 936 x 1378)
+  const IMG_W=936, IMG_H=1378;
+  const EYE_MID={x:468,y:844};
+  const EYE_L={x:312,y:844}, EYE_R={x:624,y:844};
+  const TAU=Math.PI*2;
+  // The mask is a vector trace drawn on canvas every frame, so it stays razor-sharp at any zoom level.
+  const ONI=window.ONI_MASK, oniPath=new Path2D(ONI.d);
+  const oniGrad=mctx.createLinearGradient(0,0,0,IMG_H);
+  for(const [o,c] of ONI.stops) oniGrad.addColorStop(o,c);
+  const HOLD_VH=1.0, HEADER_VH=1.0, TEAM_VH=7.0;   // screens of scroll: logo hold, logo -> header, team intro   // extra scroll (in screen heights) where the finished logo simply stays put
+
+  let sTarget=0, sCur=0, totalPx=1, animPx=1, hdrP=0, teamP=0;
+  let ready=false, W=0,H=0,dpr=1,pdpr=1, target=0, prog=0, last=0, visible=true, slowFrames=0;
+  let maskBox={w:0,h:0,left:0,top:0};
+
+  // ---------- Sakura tree: one uniform pink (#FFD6E3), gnarled like real wood ----------
+  function drawTree(){
+    const PINK='#FFD6E3', EDGE='rgba(120,10,30,.36)';
+    const rand=rng(80341);
+    if(!treeCanvas.width||!treeCanvas.height) return;
+    const off=document.createElement('canvas'); off.width=treeCanvas.width; off.height=treeCanvas.height;
+    const c=off.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0);
+    c.strokeStyle=PINK; c.fillStyle=PINK; c.lineCap='round'; c.lineJoin='round';
+    const mobile=W<700;
+    const S=mobile?clamp(W/430,.7,1.1):clamp(Math.min(W/1440,H/900),.7,1.6);
+    const flowers=[], cells=new Map(), CELL=26*S;
+    const crowded=(f)=>{const gx=Math.floor(f.x/CELL), gy=Math.floor(f.y/CELL);
+      for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=cells.get((gx+a)+','+(gy+b)); if(l) for(const q of l) if(Math.hypot(q.x-f.x,q.y-f.y)<(q.r+f.r)*.6) return true;} return false;};
+    const place=(f)=>{ if(crowded(f)) return; flowers.push(f); const k=Math.floor(f.x/CELL)+','+Math.floor(f.y/CELL); (cells.get(k)||cells.set(k,[]).get(k)).push(f); };
+
+    // A limb is a chain of short straight segments (~6px) that wander a little at every step
+    // and kink at nodes, the way real sakura wood zig-zags. Width tapers along the chain.
+    function path(x,y,ang,len,w0,w1,lift){
+      const steps=Math.max(4,Math.round(len/(6*S))), seg=len/steps, kink=3+Math.floor(rand()*4);
+      let a=ang; const pts=[[x,y,w0,a]];
+      for(let i=1;i<=steps;i++){
+        a+=(rand()-.5)*.20;
+        if(i%kink===0) a+=(rand()-.5)*.55;
+        a+=(-Math.PI/2-a)*lift;
+        x+=Math.cos(a)*seg; y+=Math.sin(a)*seg;
+        pts.push([x,y,mix(w0,w1,i/steps),a]);
+      }
+      for(let i=1;i<pts.length;i++){ c.lineWidth=Math.max(.7,pts[i-1][2]); c.beginPath(); c.moveTo(pts[i-1][0],pts[i-1][1]); c.lineTo(pts[i][0],pts[i][1]); c.stroke(); }
+      return pts;
+    }
+    function blossoms(x,y,a){
+      if(rand()<.08) return;                                 // a few tips stay bare: keeps the crown airy
+      const n=3+Math.floor(rand()*4);
+      for(let i=0;i<n;i++){
+        const d=(4+rand()*20)*S, t=a+(rand()-.5)*3.0;
+        place({x:x+Math.cos(t)*d, y:y+Math.sin(t)*d+3*S, r:(7.5+rand()*5)*S, rot:rand()*TAU, tilt:.62+rand()*.38, bud:rand()<.2});
+      }
+    }
+    function grow(x,y,ang,len,w,depth){
+      const pts=path(x,y,ang,len,w,w*.62,depth>=2?.012:-.008);   // thick limbs reach up, fine twigs droop
+      const end=pts[pts.length-1];
+      // blossoms along the finer limbs too, not only at the tips
+      if(depth<=2) for(let k=0;k<pts.length;k+=3) if(rand()<(depth===0?.55:depth===1?.4:.22)){ const q=pts[k]; blossoms(q[0],q[1],q[3]+(rand()<.5?1.57:-1.57)); }
+      // hair-fine side twigs
+      if(depth<=2) for(let k=0;k<2;k++) if(rand()<.55){
+        const q=pts[Math.floor(pts.length*(.3+rand()*.6))], ta=q[3]+(rand()<.5?-1:1)*(.6+rand()*.6);
+        const tw=path(q[0],q[1],ta,(10+rand()*18)*S,Math.max(.7,w*.35),.7,-.01);
+        const e=tw[tw.length-1]; blossoms(e[0],e[1],e[3]);
+      }
+      if(depth===0||w<1.1*S){ blossoms(end[0],end[1],end[3]); return; }
+      grow(end[0],end[1],end[3]+(rand()-.5)*.35,len*(.66+rand()*.14),w*.64,depth-1);   // leader continues
+      const forks=depth>=3&&rand()<.4?2:1;
+      for(let k=0;k<forks;k++){
+        const q=pts[Math.floor(pts.length*(.5+rand()*.45))];
+        grow(q[0],q[1],q[3]+(k%2?-1:1)*(.45+rand()*.45),len*(.55+rand()*.18),w*.55,depth-1);
+      }
+    }
+
+    // trunk: rises from the bottom-left with a lean and a gentle S-curve
+    const base=mobile?[.05*W,1.04*H]:[.10*W,1.05*H];
+    const TW=(mobile?52:78)*S;
+    let trunk=path(base[0],base[1],-1.30,H*(mobile?.22:.28),TW,TW*.78,0);
+    let tp=trunk[trunk.length-1];
+    const trunk2=path(tp[0],tp[1],-1.78,H*(mobile?.22:.25),TW*.78,TW*.55,0);
+    tp=trunk2[trunk2.length-1];
+    const RT=TW*.55;
+    const arms=mobile
+      ? [[-2.35,.13*H,.50],[-1.70,.16*H,.58],[-1.05,.34*W,.58],[-.55,.55*W,.52],[-.22,.70*W,.42]]
+      : [[-2.50,.17*H,.52],[-1.85,.20*H,.60],[-1.15,.22*H,.58],[-.62,.34*H,.55],[-.25,.44*H,.45]];
+    for(const [a,l,f] of arms) grow(tp[0],tp[1],a,l,RT*f,4);
+    const m=trunk2[Math.floor(trunk2.length*.4)];
+    grow(m[0],m[1],mobile?-2.7:-2.9,(mobile?.12:.15)*H,RT*.42,3);
+
+    // blossoms on top of the wood: five notched petals, a fine outline and stamen lines for definition
+    flowers.sort((a,b)=>a.r-b.r);
+    for(const f of flowers){
+      c.save(); c.translate(f.x,f.y); c.rotate(f.rot); c.scale(1,f.tilt);
+      const r=f.r; c.beginPath();
+      if(f.bud) c.ellipse(0,0,r*.36,r*.52,0,0,TAU);
+      else for(let k=0;k<5;k++){
+        c.save(); c.rotate(k*TAU/5); c.moveTo(0,0);
+        c.bezierCurveTo(r*.56,-r*.14,r*.64,-r*.80,r*.22,-r*1.0); c.lineTo(0,-r*.84); c.lineTo(-r*.22,-r*1.0);
+        c.bezierCurveTo(-r*.64,-r*.80,-r*.56,-r*.14,0,0); c.restore();
+      }
+      c.fillStyle=PINK; c.fill(); c.lineWidth=Math.max(.5,r*.06); c.strokeStyle=EDGE; c.stroke();
+      if(!f.bud){ c.beginPath(); for(let k=0;k<5;k++){ const a=k*TAU/5+TAU/10; c.moveTo(0,0); c.lineTo(Math.cos(a)*r*.32,Math.sin(a)*r*.32); } c.lineWidth=Math.max(.4,r*.045); c.stroke(); }
+      c.restore();
+    }
+    c.strokeStyle=PINK;
+    tctx.setTransform(1,0,0,1,0,0); tctx.clearRect(0,0,treeCanvas.width,treeCanvas.height);
+    tctx.shadowColor='rgba(255,214,227,.30)'; tctx.shadowBlur=8*dpr; tctx.drawImage(off,0,0);
+    tctx.shadowBlur=0; tctx.drawImage(off,0,0);
+  }
+
+  // ---------- Petals ----------
+  const PALE=hex('#FFD6E3'), CRIMSON=[196,8,36];
+  const STEPS=24; let sprites=[];
+  function petalPath(c,s){ // sakura petal, notched tip, base at bottom
+    c.beginPath();
+    const w=1.4;   // petals widened by 40%
+    c.moveTo(0,s*.98);
+    c.bezierCurveTo(s*.42*w,s*.62,s*.62*w,-s*.25,s*.36*w,-s*.86);
+    c.lineTo(0,-s*.66);
+    c.lineTo(-s*.36*w,-s*.86);
+    c.bezierCurveTo(-s*.62*w,-s*.25,-s*.42*w,s*.62,0,s*.98);
+    c.closePath();
+  }
+  function buildSprites(){
+    sprites=[];
+    for(let i=0;i<=STEPS;i++){
+      const t=i/STEPS, base=mixCol(PALE,CRIMSON,t), light=mixCol(base,[255,255,255],.35*(1-t)+.12), dark=mixCol(base,[60,0,10],.18+.2*t);
+      const make=(blur)=>{
+        const S=96, cv=document.createElement('canvas'); cv.width=cv.height=S; const c=cv.getContext('2d');
+        c.translate(S/2,S/2); if(blur) c.filter='blur(3px)';
+        const g=c.createLinearGradient(-20,-40,24,40); g.addColorStop(0,rgb(light)); g.addColorStop(.55,rgb(base)); g.addColorStop(1,rgb(dark));
+        c.fillStyle=g; petalPath(c,S*.40); c.fill();
+        c.globalAlpha=.22; c.strokeStyle=rgb(dark); c.lineWidth=1.2; c.beginPath(); c.moveTo(0,S*.36); c.lineTo(0,-S*.22); c.stroke();
+        return cv;
+      };
+      sprites.push({sharp:make(false),soft:make(true)});
+    }
+  }
+
+  const ANG=47*Math.PI/180, DIRX=Math.cos(ANG), DIRY=Math.sin(ANG); // upper-left -> lower-right
+  let petals=[];
+  const prand=rng(424242);
+  function spawn(p,initial){
+    const m=p.size*.8+20;
+    if(initial){ p.x=prand()*(W+2*m)-m; p.y=prand()*(H+2*m)-m; return; }
+    // enter from the top or left edge, weighted by how much flux each edge receives
+    const top=W*DIRY, left=H*DIRX;
+    if(prand()<top/(top+left)){ p.x=prand()*(W+m)-m-prand()*H*.3; p.y=-m-prand()*60; }
+    else { p.x=-m-prand()*60; p.y=prand()*(H+m)-m; }
+  }
+  function initPetals(){
+    const area=W*H, ref=1440*900;
+    const scale=Math.sqrt(area/ref);
+    const sizeScale=Math.max(.75,scale);
+    // keep on-screen coverage constant: petal count compensates for petal size relative to the viewport
+    const k=(area/ref)/(sizeScale*sizeScale);
+    const nSmall=Math.round(clamp(1960*k*(sizeScale>scale?1.12:1),340,2400));
+    const nHero=Math.round(clamp(58*k,12,80));
+    petals=[];
+    for(let i=0;i<nSmall+nHero;i++){
+      const hero=i>=nSmall;
+      const d=hero?1:Math.pow(prand(),1.35);            // depth 0 (far) .. 1 (near)
+      const size=hero? mix(170,300,prand())*sizeScale : mix(24,96,d)*sizeScale;
+      const p={
+        hero,d,size,
+        speed:(hero?mix(380,560,prand()):mix(70,260,d)*mix(.75,1.3,prand()))*Math.max(.75,scale),
+        dev:(prand()-.5)*.20,                           // per-petal wind deviation (~±6°)
+        wobA:mix(6,28,prand())*(.5+d), wobF:mix(.6,1.8,prand()), wobP:prand()*6.283,
+        rot:prand()*6.283, spin:(prand()-.5)*2.6, flipF:mix(.8,2.6,prand()), flipP:prand()*6.283,
+        alpha:hero?mix(.66,.88,prand()):mix(.8,1,d)*mix(.9,1,prand()),
+        // reveal rank: background petals appear first, foreground heroes only at the storm peak
+        rank:hero?mix(.6,.93,prand()):prand()*.9,
+        t:prand()*100, x:0,y:0
+      };
+      spawn(p,true); petals.push(p);
+    }
+  }
+
+  function density(p){
+    const build=mix(.03,1,Math.pow(smooth(.03,.43,p),1.35)); // gentle flurry that builds slowly into the full storm
+    const thin=1-smooth(.46,.80,p);                           // and thins out slowly to reveal the oni
+    return build*thin;
+  }
+
+  function drawPetals(dt){
+    pctx.setTransform(1,0,0,1,0,0);
+    pctx.clearRect(0,0,petalCanvas.width,petalCanvas.height);
+    const dens=Math.max(density(prog),.07*smooth(0,.05,teamP));
+    if(dens<.002) return;
+    const redT=smooth(.24,.50,prog);
+    const step=Math.round(redT*STEPS), spr=sprites[step];
+    for(const p of petals){
+      const vis=clamp((dens-p.rank)/.07);
+      if(!reduced && dt>0){
+        p.t+=dt;
+        const vx=DIRX-DIRY*p.dev, vy=DIRY+DIRX*p.dev;
+        const gust=1+.18*Math.sin(p.t*.7+p.wobP);
+        p.x+=vx*p.speed*gust*dt; p.y+=vy*p.speed*gust*dt;
+        p.rot+=p.spin*dt;
+        const m=p.size*.8+40;
+        if(p.x>W+m||p.y>H+m) spawn(p,false);
+      }
+      if(vis<=0) continue;
+      const sway=Math.sin(p.t*p.wobF+p.wobP)*p.wobA;
+      const x=p.x-DIRY*sway, y=p.y+DIRX*sway;
+      if(x<-p.size||y<-p.size||x>W+p.size||y>H+p.size) continue;
+      const flip=Math.cos(p.t*p.flipF+p.flipP), fx=Math.sign(flip||1)*Math.max(.18,Math.abs(flip));
+      const rot=p.rot+Math.sin(p.t*.9+p.flipP)*.35;
+      const cs=Math.cos(rot)*pdpr, sn=Math.sin(rot)*pdpr;
+      pctx.setTransform(cs*fx,sn*fx,-sn,cs,x*pdpr,y*pdpr);
+      pctx.globalAlpha=p.alpha*vis;
+      const img=p.hero||p.d>.8?spr.soft:spr.sharp;
+      pctx.drawImage(img,-p.size/2,-p.size/2,p.size,p.size);
+    }
+    pctx.globalAlpha=1;
+  }
+
+  // ---------- Layout ----------
+  function layoutMask(){
+    const h=Math.min(H*.82, W*.9*IMG_H/IMG_W);
+    const w=h*IMG_W/IMG_H;
+    maskBox={w,h,left:(W-w)/2,top:(H-h)/2+H*.01};
+  }
+
+  function resize(){
+    const w=stage.clientWidth, h=stage.clientHeight;
+    // The page can load inside a hidden tab or a preview pane that has no size yet.
+    // Drawing then would hit 0-pixel canvases, so wait until the stage really has a size.
+    if(w<2||h<2){ ready=false; return; }
+    if(ready && w===W && h===H) return;
+    W=w; H=h; dpr=Math.min(window.devicePixelRatio||1,2); ready=true;
+    pdpr=dpr;
+    for(const cv of [treeCanvas,petalCanvas,fxCanvas,maskCanvas]){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+    drawTree(); layoutMask(); initPetals(); readScroll(); sCur=sTarget; derive(); layoutTeam(); lastKey=''; render(0);
+  }
+
+  // One scroll position drives everything: intro (prog), logo hold, logo -> header (hdrP), team intro (teamP).
+  function derive(){
+    animPx=Math.max(H,totalPx-(HOLD_VH+HEADER_VH+TEAM_VH)*H);
+    prog=clamp(sCur/animPx);
+    hdrP=clamp((sCur-animPx-HOLD_VH*H)/(HEADER_VH*H));
+    teamP=clamp((sCur-animPx-(HOLD_VH+HEADER_VH)*H)/(TEAM_VH*H));
+  }
+  function readScroll(){
+    const r=scene.getBoundingClientRect();
+    totalPx=Math.max(1,r.height-H);
+    sTarget=clamp(-r.top,0,totalPx);
+    visible=r.bottom>0;
+  }
+
+  // ---------- Eye colour ramp ----------
+  const C1=hex('#780012'), C2=hex('#B00020'), C3=hex('#DC0628'), CRIM=hex('#900018');
+  const ramp=(t)=>t<.5?mixCol(C1,C2,t*2):mixCol(C2,C3,(t-.5)*2);
+  const css=(c)=>`rgb(${c[0]},${c[1]},${c[2]})`;
+
+  let lastKey='';
+
+  // ---------- Placeholder portraits: four original characters until real photos are added ----------
+  function placeholderArt(i){
+    const V=[
+      {bg:'#5a0a1e', hair:'#2b1530', top:'#a8001c', iris:'#7a2a8a', back:'M118 190 Q108 96 200 92 Q292 96 282 190 L304 430 Q200 462 96 430 Z', bangs:'M126 204 Q128 116 200 112 Q272 116 274 204 Q252 160 222 170 Q200 150 178 170 Q148 160 126 204 Z', extra:''},
+      {bg:'#3a0812', hair:'#6b3a1e', top:'#1b0a10', iris:'#b36a1a', back:'M122 214 Q118 108 200 102 Q282 108 278 214 Z', bangs:'M124 206 Q118 116 200 108 Q282 116 276 206 L264 172 L248 192 L234 164 L216 190 L200 162 L184 190 L166 164 L152 192 L136 172 Z', extra:'<path d="M150 392 L250 392" stroke="#e6c06f" stroke-width="6"/>'},
+      {bg:'#4a0716', hair:'#141018', top:'#7a0a20', iris:'#2a4a8a', back:'M124 216 Q120 110 200 104 Q280 110 276 216 Z', bangs:'M124 202 Q126 116 200 110 Q274 114 278 176 Q232 150 182 178 Q150 188 124 202 Z', extra:'<g fill="none" stroke="#e6c06f" stroke-width="4"><circle cx="168" cy="228" r="20"/><circle cx="232" cy="228" r="20"/><path d="M188 228 L212 228"/></g>'},
+      {bg:'#2e0610', hair:'#d9d6e6', top:'#1e2340', iris:'#a8001c', back:'M122 212 Q120 108 200 102 Q280 108 278 212 Z M262 150 Q346 170 324 310 Q306 252 272 222 Z', bangs:'M126 198 Q132 120 200 114 Q268 120 274 198 Q240 170 200 176 Q160 170 126 198 Z', extra:'<circle cx="270" cy="160" r="9" fill="#a8001c"/>'},
+    ][i%4];
+    return `<svg viewBox="40 80 320 420" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+      <path d="${V.back}" fill="${V.hair}"/>
+      <path d="M56 500 Q70 370 150 350 L250 350 Q330 370 344 500 Z" fill="${V.top}"/>
+      <rect x="182" y="300" width="36" height="56" fill="#e9bfa3"/>
+      <ellipse cx="200" cy="222" rx="72" ry="86" fill="#f1cdb3"/>
+      <path d="${V.bangs}" fill="${V.hair}"/>
+      <g><ellipse cx="168" cy="230" rx="13" ry="16" fill="#fff"/><circle cx="168" cy="233" r="10" fill="${V.iris}"/><circle cx="168" cy="233" r="4.5" fill="#12060a"/><circle cx="164" cy="227" r="3" fill="#fff"/>
+         <ellipse cx="232" cy="230" rx="13" ry="16" fill="#fff"/><circle cx="232" cy="233" r="10" fill="${V.iris}"/><circle cx="232" cy="233" r="4.5" fill="#12060a"/><circle cx="228" cy="227" r="3" fill="#fff"/></g>
+      <path d="M150 204 L184 208 M216 208 L250 204" stroke="#4a3038" stroke-width="4" stroke-linecap="round"/>
+      <ellipse cx="148" cy="262" rx="12" ry="6" fill="#f2a5a5" opacity=".55"/><ellipse cx="252" cy="262" rx="12" ry="6" fill="#f2a5a5" opacity=".55"/>
+      <path d="M186 276 Q200 286 214 276" stroke="#7a2a30" stroke-width="4" fill="none" stroke-linecap="round"/>
+      ${V.extra}
+    </svg>`;
+  }
+  const esc=(t)=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const XMARK='<svg class="xmark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M8 6 L92 94 M92 6 L8 94" stroke="#e6c06f" stroke-width=".6" vector-effect="non-scaling-stroke" fill="none"/></svg>';
+  const BG=['#5a0a1e','#3a0812','#4a0716','#2e0610'];
+  const panelEls=TEAM.map((m,i)=>{
+    const d=document.createElement('section'); d.className='panel '+(i%2?'fig-left':'fig-right');
+    d.setAttribute('aria-label',m.role+': '+m.name);
+    d.style.background=`radial-gradient(ellipse 80% 70% at ${i%2?30:70}% 55%, ${BG[i%4]} 0%, #120206 60%, #000 100%)`;
+    d.innerHTML=`${XMARK}<div class="art">${m.photo?`<img src="${esc(m.photo)}" alt="${esc(m.name)}">`:placeholderArt(i)}</div><div class="shade"></div>
+      ${m.photo?'':'<span class="soon">PHOTO SOON</span>'}
+      <div class="info"><div class="num">0${i+1} / 0${TEAM.length}</div><span class="role">${esc(m.role)}</span><div class="name">${esc(m.name)}</div></div><div class="dim"></div>`;
+    cardsEl.appendChild(d); return d;
+  });
+  const outroEl=document.createElement('section'); outroEl.className='panel outro';
+  outroEl.innerHTML=`${XMARK}<div class="info"><span class="role">The Crew</span><div class="name">SIMATS<br>ANIME CLUB</div><div class="tags">Screenings · Cosplay · Art · Quizzes · Fests</div><a class="join" href="#club">JOIN US ↗</a></div><div class="dim"></div>`;
+  cardsEl.appendChild(outroEl);
+  const panels=[...panelEls,outroEl];
+  if(NARRATOR_IMAGE){ narratorImg.onload=()=>{ if(ready){ layoutTeam(); render(0); } }; narratorImg.src=NARRATOR_IMAGE; narratorImg.hidden=false; narratorSvg.style.display='none';
+    if(NARRATOR_OUTRO_IMAGE){ narratorImg2.src=NARRATOR_OUTRO_IMAGE; narratorImg2.hidden=false; } }
+
+  let TL=null, logoBox=null, bubbleMinH=0;
+  function layoutTeam(){
+    const side=W>=760;                                       // desktop: bubble beside the narrator; phone: bubble above it
+    const headerH=side?78:62;
+    const imgN=!!NARRATOR_IMAGE, asp=imgN?((narratorImg.naturalWidth/narratorImg.naturalHeight)||.958):240/320;
+    // an illustrated narrator is shown visual-novel style: a large bust rising from the bottom edge
+    const nH=imgN?(side?Math.min(H*.52,480):Math.min(H*.37,310)):(side?Math.min(H*.36,330):Math.min(H*.27,230)), nW=nH*asp;
+    const nBottom=imgN?0:(side?56:48), nTop=H-nBottom-nH;
+    const bW=side?Math.min(470,W*.36):W-28;
+    // measure the tallest narration so the bubble never changes size while it types
+    bubble.style.width=bW+'px'; let mh=0;
+    for(const t of [...TEAM.map(m=>[m.role,m.line]),[OUTRO.who,OUTRO.line]]){ bubbleWho.textContent=t[0]; bubbleText.textContent=t[1]; mh=Math.max(mh,bubble.offsetHeight); }
+    bubbleText.textContent=''; bubbleMinH=mh; bubble.style.height=mh+'px';
+    const bTop=side? nTop+nH*.42-mh : nTop-mh-16;
+    narrator.style.width=nW+'px'; narrator.style.height=nH+'px';
+    const pad=imgN?(side?W*.02:-nW*.14):(side?W*.06:8);
+    const L=pad, R=W-pad-nW, C=imgN&&side?W*.08:(W-nW)/2;
+    TL={side,headerH,nH,nW,nTop,bW,bTop,L,R,C,pos:[L,R,L,R,C],off:-nW-40};
+    // logo geometry for the move into the header
+    logo.style.transform='none'; logoSvg.style.transform='none';
+    const r=logoSvg.getBoundingClientRect(), st=stage.getBoundingClientRect();
+    logoBox={cy:r.top-st.top+r.height/2, h:r.height};
+    lastTeamKey='';
+  }
+
+  let lastTeamKey='', shownKey='';
+  function renderTeam(){
+    if(!TL) return;
+    // 1) logo glides up into a header
+    const e=smooth(0,1,hdrP), hs=TL.headerH*.86/logoBox.h;
+    const dyH=(TL.headerH/2+6)-logoBox.cy;
+    logoSvg.style.transform=e>0?`translateY(${(dyH*e).toFixed(2)}px) scale(${mix(1,hs,e).toFixed(4)})`:'none';
+    enterBtn.style.opacity=String(1-smooth(0,.35,hdrP));
+    topbar.style.opacity=String(smooth(.35,1,hdrP));
+    hudL.style.opacity=String(1-smooth(0,.03,teamP));
+    hint.style.opacity=String(Math.max(1-smooth(.9,.97,prog),.0));
+
+    // 2) team intro
+    const t=teamP, key=t.toFixed(5)+'|'+W+'|'+H;
+    if(key===lastTeamKey) return; lastTeamKey=key;
+    team.style.opacity=String(smooth(0,.02,t));
+    if(t<=0){ for(const el of panels) el.style.visibility='hidden'; bubble.style.opacity='0'; return; }
+    const SEG=.2, k=Math.min(4,Math.floor(t/SEG)), u=clamp((t-k*SEG)/SEG);
+    // one full-screen panel at a time: the next one rises from below over the current one as you scroll
+    const f=k-1+smooth(0,.16,u);
+    panels.forEach((el,i)=>{
+      const d=i-f;                                  // >0: below the screen, 0: on screen, <0: being covered
+      if(d>=1||d<=-1){ el.style.visibility='hidden'; return; }
+      el.style.visibility='visible'; el.style.zIndex=String(10+i);
+      const y=d>0? d*H : d*H*.3;
+      el.style.transform=`translate3d(0,${y.toFixed(1)}px,0)`;
+      el.querySelector('.art') && (el.querySelector('.art').style.transform=`translate3d(0,${(d>0?-d*H*.25:-d*H*.08).toFixed(1)}px,0) scale(${(1+Math.abs(d)*.06).toFixed(4)})`);
+      el.querySelector('.dim').style.opacity=(d<0?-d*.7:0).toFixed(3);
+      const info=el.querySelector('.info'); const ii=d>0?1-d:1;
+      info.style.opacity=ii.toFixed(3); info.style.translate=`0 ${((1-ii)*30).toFixed(1)}px`;
+    });
+    // narrator walks: off-screen -> left -> right -> left -> right -> centre
+    const prev=k===0?TL.off:TL.pos[k-1], cur=TL.pos[k];
+    const w=smooth(0,.28,u), nx=mix(prev,cur,w);
+    let dist=0; for(let j=0;j<k;j++) dist+=Math.abs(TL.pos[j]-(j===0?TL.off:TL.pos[j-1]));
+    dist+=Math.abs(nx-prev);
+    const moving=prev!==cur?(smooth(0,.03,u)*(1-smooth(.24,.28,u))):0;
+    const phase=dist/(TL.nW*.32);
+    const face=moving>.05?Math.sign(cur-prev):(nx+TL.nW/2<W/2?1:-1);
+    const bob=-Math.abs(Math.sin(phase))*7*moving;
+    narrator.style.transform=`translate(${nx.toFixed(1)}px,${(TL.nTop+bob).toFixed(1)}px) scaleX(${face}) rotate(${(Math.sin(phase)*3*moving).toFixed(2)}deg)`;
+    nLegL.style.transform=`translateY(${(-Math.max(0,Math.sin(phase))*7*moving).toFixed(2)}px) rotate(${(Math.sin(phase)*10*moving).toFixed(2)}deg)`;
+    nLegR.style.transform=`translateY(${(-Math.max(0,-Math.sin(phase))*7*moving).toFixed(2)}px) rotate(${(-Math.sin(phase)*10*moving).toFixed(2)}deg)`;
+    nArmB.style.transform=`rotate(${(-Math.sin(phase)*18*moving).toFixed(2)}deg)`;
+    // speech bubble types out with the scroll, and the narrator points up at the card while talking
+    const talkIn=k===4?smooth(.3,.36,u):smooth(.26,.32,u)*(1-smooth(.86,.93,u));
+    const reveal=k===4?smooth(.36,.8,u):smooth(.32,.78,u);
+    const entry=k===4?OUTRO:{who:TEAM[k].role,line:TEAM[k].line};
+    const n=Math.round(entry.line.length*reveal);
+    const sk=k+'|'+n;
+    if(sk!==shownKey){ shownKey=sk; bubbleWho.textContent=k===4?entry.who:entry.who+' · '+TEAM[k].name; bubbleText.textContent=entry.line.slice(0,n); }
+    const typing=n>0&&n<entry.line.length&&talkIn>.5;
+    nMouthO.setAttribute('opacity',typing&&Math.floor(n/3)%2===0?'1':'0'); nMouthC.setAttribute('opacity',typing&&Math.floor(n/3)%2===0?'0':'1');
+    nArmF.style.transform=`rotate(${(-64*talkIn+Math.sin(phase)*14*moving).toFixed(2)}deg)`;
+    if(NARRATOR_OUTRO_IMAGE){ const sw=k===4?smooth(.04,.22,u):0; narratorImg2.style.opacity=sw.toFixed(3); narratorImg.style.opacity=(1-sw).toFixed(3); }
+    nTail.style.transform=`rotate(${(Math.sin(phase*.5)*9*moving+Math.sin(performance.now()/700)*3).toFixed(2)}deg)`;
+    nHead.style.transform=`rotate(${(talkIn*-4).toFixed(2)}deg)`; nHead.style.transformOrigin='120px 160px';
+    bubble.style.opacity=talkIn.toFixed(3);
+    let bx,tail;
+    const headX=nx+TL.nW/2;
+    if(TL.side){ bx = headX<W/2 ? nx+TL.nW*.92 : nx+TL.nW*.08-TL.bW; tail = headX<W/2 ? 18 : TL.bW-40;
+      if(k===4){ bx=nx+TL.nW*.92; tail=18; } }
+    else { bx=14; tail=clamp(headX-14-11,16,TL.bW-40); }
+    bubbleTail.style.left=tail+'px';
+    bubble.style.transform=`translate(${bx.toFixed(1)}px,${(TL.bTop+(1-talkIn)*10).toFixed(1)}px)`;
+  }
+  function drawMask(oni,scale,eyeY,illum,heat,sock,ec,ecHot,ecDeep){
+    mctx.setTransform(1,0,0,1,0,0); mctx.clearRect(0,0,maskCanvas.width,maskCanvas.height);
+    if(oni<.002) return;
+    const s0=maskBox.w/IMG_W*scale, ex=W/2;
+    mctx.setTransform(dpr*s0,0,0,dpr*s0,dpr*(ex-EYE_MID.x*s0),dpr*(eyeY-EYE_MID.y*s0));
+    mctx.globalAlpha=oni; mctx.fillStyle=oniGrad; mctx.fill(oniPath,'evenodd');
+    if(sock>0){ mctx.globalAlpha=oni*sock; mctx.fillStyle='#0a0002';
+      for(const e of [EYE_L,EYE_R]){ mctx.beginPath(); mctx.arc(e.x,e.y,34,0,TAU); mctx.fill(); } }
+    if(illum>0){
+      for(const e of [EYE_L,EYE_R]){
+        const g=mctx.createRadialGradient(e.x,e.y,0,e.x,e.y,27);
+        g.addColorStop(0,css(ecHot)); g.addColorStop(.62,css(ec)); g.addColorStop(1,css(ecDeep));
+        mctx.globalAlpha=oni*illum; mctx.fillStyle=g; mctx.beginPath(); mctx.arc(e.x,e.y,27,0,TAU); mctx.fill();
+      }
+      mctx.globalCompositeOperation='lighter';
+      for(const e of [EYE_L,EYE_R]){
+        const r=27*mix(1.6,2.8,heat), g=mctx.createRadialGradient(e.x,e.y,20,e.x,e.y,r);
+        g.addColorStop(0,rgb(ecHot,.55)); g.addColorStop(.45,rgb(ec,.22)); g.addColorStop(1,rgb(ec,0));
+        mctx.globalAlpha=oni*illum*mix(.35,1,heat); mctx.fillStyle=g; mctx.fillRect(e.x-r,e.y-r,2*r,2*r);
+        if(heat>0){ const h=mctx.createRadialGradient(e.x,e.y,0,e.x,e.y,14);
+          h.addColorStop(0,'rgba(255,190,198,.95)'); h.addColorStop(1,'rgba(255,120,140,0)');
+          mctx.globalAlpha=oni*heat; mctx.fillStyle=h; mctx.fillRect(e.x-14,e.y-14,28,28); }
+      }
+      mctx.globalCompositeOperation='source-over';
+    }
+    mctx.globalAlpha=1;
+  }
+  function render(dt){
+    const p=prog;
+    // Opening
+    const dark=smooth(.20,.50,p);
+    sky.style.opacity=String(1-smooth(.30,.50,p)*.0);
+    sun.style.transform=`translate(-50%,${-50+p*40}%)`;
+    clouds.style.transform=`translateX(${-p*6}%)`;
+    fuji.style.transform=`translateY(${p*14}%) scale(${1+p*.05})`;
+    landFar.style.transform=`translateY(${p*40}%)`; landNear.style.transform=`translateY(${p*60}%)`;
+    tree.style.opacity=String(1-smooth(.22,.46,p));
+    tree.style.transform=`translateY(${-p*10}vh) scale(${1+p*.18})`;
+    darkness.style.opacity=String(dark);
+
+    // Oni
+    // 1) oni emerges  2) eyes switch on dim  3) camera zooms in  4) THEN the eyes brighten and bleed crimson
+    const oni=smooth(.50,.66,p)*(1-smooth(.90,.912,p));
+    const illum=smooth(.66,.72,p);                       // eyes on, dim #780012
+    const zoomT=smooth(.70,.83,p);                       // camera push toward the eyes
+    const sepPx=maskBox.w*(EYE_R.x-EYE_L.x)/IMG_W;
+    const zMax=Math.min(4.6,.62*W/sepPx);                // keep both eyes on screen on narrow phones
+    const creep=1+.14*smooth(.83,.91,p);                 // slow drift while the glow builds
+    const scale=mix(1.06,1,smooth(.50,.66,p))*mix(1,zMax,zoomT)*creep;
+    const eyeYNow=maskBox.top+maskBox.h*EYE_MID.y/IMG_H;
+    const dy=(H/2-eyeYNow)*smooth(.70,.80,p);
+    const heat=smooth(.83,.89,p);                        // brightness only rises after the zoom: #780012 -> #B00020 -> #DC0628
+    const ec=ramp(heat), ecHot=mixCol(ec,[255,150,160],.45*heat), ecDeep=mixCol(ec,[40,0,6],.5);
+    const key=p.toFixed(5)+'|'+W+'|'+H;
+    const redraw=key!==lastKey; lastKey=key;
+    if(redraw) drawMask(oni,scale,eyeYNow+dy,illum,heat,smooth(.62,.70,p),ec,ecHot,ecDeep);
+
+    // Crimson bloom that spreads out from the eyes and swallows the frame
+    if(redraw){
+    fctx.setTransform(dpr,0,0,dpr,0,0); fctx.clearRect(0,0,W,H);
+    const eyeScreen=(e)=>({x:maskBox.left+maskBox.w*EYE_MID.x/IMG_W+(e.x-EYE_MID.x)/IMG_W*maskBox.w*scale,
+                           y:eyeYNow+dy+(e.y-EYE_MID.y)/IMG_H*maskBox.h*scale});
+    const L=eyeScreen(EYE_L), R=eyeScreen(EYE_R);
+    const eyeW=maskBox.w*(60/IMG_W)*scale;
+    const diag=Math.hypot(W,H);
+    const spread=smooth(.855,.905,p);
+    const glowA=illum*oni*mix(.25,1,heat)*(1-smooth(.92,.95,p));
+    if(glowA>.003){
+      fctx.globalCompositeOperation='lighter';
+      for(const e of [L,R]){
+        const rad=eyeW*mix(1.2,3.2,heat)+diag*Math.pow(spread,1.7)*1.1;
+        const g=fctx.createRadialGradient(e.x,e.y,0,e.x,e.y,rad);
+        g.addColorStop(0,rgb(mixCol(C3,[255,120,130],.3*heat),.85*glowA));
+        g.addColorStop(.25,rgb(C2,.55*glowA)); g.addColorStop(.6,rgb(C1,.28*glowA)); g.addColorStop(1,rgb(C1,0));
+        fctx.fillStyle=g; fctx.fillRect(0,0,W,H);
+      }
+      fctx.globalCompositeOperation='source-over';
+    }
+    // solid deep crimson frame, grown from the eye midpoint
+    const fill=smooth(.865,.905,p);
+    const fade=smooth(.935,.99,p);
+    if(fill>.001){
+      const mx=(L.x+R.x)/2, my=(L.y+R.y)/2;
+      const rr=diag*mix(.15,1.25,fill);
+      const g=fctx.createRadialGradient(mx,my,0,mx,my,rr);
+      const a=fill*(1-fade);
+      g.addColorStop(0,rgb(CRIM,a)); g.addColorStop(mix(.4,.97,fill),rgb(CRIM,a)); g.addColorStop(1,rgb(CRIM,a*fill*fill));
+      fctx.fillStyle=g; fctx.fillRect(0,0,W,H);
+      // lingering ember behind the logo as the frame cools to black
+      if(fade>0){ const e=fctx.createRadialGradient(W/2,H*.47,0,W/2,H*.47,Math.max(W,H)*.55);
+        e.addColorStop(0,rgb(CRIM,.32*fade*fill)); e.addColorStop(1,rgb(CRIM,0)); fctx.fillStyle=e; fctx.fillRect(0,0,W,H); }
+    }
+    }
+
+    // Logo
+    const lg=smooth(.935,.99,p);
+    logo.style.opacity=String(lg);
+    logo.style.transform=`scale(${mix(.92,1,lg)})`;
+    const enterOn=lg>.95&&hdrP<.3;
+    enterBtn.style.pointerEvents=enterOn?'auto':'none';
+    enterBtn.tabIndex=enterOn?0:-1;
+    crest.style.opacity=String(.92*smooth(.935,.98,p));
+    title.style.transform=`translateY(${(1-smooth(.935,.99,p))*14}px)`;
+    const slide=smooth(.975,1,p); cutLower.setAttribute('transform',`translate(${(-9*slide).toFixed(2)} ${(1*slide).toFixed(2)})`);
+    banner.style.opacity=String(smooth(.95,.995,p));
+    slashLine.setAttribute('stroke-dashoffset',(1-smooth(.95,.995,p)).toFixed(3));
+
+    const all=sCur/totalPx;
+    bar.style.width=(all*100).toFixed(1)+'%';
+    pct.textContent=String(Math.round(all*100)).padStart(2,'0');
+    hint.style.opacity=String(1-smooth(.9,.97,p));
+
+    renderTeam();
+    if(visible) drawPetals(dt);
+  }
+
+  function tick(t){
+    const dt=Math.min(.05,(t-last)/1000||0); last=t;
+    // ease displayed progress toward the scroll position (frame-rate independent, fully reversible)
+    sCur+=(sTarget-sCur)*(1-Math.exp(-dt*6));
+    if(Math.abs(sTarget-sCur)<.5) sCur=sTarget;
+    derive();
+    if(ready) render(dt); else resize();
+    // adaptive quality: if the storm is dropping frames, render petals at a lower resolution
+    if(dt>.026 && density(prog)>.3){ if(++slowFrames>40 && pdpr>.6){ pdpr=Math.max(.6,pdpr*.8); petalCanvas.width=Math.round(W*pdpr); petalCanvas.height=Math.round(H*pdpr); slowFrames=0; } }
+    else slowFrames=Math.max(0,slowFrames-1);
+    requestAnimationFrame(tick);
+  }
+
+  let pending=false;
+  window.addEventListener('scroll',()=>{
+    readScroll();
+    if(reduced && !pending){ pending=true; requestAnimationFrame(()=>{pending=false; sCur=sTarget; derive(); if(ready) render(0); else resize();}); }
+  },{passive:true});
+  let rt; const queueResize=()=>{clearTimeout(rt); rt=setTimeout(resize,ready?120:0);};
+  window.addEventListener('resize',queueResize,{passive:true});
+  if('ResizeObserver' in window) new ResizeObserver(queueResize).observe(stage);   // catches panes/iframes that resize without a window resize
+  document.addEventListener('visibilitychange',()=>{ last=performance.now(); });
+
+  const at=(px)=>{ sCur=sTarget=px; derive(); if(ready) render(0); };
+  window.__intro={ seek(v){ at(clamp(v)*animPx); }, seekHeader(v){ at(animPx+(HOLD_VH+clamp(v)*HEADER_VH)*H); }, seekTeam(v){ at(animPx+(HOLD_VH+HEADER_VH+clamp(v)*TEAM_VH)*H); },
+    get progress(){return prog;}, get team(){return teamP;}, get header(){return hdrP;}, get layout(){return {animPx,totalPx,H,HOLD_VH,HEADER_VH,TEAM_VH};} };
+
+  buildSprites(); resize();
+  if(!reduced){ last=performance.now(); requestAnimationFrame(tick); }
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if(ready){ lastKey=''; render(0); } });
+})();
+</script>
+</body>
+</html>
