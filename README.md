@@ -42,11 +42,14 @@ At the top of the script, find the `TEAM INTRO` block:
 
 ## Recent meets gallery
 
-Below the join section, `#meets` shows photos and clips from recent meets in one row that drifts slowly sideways (pauses on hover). Files live in `assets/meets/`. To add a new photo or clip, add a `<figure class="meet">` to **both halves** of `#meetsTrack` (the second half is a copy that makes the loop seamless). Clips are muted and only play while the gallery is on screen. Change the drift speed with `animation` on `.meets-track` (70s on desktop, 55s on phones).
+Below the join section, `#meets` shows photos and clips from recent meets in one row that drifts slowly sideways and never stops on hover or tap. Tapping a photo or clip opens it full-size in a viewer (arrows, swipe or ←/→ to browse, Esc or ✕ to close); the row pauses only while the viewer is open. Files live in `assets/meets/`. To add a new photo or clip, add a `<figure class="meet">` to **both halves** of `#meetsTrack` (the second half is a copy that makes the loop seamless). Clips are muted and only play while the gallery is on screen. Change the drift speed with `animation` on `.meets-track` (70s on desktop, 55s on phones).
 
 The Join buttons and the footer link go to the club's WhatsApp community (`CLUB_CONTACT.whatsapp`).
 
 ## Footer and legal pages
+
+- The footer uses a light washi-paper palette with traditional Japanese patterns drawn as small SVGs in `assets/patterns/`: seigaiha (overlapping waves) as a faint background, a row of curling wave crests along the top edge, gold kumo (auspicious cloud) motifs and two sakura blossoms.
+- Benio sits in the footer making a heart with her hands (`assets/benio-heart-hands.webp`), gently bobbing, with a "Mata ne!" caption. To change her, point `FOOTER_MASCOT` at another transparent PNG/WebP in `assets/`.
 
 - `index.html` ends with a join section and a footer (about, explore links, contact, legal, copyright and an anime-rights disclaimer).
 - `terms.html`, `privacy.html` and `conduct.html` are the Terms & Conditions, Privacy Policy and Code of Conduct. They are a general template for a student club; review them with the faculty coordinator so they match SIMATS policy.

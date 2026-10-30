@@ -132,28 +132,65 @@
     .meets-head p { color:#cdb4b6; font-size:14px; margin:0 auto; max-width:520px; line-height:1.8; font-weight:500; }
     .meets-rail { position:relative; -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent); mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent); }
     .meets-track { display:flex; gap:18px; width:max-content; animation:meetsDrift 70s linear infinite; will-change:transform; }
-    .meets-rail:hover .meets-track, .meets-rail:focus-within .meets-track { animation-play-state:paused; }
+    .meets-track.held { animation-play-state:paused; }
     @keyframes meetsDrift { from { transform:translateX(0); } to { transform:translateX(calc(-50% - 9px)); } }
     .meet { position:relative; margin:0; height:clamp(190px,34vh,330px); aspect-ratio:4/3; border-radius:14px; overflow:hidden; border:1px solid rgba(230,192,111,.45); background:#120206; box-shadow:0 18px 40px rgba(0,0,0,.55); flex:none; }
     .meet.wide { aspect-ratio:16/9; }
     .meet img, .meet video { width:100%; height:100%; object-fit:cover; display:block; }
+    .meet { cursor:zoom-in; -webkit-tap-highlight-color:transparent; }
+    .meet:focus-visible { outline:2px solid #e6c06f; outline-offset:3px; }
     .meet .vtag { position:absolute; left:10px; top:10px; font-size:9px; font-weight:800; letter-spacing:.2em; color:#fff3dc; background:rgba(168,0,28,.85); padding:4px 8px; border-radius:2px; }
     @media (max-width:700px) { .meet { height:210px; } .meets-track { animation-duration:55s; } }
     @media (prefers-reduced-motion:reduce) { .meets-track { animation:none; } .meets-rail { overflow-x:auto; } }
-    .site-footer { background:#030102; border-top:1px solid rgba(201,149,69,.25); padding:56px clamp(20px,6vw,90px) 28px; color:#cdb4b6; font-size:13px; line-height:1.8; font-weight:500; }
-    .foot-grid { display:grid; grid-template-columns:1.6fr 1fr 1.2fr 1fr; gap:36px; max-width:1180px; margin:0 auto; }
-    .foot-name { font-family:"Dela Gothic One",Manrope,sans-serif; font-size:22px; color:#f6dca0; letter-spacing:.04em; }
-    .foot-name span { color:#c4243f; }
+    .lightbox { position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center; background:rgba(4,1,2,.92); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); padding:56px 64px; }
+    .lightbox.open { display:flex; animation:lbIn .25s ease-out; }
+    @keyframes lbIn { from { opacity:0; } to { opacity:1; } }
+    .lightbox .stagebox { max-width:min(1200px,100%); max-height:100%; display:flex; }
+    .lightbox img, .lightbox video { max-width:100%; max-height:calc(100vh - 112px); max-height:calc(100svh - 112px); border-radius:10px; border:1px solid rgba(230,192,111,.5); box-shadow:0 30px 80px rgba(0,0,0,.7); background:#000; display:block; }
+    .lightbox button { position:absolute; background:rgba(20,4,8,.75); color:#f6dca0; border:1px solid rgba(230,192,111,.6); width:46px; height:46px; border-radius:50%; font-size:20px; line-height:1; cursor:pointer; display:grid; place-items:center; }
+    .lightbox button:hover, .lightbox button:focus-visible { background:#a8001c; outline:none; }
+    .lightbox .lb-close { top:14px; right:14px; }
+    .lightbox .lb-prev { left:12px; top:50%; transform:translateY(-50%); }
+    .lightbox .lb-next { right:12px; top:50%; transform:translateY(-50%); }
+    .lightbox .lb-count { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); color:#cdb4b6; font-size:11px; letter-spacing:.24em; font-weight:800; }
+    @media (max-width:700px) { .lightbox { padding:64px 10px; } .lightbox .lb-prev, .lightbox .lb-next { top:auto; bottom:10px; transform:none; } .lightbox .lb-prev { left:calc(50% - 110px); } .lightbox .lb-next { right:calc(50% - 110px); } }
+    /* Footer: light washi-paper palette with traditional Japanese patterns (seigaiha waves, wave crests, kumo clouds) */
+    .site-footer { position:relative; overflow:hidden; isolation:isolate;
+      background:url("assets/patterns/seigaiha.svg") 0 0/96px 48px, linear-gradient(180deg,#f7eee2 0%,#efe0cc 100%);
+      color:#4a2a2f; padding:150px clamp(20px,6vw,90px) 26px; font-size:13px; line-height:1.8; font-weight:500; }
+    .site-footer::before { content:""; position:absolute; left:0; right:0; top:-1px; height:70px; background:url("assets/patterns/wave-crest.svg") 0 0/240px 70px repeat-x; transform:scaleY(-1); z-index:-1; }
+    .site-footer::after { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+      background:radial-gradient(ellipse 70% 60% at 50% 55%, rgba(247,238,226,.92) 0%, rgba(247,238,226,.55) 55%, rgba(247,238,226,0) 85%); }
+    .foot-kumo { position:absolute; z-index:-1; width:260px; height:90px; background:url("assets/patterns/kumo.svg") center/contain no-repeat; pointer-events:none; }
+    .foot-kumo { width:200px; height:70px; }
+    .foot-kumo.k1 { right:5%; top:74px; }
+    .foot-kumo.k2 { left:5%; top:78px; transform:scaleX(-1); opacity:.8; }
+    .foot-sakura { position:absolute; z-index:-1; color:#c4243f; opacity:.22; font-size:44px; line-height:1; pointer-events:none; }
+    .foot-grid { display:grid; grid-template-columns:1.7fr .8fr 1.2fr 1fr auto; gap:28px; max-width:1240px; margin:0 auto; align-items:start; }
+    .foot-mascot { position:relative; margin:-70px 0 0; width:180px; text-align:center; }
+    .foot-mascot img { animation:benioBob 3.4s ease-in-out infinite; transform-origin:50% 100%; }
+    @keyframes benioBob { 0%,100% { transform:translateY(0) rotate(0); } 50% { transform:translateY(-6px) rotate(-1.2deg); } }
+    .foot-mascot img { width:100%; height:auto; display:block; filter:drop-shadow(0 10px 18px rgba(122,13,32,.28)); }
+    .foot-mascot .heart { position:absolute; width:58px; left:50%; top:62%; transform:translate(-50%,-50%); filter:drop-shadow(0 4px 10px rgba(176,18,47,.55)); animation:heartBeat 1.6s ease-in-out infinite; }
+    @keyframes heartBeat { 0%,100% { transform:translate(-50%,-50%) scale(1); } 14% { transform:translate(-50%,-50%) scale(1.16); } 28% { transform:translate(-50%,-50%) scale(1); } 42% { transform:translate(-50%,-50%) scale(1.12); } 70% { transform:translate(-50%,-50%) scale(1); } }
+    .foot-mascot .mini { position:absolute; color:#c4243f; font-size:16px; opacity:0; animation:miniFloat 3.2s ease-in-out infinite; }
+    .foot-mascot .m1 { left:22%; top:46%; } .foot-mascot .m2 { right:20%; top:40%; animation-delay:1.6s; font-size:12px; }
+    @keyframes miniFloat { 0% { opacity:0; transform:translateY(0) scale(.6); } 20% { opacity:.9; } 100% { opacity:0; transform:translateY(-60px) scale(1.1); } }
+    .foot-mascot figcaption { margin-top:6px; font-size:11px; font-weight:800; letter-spacing:.12em; color:#9a6420; }
+    @media (prefers-reduced-motion:reduce) { .foot-mascot img, .foot-mascot .heart, .foot-mascot .mini { animation:none; } }
+    .foot-name { font-family:"Dela Gothic One",Manrope,sans-serif; font-size:clamp(17px,1.55vw,22px); white-space:nowrap; color:#2a0a12; letter-spacing:.04em; }
+    .foot-name span { color:#b0122f; }
     .foot-brand p { margin:10px 0 0; max-width:340px; }
-    .foot-host span { color:#ffd6e3; font-family:"Dela Gothic One",sans-serif; font-size:16px; letter-spacing:.06em; }
-    .foot-col h3 { margin:0 0 12px; font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:#e6c06f; font-weight:800; }
-    .foot-col a { display:block; color:#ecd9da; text-decoration:none; padding:2px 0; }
-    .foot-col a:hover,.foot-col a:focus-visible { color:#ff9fb2; outline:none; text-decoration:underline; }
+    .foot-host span { white-space:nowrap; color:#b0122f; font-family:"Dela Gothic One",sans-serif; font-size:16px; letter-spacing:.06em; }
+    .foot-col h3 { margin:0 0 12px; font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:#9a6420; font-weight:800; }
+    .foot-col a { display:block; color:#2a0a12; text-decoration:none; padding:2px 0; font-weight:700; }
+    .foot-col a:hover,.foot-col a:focus-visible { color:#b0122f; outline:none; text-decoration:underline; }
     .foot-col p { margin:0 0 8px; }
-    .foot-credit { max-width:1180px; margin:22px auto 0; padding-top:16px; border-top:1px solid rgba(201,149,69,.18); text-align:center; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:#8f7779; }
-    .foot-credit strong { color:#e6c06f; font-weight:800; }
-    .foot-bottom { max-width:1180px; margin:40px auto 0; padding-top:20px; border-top:1px solid rgba(255,255,255,.08); display:flex; flex-wrap:wrap; gap:8px 26px; font-size:11px; color:#8f7779; }
-    @media (max-width:760px) { .foot-grid { grid-template-columns:1fr 1fr; gap:28px; } .foot-brand { grid-column:1 / -1; } .foot-bottom { flex-direction:column; } }
+    .foot-bottom { max-width:1180px; margin:40px auto 0; padding-top:20px; border-top:1px solid rgba(122,13,32,.18); display:flex; flex-wrap:wrap; gap:8px 26px; font-size:11px; color:#7a5a5e; }
+    .foot-credit { max-width:1180px; margin:22px auto 0; padding-top:16px; border-top:1px solid rgba(154,100,32,.3); text-align:center; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:#7a5a5e; }
+    .foot-credit strong { color:#b0122f; font-weight:800; }
+    @media (max-width:1100px) and (min-width:761px) { .foot-grid { grid-template-columns:1.4fr 1fr 1.2fr 1fr; } .foot-mascot { grid-column:1 / -1; justify-self:center; margin-top:0; } }
+    @media (max-width:760px) { .foot-mascot { grid-column:1 / -1; justify-self:center; margin:4px 0 0; width:170px; } .site-footer { padding-top:128px; } .foot-kumo { width:130px; height:46px; } .foot-kumo.k1 { top:70px; right:4%; } .foot-kumo.k2 { top:74px; left:4%; } .foot-sakura { display:none; } .foot-grid { grid-template-columns:1fr 1fr; gap:28px; } .foot-brand { grid-column:1 / -1; } .foot-bottom { flex-direction:column; } }
 
     @media (max-width:700px) {
       .experience { height:1920vh; }
@@ -420,7 +457,17 @@
     </div>
   </section>
 
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Gallery viewer">
+    <div class="stagebox" id="lbStage"></div>
+    <button class="lb-close" id="lbClose" aria-label="Close">✕</button>
+    <button class="lb-prev" id="lbPrev" aria-label="Previous">‹</button>
+    <button class="lb-next" id="lbNext" aria-label="Next">›</button>
+    <div class="lb-count" id="lbCount"></div>
+  </div>
+
   <footer class="site-footer" id="contact">
+    <span class="foot-kumo k1" aria-hidden="true"></span><span class="foot-kumo k2" aria-hidden="true"></span>
+    <span class="foot-sakura" style="left:47%;top:84px" aria-hidden="true">✿</span><span class="foot-sakura" style="left:53%;top:104px;font-size:26px" aria-hidden="true">✿</span>
     <div class="foot-grid">
       <div class="foot-brand">
         <div class="foot-name">SIMATS <span>ANIME CLUB</span></div>
@@ -443,6 +490,14 @@
         <a href="privacy.html">Privacy Policy</a>
         <a href="conduct.html">Code of Conduct</a>
       </nav>
+      <figure class="foot-mascot" id="footMascot">
+        <img id="footMascotImg" src="assets/benio-heart-hands.webp" alt="Sakuraba Benio, the club mascot, making a heart with her hands" width="700" height="873" loading="lazy" decoding="async" />
+        <svg class="heart" id="footHeart" viewBox="0 0 64 58" aria-hidden="true"><defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a76"/><stop offset="1" stop-color="#b0122f"/></linearGradient></defs>
+          <path d="M32 56 C 12 40, 0 30, 0 16 C 0 6, 8 0, 17 0 C 24 0, 29 4, 32 9 C 35 4, 40 0, 47 0 C 56 0, 64 6, 64 16 C 64 30, 52 40, 32 56 Z" fill="url(#hg)" stroke="#fff3f5" stroke-width="2.5"/>
+          <path d="M14 12 C 18 8, 24 9, 25 13" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" opacity=".75"/></svg>
+        <span class="mini m1" aria-hidden="true">❤</span><span class="mini m2" aria-hidden="true">❤</span>
+        <figcaption>Mata ne! See you at the next meet</figcaption>
+      </figure>
     </div>
     <div class="foot-bottom">
       <span>© <span id="year">2026</span> SIMATS Anime Club. All rights reserved.</span>
@@ -484,6 +539,8 @@
   const SELF={who:'桜庭 紅緒 · Sakuraba Benio', line:"Ahh!! I forgot to introduce myself, watashi wa SAKURABA Benio desu!! ❤️❤️", image:'assets/benio-chibi.webp'};
   const OUTRO={who:'SIMATS Anime Club', line:"Together, we're SIMATS Anime Club: anime screenings, cosplay, art jams, quizzes and fests all year. Keep scrolling and join the crew!"};
   // Footer contact links: fill in the club's handles to show them (leave '' to hide).
+  // Footer mascot: Benio making a heart with her hands. To change her, point FOOTER_MASCOT at another transparent PNG/WebP in assets/.
+  const FOOTER_MASCOT='assets/benio-heart-hands.webp', FOOTER_HEART=false;
   const CLUB_CONTACT={ instagram:'', email:'', whatsapp:'https://chat.whatsapp.com/GHwQzTsmPQr5xxNzGjINWb?s=cl&p=a&mlu=4&ilr=4&iam=2' };
   // ==================================================================================
 
@@ -1084,7 +1141,7 @@
     }
     glideTo(nextStop(window.scrollY,dir));
   }
-  const suppressed=()=>performance.now()<suppressUntil;
+  const suppressed=()=>performance.now()<suppressUntil||document.getElementById('lightbox').classList.contains('open');
 
   window.addEventListener('wheel',(e)=>{
     if(suppressed()||e.ctrlKey) return;
@@ -1140,6 +1197,8 @@
   document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; suppressUntil=performance.now()+2500; }));
   settledY=window.scrollY;
 
+  (()=>{ const im=$('#footMascotImg'); if(FOOTER_MASCOT&&im.getAttribute('src')!==FOOTER_MASCOT) im.src=FOOTER_MASCOT;
+    if(!FOOTER_HEART) document.querySelectorAll('#footHeart, #footMascot .mini').forEach(e=>e.remove()); })();
   (()=>{ // footer: contact links + year
     const box=$('#contactLinks'), L=[];
     if(CLUB_CONTACT.instagram) L.push(`<a href="https://instagram.com/${encodeURIComponent(CLUB_CONTACT.instagram.replace(/^@/,''))}" target="_blank" rel="noopener">Instagram @${esc(CLUB_CONTACT.instagram.replace(/^@/,''))}</a>`);
@@ -1153,6 +1212,36 @@
     const vids=[...document.querySelectorAll('#meetsTrack video')];
     const play=(on)=>vids.forEach(v=>{ if(on){ if(v.preload==='none') v.preload='auto'; const pr=v.play(); pr&&pr.catch(()=>{}); } else v.pause(); });
     if('IntersectionObserver' in window) new IntersectionObserver(es=>es.forEach(e=>play(e.isIntersecting&&!reduced)),{rootMargin:'200px'}).observe($('#meets'));
+  })();
+
+  (()=>{ // Gallery viewer: tap/click any photo or clip to open it big; arrows, swipe or keys to browse; Esc to close
+    const lb=$('#lightbox'), stage=$('#lbStage'), cnt=$('#lbCount'), track=$('#meetsTrack');
+    const figs=[...track.querySelectorAll('.meet')], n=figs.length/2;          // second half is the loop copy
+    figs.forEach((f,i)=>{
+      if(i<n){ f.tabIndex=0; f.setAttribute('role','button'); f.setAttribute('aria-label',(f.querySelector('video')?'Open clip ':'Open photo ')+(i+1)); }
+      f.addEventListener('click',()=>open(i%n));
+      f.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(i%n); } });
+    });
+    let cur=0, opener=null;
+    function show(i){
+      cur=(i+n)%n; const src=figs[cur], v=src.querySelector('video'), im=src.querySelector('img');
+      stage.innerHTML='';
+      if(v){ const big=document.createElement('video'); big.src=v.getAttribute('src'); big.poster=v.getAttribute('poster')||''; big.controls=true; big.autoplay=true; big.loop=true; big.playsInline=true; big.muted=true; stage.appendChild(big); const pr=big.play(); pr&&pr.catch(()=>{}); }
+      else { const big=document.createElement('img'); big.src=im.getAttribute('src'); big.alt=im.alt||'Recent meet photo'; stage.appendChild(big); }
+      cnt.textContent=`${cur+1} / ${n}`;
+    }
+    function open(i){ opener=document.activeElement; show(i); lb.classList.add('open'); track.classList.add('held'); document.documentElement.style.overflow='hidden'; $('#lbClose').focus({preventScroll:true}); }
+    function close(){ lb.classList.remove('open'); stage.innerHTML=''; track.classList.remove('held'); document.documentElement.style.overflow=''; if(opener&&opener.focus) opener.focus({preventScroll:true}); }
+    $('#lbClose').addEventListener('click',close);
+    $('#lbPrev').addEventListener('click',()=>show(cur-1));
+    $('#lbNext').addEventListener('click',()=>show(cur+1));
+    lb.addEventListener('click',e=>{ if(e.target===lb) close(); });
+    document.addEventListener('keydown',e=>{ if(!lb.classList.contains('open')) return;
+      if(e.key==='Escape') close(); else if(e.key==='ArrowRight') show(cur+1); else if(e.key==='ArrowLeft') show(cur-1);
+      if(['Escape','ArrowRight','ArrowLeft','ArrowUp','ArrowDown',' ','PageUp','PageDown'].includes(e.key)) { e.preventDefault(); e.stopImmediatePropagation(); } },true);
+    let sx=0; lb.addEventListener('touchstart',e=>{ sx=e.touches[0].clientX; },{passive:true});
+    lb.addEventListener('touchend',e=>{ const dx=(e.changedTouches[0]?e.changedTouches[0].clientX:sx)-sx; if(Math.abs(dx)>50) show(cur+(dx<0?1:-1)); },{passive:true});
+    window.__lightbox={open,close};
   })();
 
   const at=(px)=>{ sCur=sTarget=px; derive(); if(ready) render(0); };
