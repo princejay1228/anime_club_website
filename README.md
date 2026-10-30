@@ -17,7 +17,7 @@ Open **index.html** in any modern browser. No build step, server or internet con
 | 0.935–1.00 | Frame cools to black; SIMATS ANIME CLUB logo + ENTER |
 | hold | The finished logo stays on screen for one extra screen of scrolling |
 | header | Logo glides up and shrinks into a header bar |
-| team | One officer fills the screen at a time (President → Vice President → Secretary → Treasurer → closing panel); each new panel rises over the last as you scroll, while the narrator walks left → right → left → right and talks in a speech bubble |
+| team | One officer fills the screen at a time (President → Vice President → Secretary → Treasurer → closing panel → Benio's self-intro); each new panel rises over the last as you scroll, while the narrator walks left → right → left → right and talks in a speech bubble |
 
 Every scene has about 75% more scroll distance than V2, so the whole sequence plays slowly. Everything is driven by scroll position and reverses when scrolling back.
 
@@ -36,6 +36,8 @@ At the top of the script, find the `TEAM INTRO` block:
 - `NARRATOR_IMAGE`: currently `assets/narrator.webp`, the fox-girl from your reference image with its background removed. To change her, point it at another transparent PNG/WebP of the character you want as the narrator (e.g. `'assets/narrator.png'`). It walks, bobs and flips direction automatically. Set it to `''` to fall back to the simple built-in vector narrator.
 - `NARRATOR_OUTRO_IMAGE`: her second pose (from your character sheet), cross-faded in on the closing screen. Set to `''` to keep the main pose.
 - `OUTRO`: the closing line.
+- `SELF`: the mascot's playful self-introduction after the closing line. She is **Sakuraba Benio (桜庭 紅緒)**, nickname Beni-chan. For this beat she switches to her chibi form (`assets/benio-chibi.webp`, from the SIMATS Fox Girl character kit), hops, and two hearts float up.
+- Guided scrolling: inside the team section one wheel flick, swipe or arrow/space/page key glides to the next officer and stops once the narrator has finished. Tune `GLIDE_MS` (glide length) and `STOP_U` (where each stop rests). Skip/Enter/Join links bypass it.
 
 ## Tuning
 

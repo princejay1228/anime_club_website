@@ -18,7 +18,7 @@
     a { color:inherit; }
     a { -webkit-tap-highlight-color:transparent; }
 
-    .experience { height:1930vh; position:relative; } /* intro + logo hold + header move + team intro */ /* +40% scroll per scene, plus a hold on the logo */
+    .experience { height:2070vh; position:relative; } /* intro + logo hold + header move + team intro */ /* +40% scroll per scene, plus a hold on the logo */
     .stage { position:sticky; top:0; height:100vh; height:100svh; min-height:460px; overflow:hidden; background:#000; isolation:isolate; }
     .layer { position:absolute; inset:0; pointer-events:none; }
 
@@ -106,12 +106,16 @@
     .narrator { position:absolute; z-index:30; left:0; top:0; transform-origin:50% 100%; will-change:transform; }
     .narrator svg, .narrator img { width:100%; height:100%; display:block; object-fit:contain; object-position:50% 100%; }
     .narrator img[hidden] { display:none; }
+    .narrator img.chibi { position:absolute; left:50%; right:auto; bottom:0; top:auto; width:auto; height:84%; opacity:0; transform-origin:50% 100%; -webkit-mask-image:none; mask-image:none; }
+    .narrator .hearts { position:absolute; left:58%; top:4%; font-size:clamp(20px,3.2vh,34px); pointer-events:none; }
+    .narrator .hearts i { position:absolute; font-style:normal; opacity:0; filter:drop-shadow(0 2px 6px rgba(220,6,40,.6)); }
     .narrator img.alt { position:absolute; right:0; bottom:0; left:auto; top:auto; width:auto; height:100%; opacity:0;
       -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 93%,transparent 100%); mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 93%,transparent 100%); }
     .narrator img { -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 16%); mask-image:linear-gradient(90deg,transparent 0,#000 16%); }
     .bubble { position:absolute; z-index:31; left:0; top:0; background:linear-gradient(180deg,rgba(26,4,9,.94),rgba(12,2,5,.94)); color:#ffe9ee; border:1.5px solid #c4243f; border-radius:4px; padding:14px 18px 16px; opacity:0; outline:1px solid rgba(230,192,111,.55); outline-offset:4px;
       font-size:clamp(13px,1.55vh + .2vw,16px); line-height:1.55; font-weight:700; box-shadow:0 12px 32px rgba(0,0,0,.5); will-change:transform,opacity; }
-    .bubble .who { font-size:10px; font-weight:800; letter-spacing:.24em; color:#e6c06f; text-transform:uppercase; margin-bottom:4px; }
+    .bubble .who { font-family:Manrope,"Dela Gothic One",sans-serif; font-size:10px; font-weight:800; letter-spacing:.24em; color:#e6c06f; text-transform:uppercase; margin-bottom:4px; }
+    .bubble .who .jp { font-family:"Dela Gothic One",sans-serif; font-weight:400; font-size:16px; letter-spacing:.08em; color:#ffd6e3; vertical-align:-2px; margin-right:2px; }
     .bubble .tail { position:absolute; bottom:-13px; width:0; height:0; border-left:11px solid transparent; border-right:11px solid transparent; border-top:13px solid #a8001c; }
     .bubble .tail::after { content:""; position:absolute; left:-8px; top:-15px; border-left:8px solid transparent; border-right:8px solid transparent; border-top:10px solid #12030a; }
     .bubble .sak { position:absolute; right:8px; bottom:6px; width:30px; height:30px; opacity:.85; pointer-events:none; }
@@ -121,7 +125,7 @@
     .chapter p { font-size:14px; line-height:2; color:#dbbdbe; max-width:540px; margin:auto; font-weight:500; }
 
     @media (max-width:700px) {
-      .experience { height:1780vh; }
+      .experience { height:1920vh; }
       .fuji { left:22%; width:110%; height:26%; bottom:3%; }
       .sun { left:77%; top:70%; width:30vw; }
       .hud.right span:first-child { display:none; }
@@ -237,6 +241,8 @@
         <div class="narrator" id="narrator">
           <img id="narratorImg" alt="" hidden />
           <img id="narratorImg2" class="alt" alt="" hidden />
+          <img id="narratorChibi" class="chibi" alt="Sakuraba Benio, chibi" hidden />
+          <span class="hearts" id="hearts" aria-hidden="true"><i>❤️</i><i>❤️</i></span>
           <!-- placeholder narrator (an original character). Set NARRATOR_IMAGE in the script to use your own art. -->
           <svg id="narratorSvg" viewBox="0 0 240 320" aria-hidden="true" style="overflow:visible">
             <defs>
@@ -370,7 +376,7 @@
   const bar=$('#bar'), pct=$('#pct'), hint=$('#hint');
   const hudL=document.querySelector('.hud.left');
   const logoSvg=$('#logoSvg'), topbar=$('#topbar'), team=$('#team'), cardsEl=$('#cards'), bubble=$('#bubble'), bubbleWho=$('#bubbleWho'), bubbleText=$('#bubbleText'), bubbleTail=$('#bubbleTail');
-  const narrator=$('#narrator'), narratorImg=$('#narratorImg'), narratorImg2=$('#narratorImg2'), narratorSvg=$('#narratorSvg');
+  const narrator=$('#narrator'), narratorImg=$('#narratorImg'), narratorImg2=$('#narratorImg2'), narratorChibi=$('#narratorChibi'), heartEls=[...document.querySelectorAll('#hearts i')], narratorSvg=$('#narratorSvg');
   const nTail=$('#nTail'), nBody=$('#nBody'), nLegL=$('#nLegL'), nLegR=$('#nLegR'), nArmF=$('#nArmF'), nArmB=$('#nArmB'), nHead=$('#nHead'), nMouthC=$('#nMouthC'), nMouthO=$('#nMouthO');
 
   // ================= TEAM INTRO: edit names, lines and photos here =================
@@ -385,6 +391,8 @@
     {role:'Secretary',      name:'Jayadeep J',      photo:'', line:"Here's Jayadeep J, our Secretary! He keeps our records, sends out every announcement, and built this very website for the club."},
     {role:'Treasurer',      name:'Lohithaksha D',   photo:'', line:"And Lohithaksha D, our Treasurer! He manages the club budget, so every screening, cosplay meet and fest stall has what it needs."},
   ];
+  // Her playful self-introduction after the closing line. She switches to her chibi form for this beat.
+  const SELF={who:'桜庭 紅緒 · Sakuraba Benio', line:"Ahh!! I forgot to introduce myself, watashi wa SAKURABA Benio desu!! ❤️❤️", image:'assets/benio-chibi.webp'};
   const OUTRO={who:'SIMATS Anime Club', line:"Together, we're SIMATS Anime Club: anime screenings, cosplay, art jams, quizzes and fests all year. Keep scrolling and join the crew!"};
   // ==================================================================================
 
@@ -408,7 +416,7 @@
   const ONI=window.ONI_MASK, oniPath=new Path2D(ONI.d);
   const oniGrad=mctx.createLinearGradient(0,0,0,IMG_H);
   for(const [o,c] of ONI.stops) oniGrad.addColorStop(o,c);
-  const HOLD_VH=1.0, HEADER_VH=1.0, TEAM_VH=7.0;   // screens of scroll: logo hold, logo -> header, team intro   // extra scroll (in screen heights) where the finished logo simply stays put
+  const HOLD_VH=1.0, HEADER_VH=1.0, TEAM_VH=8.4, NSEG=6;   // 6 beats: 4 officers, closing line, Benio's self-intro   // screens of scroll: logo hold, logo -> header, team intro   // extra scroll (in screen heights) where the finished logo simply stays put
 
   let sTarget=0, sCur=0, totalPx=1, animPx=1, hdrP=0, teamP=0;
   let ready=false, W=0,H=0,dpr=1,pdpr=1, target=0, prog=0, last=0, visible=true, slowFrames=0;
@@ -694,7 +702,8 @@
   cardsEl.appendChild(outroEl);
   const panels=[...panelEls,outroEl];
   if(NARRATOR_IMAGE){ narratorImg.onload=()=>{ if(ready){ layoutTeam(); render(0); } }; narratorImg.src=NARRATOR_IMAGE; narratorImg.hidden=false; narratorSvg.style.display='none';
-    if(NARRATOR_OUTRO_IMAGE){ narratorImg2.src=NARRATOR_OUTRO_IMAGE; narratorImg2.hidden=false; } }
+    if(NARRATOR_OUTRO_IMAGE){ narratorImg2.src=NARRATOR_OUTRO_IMAGE; narratorImg2.hidden=false; }
+    if(SELF.image){ narratorChibi.src=SELF.image; narratorChibi.hidden=false; } }
 
   let TL=null, logoBox=null, bubbleMinH=0;
   function layoutTeam(){
@@ -707,13 +716,13 @@
     const bW=side?Math.min(470,W*.36):W-28;
     // measure the tallest narration so the bubble never changes size while it types
     bubble.style.width=bW+'px'; let mh=0;
-    for(const t of [...TEAM.map(m=>[m.role,m.line]),[OUTRO.who,OUTRO.line]]){ bubbleWho.textContent=t[0]; bubbleText.textContent=t[1]; mh=Math.max(mh,bubble.offsetHeight); }
+    for(const t of [...TEAM.map(m=>[m.role,m.line]),[OUTRO.who,OUTRO.line],[SELF.who,SELF.line]]){ bubbleWho.textContent=t[0]; bubbleText.textContent=t[1]; mh=Math.max(mh,bubble.offsetHeight); }
     bubbleText.textContent=''; bubbleMinH=mh; bubble.style.height=mh+'px';
     const bTop=side? nTop+nH*.42-mh : nTop-mh-16;
     narrator.style.width=nW+'px'; narrator.style.height=nH+'px';
     const pad=imgN?(side?W*.02:-nW*.14):(side?W*.06:8);
     const L=pad, R=W-pad-nW, C=imgN&&side?W*.08:(W-nW)/2;
-    TL={side,headerH,nH,nW,nTop,bW,bTop,L,R,C,pos:[L,R,L,R,C],off:-nW-40};
+    TL={side,headerH,nH,nW,nTop,bW,bTop,L,R,C,pos:[L,R,L,R,C,C],off:-nW-40};
     // logo geometry for the move into the header
     logo.style.transform='none'; logoSvg.style.transform='none';
     const r=logoSvg.getBoundingClientRect(), st=stage.getBoundingClientRect();
@@ -738,9 +747,9 @@
     if(key===lastTeamKey) return; lastTeamKey=key;
     team.style.opacity=String(smooth(0,.02,t));
     if(t<=0){ for(const el of panels) el.style.visibility='hidden'; bubble.style.opacity='0'; return; }
-    const SEG=.2, k=Math.min(4,Math.floor(t/SEG)), u=clamp((t-k*SEG)/SEG);
+    const SEG=1/NSEG, k=Math.min(NSEG-1,Math.floor(t/SEG)), u=clamp((t-k*SEG)/SEG);
     // one full-screen panel at a time: the next one rises from below over the current one as you scroll
-    const f=k-1+smooth(0,.16,u);
+    const f=Math.min(panels.length-1,k-1+smooth(0,.16,u));   // Benio's beat stays on the closing panel
     panels.forEach((el,i)=>{
       const d=i-f;                                  // >0: below the screen, 0: on screen, <0: being covered
       if(d>=1||d<=-1){ el.style.visibility='hidden'; return; }
@@ -766,23 +775,38 @@
     nLegR.style.transform=`translateY(${(-Math.max(0,-Math.sin(phase))*7*moving).toFixed(2)}px) rotate(${(-Math.sin(phase)*10*moving).toFixed(2)}deg)`;
     nArmB.style.transform=`rotate(${(-Math.sin(phase)*18*moving).toFixed(2)}deg)`;
     // speech bubble types out with the scroll, and the narrator points up at the card while talking
-    const talkIn=k===4?smooth(.3,.36,u):smooth(.26,.32,u)*(1-smooth(.86,.93,u));
-    const reveal=k===4?smooth(.36,.8,u):smooth(.32,.78,u);
-    const entry=k===4?OUTRO:{who:TEAM[k].role,line:TEAM[k].line};
-    const n=Math.round(entry.line.length*reveal);
+    const last=k===NSEG-1;
+    const talkIn=k===5?smooth(.3,.36,u):k===4?smooth(.3,.36,u)*(1-smooth(.88,.95,u)):smooth(.26,.32,u)*(1-smooth(.86,.93,u));
+    const reveal=k>=4?smooth(.36,.78,u):smooth(.32,.78,u);
+    const entry=k===5?SELF:k===4?OUTRO:{who:TEAM[k].role,line:TEAM[k].line};
+    const chars=Array.from(entry.line), n=Math.round(chars.length*reveal);   // Array.from keeps emoji whole while typing
     const sk=k+'|'+n;
-    if(sk!==shownKey){ shownKey=sk; bubbleWho.textContent=k===4?entry.who:entry.who+' · '+TEAM[k].name; bubbleText.textContent=entry.line.slice(0,n); }
-    const typing=n>0&&n<entry.line.length&&talkIn>.5;
+    if(sk!==shownKey){ shownKey=sk;
+      if(k===5){ const [jp,en]=SELF.who.split(' · '); bubbleWho.innerHTML=`<span class="jp">${esc(jp)}</span> · ${esc(en||'')}`; }
+      else bubbleWho.textContent=k===4?entry.who:entry.who+' · '+TEAM[k].name;
+      bubbleText.textContent=chars.slice(0,n).join(''); }
+    const typing=n>0&&n<chars.length&&talkIn>.5;
     nMouthO.setAttribute('opacity',typing&&Math.floor(n/3)%2===0?'1':'0'); nMouthC.setAttribute('opacity',typing&&Math.floor(n/3)%2===0?'0':'1');
     nArmF.style.transform=`rotate(${(-64*talkIn+Math.sin(phase)*14*moving).toFixed(2)}deg)`;
-    if(NARRATOR_OUTRO_IMAGE){ const sw=k===4?smooth(.04,.22,u):0; narratorImg2.style.opacity=sw.toFixed(3); narratorImg.style.opacity=(1-sw).toFixed(3); }
+    // pose swaps: presenting -> closing pose (beat 5) -> chibi hop for her self-intro (beat 6)
+    const toOutro=k===4?smooth(.04,.22,u):k===5?1:0, toChibi=k===5&&SELF.image?smooth(.02,.12,u):0;
+    if(NARRATOR_OUTRO_IMAGE){ narratorImg2.style.opacity=(toOutro*(1-toChibi)).toFixed(3); narratorImg.style.opacity=(1-Math.max(toOutro,toChibi)).toFixed(3); }
+    else narratorImg.style.opacity=(1-toChibi).toFixed(3);
+    if(SELF.image){
+      const hop=k===5?Math.sin(clamp((u-.04)/.22)*Math.PI):0, squash=k===5?Math.sin(clamp((u-.24)/.08)*Math.PI)*.06:0;
+      narratorChibi.style.opacity=toChibi.toFixed(3);
+      narratorChibi.style.transform=`translateX(-50%) translateY(${(-hop*TL.nH*.16).toFixed(1)}px) scale(${(1+squash).toFixed(3)},${(1-squash).toFixed(3)})`;
+      heartEls.forEach((h,i)=>{ const a=k===5?smooth(.7+i*.05,.76+i*.05,u):0, rise=k===5?clamp((u-.7-i*.05)/.3):0;
+        h.style.opacity=(a*(1-smooth(.85,1,rise))).toFixed(3);
+        h.style.transform=`translate(${(i?28:-6)+Math.sin(rise*6+i)*6}px,${(-rise*TL.nH*.22).toFixed(1)}px) scale(${(.6+.6*a).toFixed(2)}) rotate(${i?12:-12}deg)`; });
+    }
     nTail.style.transform=`rotate(${(Math.sin(phase*.5)*9*moving+Math.sin(performance.now()/700)*3).toFixed(2)}deg)`;
     nHead.style.transform=`rotate(${(talkIn*-4).toFixed(2)}deg)`; nHead.style.transformOrigin='120px 160px';
     bubble.style.opacity=talkIn.toFixed(3);
     let bx,tail;
     const headX=nx+TL.nW/2;
     if(TL.side){ bx = headX<W/2 ? nx+TL.nW*.92 : nx+TL.nW*.08-TL.bW; tail = headX<W/2 ? 18 : TL.bW-40;
-      if(k===4){ bx=nx+TL.nW*.92; tail=18; } }
+      if(k>=4){ bx=nx+TL.nW*(k===5?.8:.92); tail=18; } }
     else { bx=14; tail=clamp(headX-14-11,16,TL.bW-40); }
     bubbleTail.style.left=tail+'px';
     bubble.style.transform=`translate(${bx.toFixed(1)}px,${(TL.bTop+(1-talkIn)*10).toFixed(1)}px)`;
@@ -926,9 +950,94 @@
   if('ResizeObserver' in window) new ResizeObserver(queueResize).observe(stage);   // catches panes/iframes that resize without a window resize
   document.addEventListener('visibilitychange',()=>{ last=performance.now(); });
 
+  // ---------- Guided scrolling through the team section ----------
+  // Inside the team section one wheel flick, swipe or key press glides to the next officer and stops
+  // once the narrator has finished speaking, so the view never rests half-way between two people.
+  const STOP_U=[.82,.82,.82,.82,.84,.86];      // where in each beat to stop (text fully typed)
+  const GLIDE_MS=2300;                          // how long the glide to the next person takes
+  let glide=null, suppressUntil=0, lastWheelT=0, wheelUsed=false, settleT=0, lastScrollT=0, gestureStartY=0, settledY=0;
+  const pageTop=()=>scene.getBoundingClientRect().top+window.scrollY;
+  function stops(){
+    const base=pageTop()+animPx+(HOLD_VH+HEADER_VH)*H, span=TEAM_VH*H;
+    // first stop = the logo still large (end of its hold); one flick from there runs the header move and lands on the President
+    return [base-HEADER_VH*H, ...STOP_U.map((u,k)=>base+(k+u)/NSEG*span)].map(v=>Math.round(v));
+  }
+  const inZone=(y,dir)=>{ const st=stops(); return dir>0 ? (y>=st[0]-2 && y<st[st.length-1]-2) : (y>st[0]+2 && y<=st[st.length-1]+2); };
+  function nextStop(from,dir){ const st=stops(); return dir>0 ? st.find(v=>v>from+2) : [...st].reverse().find(v=>v<from-2); }
+  const ease=(t)=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  function glideTo(target){
+    if(target==null) return;
+    const from=window.scrollY;
+    if(reduced||Math.abs(target-from)<2){ window.scrollTo({top:target,behavior:'instant'}); settledY=target; return; }
+    const dur=GLIDE_MS*clamp(Math.abs(target-from)/(TEAM_VH/NSEG*H),.45,1.15), t0=performance.now();
+    glide={target};
+    const step=(now)=>{
+      if(!glide) return;
+      const k=clamp((now-t0)/dur), y=from+(target-from)*ease(k);
+      window.scrollTo({top:y,behavior:'instant'});
+      if(k<1) requestAnimationFrame(step); else { glide=null; settledY=target; lastWheelT=performance.now(); }
+    };
+    requestAnimationFrame(step);
+  }
+  function advance(dir){ if(glide) return; glideTo(nextStop(glide?glide.target:window.scrollY,dir)); }
+  const suppressed=()=>performance.now()<suppressUntil;
+
+  window.addEventListener('wheel',(e)=>{
+    if(suppressed()||e.ctrlKey) return;
+    const dir=Math.sign(e.deltaY); if(!dir) return;
+    const y=window.scrollY;
+    if(!glide && !inZone(y,dir)) return;
+    e.preventDefault();
+    const now=performance.now(), fresh=now-lastWheelT>240; lastWheelT=now;
+    if(fresh) wheelUsed=false;
+    if(glide||wheelUsed||Math.abs(e.deltaY)<2) return;   // trackpad inertia keeps one gesture = one person
+    wheelUsed=true; advance(dir);
+  },{passive:false});
+
+  let ty0=0, tyLast=0, sy0=0;
+  window.addEventListener('touchstart',(e)=>{ ty0=tyLast=e.touches[0].clientY; sy0=window.scrollY; },{passive:true});
+  window.addEventListener('touchmove',(e)=>{
+    tyLast=e.touches[0].clientY;
+    if(suppressed()) return;
+    const dir=Math.sign(ty0-tyLast);
+    if(glide||(dir&&inZone(sy0,dir))){ if(e.cancelable) e.preventDefault(); }
+  },{passive:false});
+  window.addEventListener('touchend',(e)=>{
+    if(suppressed()||glide) return;
+    const yEnd=e.changedTouches[0]?e.changedTouches[0].clientY:tyLast, dy=ty0-yEnd, dir=Math.sign(dy);
+    if(Math.abs(dy)<24||!inZone(sy0,dir)) return;
+    glideTo(nextStop(sy0,dir));                  // one swipe = one person, measured from where the swipe began
+  },{passive:true});
+
+  window.addEventListener('keydown',(e)=>{
+    if(suppressed()||e.altKey||e.ctrlKey||e.metaKey) return;
+    const t=e.target; if(t&&(t.isContentEditable||/INPUT|TEXTAREA|SELECT/.test(t.tagName))) return;
+    const dir={ArrowDown:1,PageDown:1,' ':e.shiftKey?-1:1,ArrowUp:-1,PageUp:-1}[e.key]; if(!dir) return;
+    if(!glide && !inZone(window.scrollY,dir)) return;
+    e.preventDefault(); advance(dir);
+  });
+
+  // Safety net: if the page comes to rest between two people (scrollbar drag, momentum), finish the move.
+  window.addEventListener('scroll',()=>{
+    const now=performance.now();
+    if(now-lastScrollT>260 && !glide) gestureStartY=settledY;
+    lastScrollT=now;
+    clearTimeout(settleT);
+    settleT=setTimeout(()=>{
+      if(glide||suppressed()) return;
+      const y=window.scrollY, st=stops();
+      if(st.some(v=>Math.abs(v-y)<3) || y<=st[0] || y>=st[st.length-1]){ settledY=y; return; }
+      const dir=Math.sign(y-gestureStartY)||1;
+      glideTo(nextStop(dir>0?Math.min(gestureStartY,y):Math.max(gestureStartY,y),dir));
+    },170);
+  },{passive:true});
+  // "Skip", "Enter" and "Join us" jump straight past the intro without being caught by the guide.
+  document.querySelectorAll('a[href="#club"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; suppressUntil=performance.now()+2500; }));
+  settledY=window.scrollY;
+
   const at=(px)=>{ sCur=sTarget=px; derive(); if(ready) render(0); };
   window.__intro={ seek(v){ at(clamp(v)*animPx); }, seekHeader(v){ at(animPx+(HOLD_VH+clamp(v)*HEADER_VH)*H); }, seekTeam(v){ at(animPx+(HOLD_VH+HEADER_VH+clamp(v)*TEAM_VH)*H); },
-    get progress(){return prog;}, get team(){return teamP;}, get header(){return hdrP;}, get layout(){return {animPx,totalPx,H,HOLD_VH,HEADER_VH,TEAM_VH};} };
+    get progress(){return prog;}, get team(){return teamP;}, get header(){return hdrP;}, get layout(){return {animPx,totalPx,H,HOLD_VH,HEADER_VH,TEAM_VH};}, get stops(){return stops();} };
 
   buildSprites(); resize();
   if(!reduced){ last=performance.now(); requestAnimationFrame(tick); }
