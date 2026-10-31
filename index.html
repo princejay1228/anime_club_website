@@ -83,8 +83,11 @@
     .panel .art { position:absolute; inset:0; will-change:transform; }
     .panel .art img { width:100%; height:100%; object-fit:cover; object-position:50% 28%; display:block; }
     .panel .art svg, .panel .art img.cut { position:absolute; bottom:0; height:94%; width:auto; max-width:none; left:50%; transform:translateX(-50%); object-fit:contain; object-position:50% 100%; filter:drop-shadow(0 18px 40px rgba(0,0,0,.55)); }
-    .panel.fig-right .art svg, .panel.fig-right .art img.cut { left:70%; }
-    .panel.fig-left .art svg, .panel.fig-left .art img.cut { left:30%; }
+    .panel.fig-right .art svg { left:70%; }
+    .panel .art img.cut { height:100%; }
+    .panel.fig-right .art img.cut { left:77%; }
+    .panel.fig-left .art img.cut { left:23%; }
+    .panel.fig-left .art svg { left:30%; }
     .panel .xmark { position:absolute; inset:0; width:100%; height:100%; opacity:.10; }
     .panel .shade { position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.15) 26%,transparent 50%,rgba(0,0,0,.55) 74%,rgba(0,0,0,.9) 100%); }
     .panel .dim { position:absolute; inset:0; background:#000; opacity:0; }
@@ -101,7 +104,8 @@
     .panel.outro .join { display:inline-block; margin-top:26px; border:1px solid rgba(230,192,111,.75); padding:13px 26px; color:#f6dca0; text-decoration:none; font-size:11px; letter-spacing:.32em; font-weight:800; background:rgba(10,4,4,.6); pointer-events:auto; }
     @media (max-width:759px) {
       .panel .art svg, .panel.fig-right .art svg, .panel.fig-left .art svg, .panel .art img.cut, .panel.fig-right .art img.cut, .panel.fig-left .art img.cut { left:50%; height:82%; bottom:12%; }
-      .panel .art img.cut, .panel.fig-right .art img.cut, .panel.fig-left .art img.cut { height:30%; bottom:45.5%; }
+      .panel .art img.cut, .panel.fig-right .art img.cut, .panel.fig-left .art img.cut { height:56%; bottom:19%; left:62%; }
+      .bubble { background:linear-gradient(180deg,rgba(26,4,9,.8),rgba(12,2,5,.8)); }   /* lets the officer's body show through softly */
       .panel .info, .panel.fig-left .info { left:20px; right:20px; top:84px; max-width:none; text-align:left; }
       .panel .name { font-size:clamp(30px,9vw,44px); }
       .panel .soon { top:auto; bottom:calc(30% + 10px); }
@@ -152,6 +156,20 @@
     .events { background:#030102; padding:70px clamp(18px,5vw,70px) 70px; border-top:1px solid rgba(201,149,69,.18); }
     .ev-list { display:grid; gap:16px; max-width:900px; margin:22px auto 0; }
     .ev-list:empty { display:none; }
+    .qotd { position:relative; max-width:900px; margin:20px auto 0; border-radius:20px; padding:24px clamp(18px,4vw,34px) 20px; overflow:hidden;
+      background:linear-gradient(160deg,rgba(144,0,24,.32),rgba(12,2,5,.92) 60%); border:1px solid rgba(230,192,111,.45); }
+    .qotd::after { content:"言"; position:absolute; right:-10px; bottom:-40px; font-size:180px; line-height:1; color:rgba(230,192,111,.06); font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP","Noto Serif JP",serif; pointer-events:none; }
+    .qotd-fest[hidden] { display:none; }
+    .qotd-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; }
+    .qotd-date { color:#cdb4b6; font-size:12px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+    .qotd-fest { display:inline-block; margin-top:12px; background:rgba(230,192,111,.14); border:1px solid rgba(230,192,111,.5); color:#f6dca0; font-size:12px; font-weight:800; padding:5px 10px; border-radius:999px; }
+    .qotd-jp { margin:16px 0 6px; color:#fff1eb; font-size:clamp(24px,3.6vw,38px); line-height:1.45; font-weight:700; letter-spacing:.04em; font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP","Noto Serif JP",serif; }
+    .qotd-ro { margin:0 0 14px; color:#e6c06f; font-size:14px; font-style:italic; font-weight:600; }
+    .qotd-en { margin:0 0 6px; color:#ffd6e3; font-size:17px; font-weight:800; line-height:1.5; }
+    .qotd-mean { margin:0; color:#d8c0c2; font-size:14px; line-height:1.75; font-weight:500; }
+    .qotd-nav { display:flex; gap:8px; margin-top:18px; flex-wrap:wrap; position:relative; z-index:1; }
+    .qotd-nav button { font:inherit; cursor:pointer; border:1px solid rgba(230,192,111,.6); background:rgba(10,4,4,.6); color:#f6dca0; font-size:10px; font-weight:800; letter-spacing:.18em; padding:8px 12px; }
+    .qotd-nav button:hover, .qotd-nav button:focus-visible { background:#a8001c; outline:none; }
     .meet-wrap { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:20px; max-width:900px; margin:0 auto; align-items:stretch; }
     .cal { position:relative; background:linear-gradient(170deg,#fff8f0,#f6e6d6); color:#4a0f1a; border-radius:20px; padding:18px 18px 16px; box-shadow:0 18px 40px rgba(0,0,0,.45); border:3px solid #e6c06f; overflow:hidden; }
     .cal::before { content:""; position:absolute; inset:0; background:url("assets/patterns/seigaiha.svg") 0 0/72px 36px; opacity:.55; pointer-events:none; }
@@ -236,6 +254,42 @@
     @media (max-width:560px) { .welcome { flex-wrap:wrap; justify-content:center; text-align:center; } .welcome .wt { flex:1 1 60%; text-align:left; } }
     .sound-toggle { position:fixed; z-index:55; left:clamp(12px,3vw,28px); bottom:clamp(14px,3vh,28px); width:38px; height:38px; opacity:.85; border-radius:50%; border:1px solid rgba(230,192,111,.55); background:rgba(10,3,5,.7); color:#f6dca0; cursor:pointer; display:grid; place-items:center; padding:0; }
     .sound-toggle svg { width:20px; height:20px; }
+    .mplayer { position:fixed; z-index:56; left:clamp(12px,3vw,28px); bottom:calc(clamp(14px,3vh,28px) + 48px); width:min(300px,calc(100vw - 24px)); padding:14px 16px 12px; border-radius:16px; overflow:hidden;
+      background:radial-gradient(120% 80% at 100% 0%,rgba(168,0,28,.35),transparent 60%),linear-gradient(180deg,rgba(26,4,9,.96),rgba(10,2,4,.96)); border:1px solid rgba(230,192,111,.6); box-shadow:0 18px 40px rgba(0,0,0,.6);
+      opacity:0; transform:translateY(12px) scale(.98); transform-origin:0 100%; pointer-events:none; transition:opacity .25s, transform .25s; }
+    .mplayer.on { opacity:1; transform:none; pointer-events:auto; }
+    .mplayer::after { content:"♪"; position:absolute; right:10px; bottom:-26px; font-size:110px; line-height:1; color:rgba(230,192,111,.06); pointer-events:none; }
+    .mp-top { display:flex; justify-content:space-between; align-items:center; }
+    .mp-tag { color:#e6c06f; font-size:9.5px; font-weight:800; letter-spacing:.18em; }
+    .mp-x { font:inherit; cursor:pointer; background:none; border:0; color:#cdb4b6; font-size:13px; padding:2px 4px; }
+    .mp-x:hover, .mp-x:focus-visible { color:#fff; outline:none; }
+    .mp-jp { margin-top:8px; color:#fff1eb; font-size:24px; font-weight:700; letter-spacing:.06em; font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP","Noto Serif JP",serif; }
+    .mp-name { color:#ffd6e3; font-size:12.5px; font-weight:700; margin-top:2px; }
+    .mp-bar { position:relative; height:16px; margin-top:12px; cursor:pointer; touch-action:none; }
+    .mp-bar::before { content:""; position:absolute; left:0; right:0; top:7px; height:3px; border-radius:2px; background:rgba(255,214,227,.18); }
+    .mp-bar i { position:absolute; left:0; top:7px; height:3px; width:0; border-radius:2px; background:linear-gradient(90deg,#a8001c,#e6c06f); }
+    .mp-bar b { position:absolute; top:3px; left:0; width:11px; height:11px; margin-left:-5.5px; border-radius:50%; background:#ffd6e3; box-shadow:0 0 0 3px rgba(230,192,111,.35); }
+    .mp-bar:focus-visible { outline:none; } .mp-bar:focus-visible b { box-shadow:0 0 0 4px #e6c06f; }
+    .mp-times { display:flex; justify-content:space-between; color:#cdb4b6; font-size:10.5px; font-weight:700; font-variant-numeric:tabular-nums; }
+    .mp-ctl { display:flex; justify-content:center; align-items:center; gap:18px; margin-top:6px; }
+    .mp-ctl button { cursor:pointer; width:34px; height:34px; border-radius:50%; border:1px solid rgba(230,192,111,.45); background:rgba(10,3,5,.6); color:#f6dca0; display:grid; place-items:center; padding:0; }
+    .mp-ctl button svg { width:16px; height:16px; }
+    .mp-ctl button.big { width:44px; height:44px; background:#a8001c; border-color:#e6c06f; color:#fff3dc; }
+    .mp-ctl button.big svg { width:20px; height:20px; }
+    .mp-ctl button:hover, .mp-ctl button:focus-visible { outline:none; box-shadow:0 0 0 2px rgba(230,192,111,.6); }
+    #mpMute .x { display:none; } #mpMute.muted .x { display:inline; } #mpMute.muted .w { display:none; } #mpMute.muted { background:rgba(10,3,5,.6); color:#f6dca0; }
+    @media (prefers-reduced-motion: reduce) { .mplayer { transition:none; } }
+    .sound-gate { position:fixed; z-index:58; left:50%; bottom:clamp(16px,4vh,34px); transform:translate(-50%,20px); opacity:0; pointer-events:none; display:flex; align-items:center; gap:12px; background:rgba(14,3,6,.94); border:1px solid rgba(230,192,111,.6); border-radius:14px; padding:10px 12px; box-shadow:0 18px 40px rgba(0,0,0,.6); transition:opacity .35s, transform .35s; max-width:calc(100vw - 24px); }
+    .sound-gate.on { opacity:1; transform:translate(-50%,0); pointer-events:auto; }
+    .sound-gate .sg-note { width:38px; height:38px; flex:none; border-radius:50%; display:grid; place-items:center; background:#a8001c; color:#fff3dc; font-size:20px; animation:sgPulse 1.6s ease-in-out infinite; }
+    @keyframes sgPulse { 50% { box-shadow:0 0 0 8px rgba(168,0,28,.18); } }
+    .sound-gate .wt { color:#fff1eb; font-size:13px; font-weight:700; line-height:1.4; }
+    .sound-gate .wt small { display:block; color:#cdb4b6; font-weight:500; font-size:11.5px; }
+    .sound-gate button { font:inherit; cursor:pointer; border:1px solid rgba(230,192,111,.7); background:transparent; color:#f6dca0; font-size:10px; font-weight:800; letter-spacing:.18em; padding:9px 11px; white-space:nowrap; }
+    .sound-gate button.primary { background:#a8001c; border-color:#a8001c; color:#fff3dc; }
+    .sound-gate button:hover, .sound-gate button:focus-visible { outline:none; box-shadow:0 0 0 2px rgba(230,192,111,.6); }
+    @media (max-width:560px) { .sound-gate { flex-wrap:wrap; width:min(400px,calc(100vw - 24px)); } .sound-gate .wt { flex:1 1 calc(100% - 60px); } .sound-gate button { flex:1 1 40%; } }
+    @media (prefers-reduced-motion: reduce) { .sound-gate .sg-note { animation:none; } }
     .sound-toggle[aria-pressed="true"] { background:#a8001c; border-color:#e6c06f; }
     .sound-toggle:focus-visible { outline:2px solid #e6c06f; outline-offset:2px; }
     .lightbox { position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center; background:rgba(4,1,2,.92); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); padding:56px 64px; }
@@ -549,6 +603,15 @@
       <div class="cal" id="meetCal" aria-label="Meet calendar"></div>
       <div class="meet-card" id="meetCard"></div>
     </div>
+    <article class="qotd" id="qotd" aria-live="polite">
+      <div class="qotd-head"><span class="ev-tag">今日の言葉 · QUOTE OF THE DAY</span><span class="qotd-date" id="qotdDate"></span></div>
+      <div class="qotd-fest" id="qotdFest" hidden></div>
+      <p class="qotd-jp" id="qotdJp" lang="ja"></p>
+      <p class="qotd-ro" id="qotdRo"></p>
+      <p class="qotd-en" id="qotdEn"></p>
+      <p class="qotd-mean" id="qotdMean"></p>
+      <div class="qotd-nav"><button type="button" id="qotdPrev" aria-label="Previous day's quote">‹ YESTERDAY</button><button type="button" id="qotdToday">TODAY ›</button></div>
+    </article>
     <div class="ev-list" id="evList"></div>
   </section>
 
@@ -587,9 +650,27 @@
     <button type="button" id="wReplay">REPLAY INTRO</button>
     <button type="button" class="primary" id="wSkip">SKIP TO CREW</button>
   </div>
-  <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false" aria-label="Ambient sound: off">
+  <div class="sound-gate" id="soundGate" role="dialog" aria-label="Music">
+    <span class="sg-note" aria-hidden="true">♪</span>
+    <div class="wt">Play with sound? <small>Original taiko &amp; koto score for the intro</small></div>
+    <button type="button" class="primary" id="sndOn">SOUND ON</button>
+    <button type="button" id="sndNo">NO SOUND</button>
+  </div>
+  <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false" aria-controls="mPlayer" aria-label="Music: off">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor" stroke="none"/><path id="sndWaves" d="M16.5 8.5 Q19 12 16.5 15.5 M19 6 Q23 12 19 18" opacity=".35"/><path id="sndMute" d="M17 9 L22 15 M22 9 L17 15"/></svg>
   </button>
+  <div class="mplayer" id="mPlayer" role="dialog" aria-label="Music player">
+    <div class="mp-top"><span class="mp-tag">♪ 今流れている曲 · NOW PLAYING</span><button type="button" class="mp-x" id="mpClose" aria-label="Close player">✕</button></div>
+    <div class="mp-jp" id="mpJp" lang="ja"></div>
+    <div class="mp-name"><span id="mpName"></span></div>
+    <div class="mp-bar" id="mpBar" role="slider" tabindex="0" aria-label="Song position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="mpFill"></i><b id="mpKnob"></b></div>
+    <div class="mp-times"><span id="mpCur">0:00</span><span id="mpDur">0:00</span></div>
+    <div class="mp-ctl">
+      <button type="button" id="mpPrev" aria-label="Previous song"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2v14H6z M20 5v14L9.5 12z" fill="currentColor"/></svg></button>
+      <button type="button" id="mpMute" class="big" aria-label="Mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor" stroke="none"/><path class="w" d="M16.5 8.5 Q19 12 16.5 15.5 M19 6 Q23 12 19 18"/><path class="x" d="M17 9 L22 15 M22 9 L17 15"/></svg></button>
+      <button type="button" id="mpNext" aria-label="Next song"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5h2v14h-2z M4 5v14l10.5-7z" fill="currentColor"/></svg></button>
+    </div>
+  </div>
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Gallery viewer">
     <div class="stagebox" id="lbStage"></div>
     <button class="lb-close" id="lbClose" aria-label="Close">✕</button>
@@ -645,6 +726,8 @@
 </main>
 
 <script src="assets/oni-mask.js"></script>
+<script src="assets/quotes.js"></script>
+<script src="assets/music.js"></script>
 <script src="assets/benio-rig/rig-data.js"></script>
 <script src="assets/benio-rig/benio-rig.js"></script>
 <script>
@@ -1515,6 +1598,23 @@
     }
   })();
 
+  // ---------- Japanese quote of the day (366 quotes, one per date; India time) ----------
+  (()=>{
+    if(!window.JP_QUOTES) return;
+    const base=new Date(Date.now()+5.5*3600e3); let off=0;
+    function show(){
+      const d=new Date(Date.UTC(base.getUTCFullYear(),base.getUTCMonth(),base.getUTCDate()+off));
+      let k=String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+      const q=JP_QUOTES[k]||JP_QUOTES['01-01'], [jp,ro,en,mean,lab]=q;
+      $('#qotdDate').textContent=(off===0?'Today · ':'Yesterday · ')+d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'long',timeZone:'UTC'});
+      const f=$('#qotdFest'); f.hidden=!lab; f.textContent=lab?('🎉 '+(lab[0]==='~'?lab.slice(1)+' season':lab)):'';
+      $('#qotdJp').textContent=jp; $('#qotdRo').textContent=ro; $('#qotdEn').textContent='“'+en+'”'; $('#qotdMean').textContent=mean;
+      $('#qotdToday').hidden=off===0; $('#qotdPrev').hidden=off!==0;   // only today and yesterday; tomorrow stays a surprise
+    }
+    $('#qotdPrev').onclick=()=>{ off=-1; show(); }; $('#qotdToday').onclick=()=>{ off=0; show(); };
+    show();
+  })();
+
   // ---------- Upcoming events ----------
   (()=>{
     const list=$('#evList'), now=Date.now(), MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
@@ -1595,50 +1695,55 @@
     });
   })();
 
-  // ---------- Ambient sound (synthesised koto plucks + wind chimes, off by default) ----------
+  // ---------- Music: original soundtrack synthesised live (assets/music.js) ----------
+  // Browsers only allow sound after a tap or key press, so a first-time visitor gets a small
+  // "play with sound?" card; a tap anywhere (or SOUND ON) starts it. The choice is remembered.
   (()=>{
-    const btn=$('#soundToggle'); let ac=null, master=null, on=false, timer=0, chimeT=0;
-    const KEY='simats_sound';
-    const HIRA=[293.66,329.63,349.23,440,466.16];   // D hirajoshi: D E F A Bb
-    function pluck(f,when,vel){
-      const o=ac.createOscillator(), o2=ac.createOscillator(), g=ac.createGain(), lp=ac.createBiquadFilter();
-      o.type='triangle'; o2.type='sine'; o.frequency.setValueAtTime(f*1.006,when); o.frequency.exponentialRampToValueAtTime(f,when+.08); o2.frequency.setValueAtTime(f*2,when);
-      lp.type='lowpass'; lp.frequency.setValueAtTime(3200,when); lp.frequency.exponentialRampToValueAtTime(700,when+1.4);
-      g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime(vel,when+.006); g.gain.exponentialRampToValueAtTime(.0008,when+2.6);
-      const g2=ac.createGain(); g2.gain.value=.25;
-      o.connect(lp); o2.connect(g2).connect(lp); lp.connect(g).connect(master);
-      o.start(when); o2.start(when); o.stop(when+2.7); o2.stop(when+2.7);
+    const btn=$('#soundToggle'), gate=$('#soundGate'), KEY='simats_sound', M=window.ClubMusic;
+    if(!M||!(window.AudioContext||window.webkitAudioContext)){ btn.hidden=true; gate.remove(); return; }
+    let pref=null; try{ pref=localStorage.getItem(KEY); }catch(e){}
+    const ui=(v)=>{ btn.setAttribute('aria-pressed',String(v)); btn.setAttribute('aria-label','Music: '+(v?'on':'off'));
+      $('#sndMute').style.display=v?'none':''; $('#sndWaves').setAttribute('opacity',v?'1':'.35'); };
+    const save=(v)=>{ try{ localStorage.setItem(KEY,v?'1':'0'); }catch(e){} };
+    const set=(v,remember)=>{ M.setProgress(prog); M.enable(v); ui(v); if(remember) save(v); };
+    const closeGate=()=>{ gate.classList.remove('on'); disarm(); };
+    const EV=['pointerdown','keydown','touchend'];
+    const first=(e)=>{ if(e.target&&e.target.closest&&e.target.closest('#soundGate,#soundToggle')) return; closeGate(); if(!M.enabled) set(true,true); };
+    const arm=()=>EV.forEach(ev=>addEventListener(ev,first,{capture:true,passive:true}));
+    const disarm=()=>EV.forEach(ev=>removeEventListener(ev,first,true));
+    ui(false);
+    // during the intro the speaker button just mutes/unmutes; after the logo it opens a small player
+    const P=$('#mPlayer'), mute=$('#mpMute'), bar=$('#mpBar');
+    const fmt=(t)=>{ t=Math.max(0,Math.floor(t||0)); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); };
+    const openP=(v)=>{ P.classList.toggle('on',v); btn.setAttribute('aria-expanded',String(v)); if(v) draw(); };
+    function draw(){
+      const st=M.state(); if(st.stage!=='calm'){ if(P.classList.contains('on')) openP(false); return; }
+      $('#mpJp').textContent=st.jp; $('#mpName').textContent=st.name+' · '+st.en;
+      const f=st.duration?st.elapsed/st.duration:0; $('#mpFill').style.width=(f*100)+'%'; $('#mpKnob').style.left=(f*100)+'%';
+      $('#mpCur').textContent=fmt(st.elapsed); $('#mpDur').textContent=fmt(st.duration); bar.setAttribute('aria-valuenow',String(Math.round(f*100)));
+      bar.setAttribute('aria-valuetext',fmt(st.elapsed)+' of '+fmt(st.duration));
+      mute.classList.toggle('muted',!st.enabled); mute.setAttribute('aria-label',st.enabled?'Mute':'Unmute');
     }
-    function chime(when){
-      const base=1800+Math.random()*1400;
-      for(const m of [1,2.76,5.4]){ const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.value=base*m;
-        g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime(.025/m,when+.004); g.gain.exponentialRampToValueAtTime(.0001,when+3.2);
-        o.connect(g).connect(master); o.start(when); o.stop(when+3.3); }
-    }
-    function phrase(){
-      if(!on) return;
-      const t=ac.currentTime+.05, n=1+Math.floor(Math.random()*3);
-      for(let i=0;i<n;i++){ const oct=Math.random()<.3?2:(Math.random()<.2?.5:1); pluck(HIRA[Math.floor(Math.random()*5)]*oct,t+i*(.32+Math.random()*.2),.18*(1-i*.15)); }
-      if(Math.random()<.35) chime(t+.6+Math.random()*1.5);
-      timer=setTimeout(phrase,1900+Math.random()*2600);
-    }
-    function set(v){
-      on=v; btn.setAttribute('aria-pressed',String(v)); btn.setAttribute('aria-label','Ambient sound: '+(v?'on':'off'));
-      $('#sndMute').style.display=v?'none':''; $('#sndWaves').setAttribute('opacity',v?'1':'.35');
-      try{ localStorage.setItem(KEY,v?'1':'0'); }catch(e){}
-      if(v){
-        if(!ac){ ac=new (window.AudioContext||window.webkitAudioContext)(); master=ac.createGain(); master.gain.value=0; const comp=ac.createDynamicsCompressor(); master.connect(comp).connect(ac.destination); }
-        ac.resume(); master.gain.cancelScheduledValues(ac.currentTime); master.gain.linearRampToValueAtTime(.55,ac.currentTime+1.2);
-        clearTimeout(timer); phrase();
-      } else if(ac){ master.gain.cancelScheduledValues(ac.currentTime); master.gain.linearRampToValueAtTime(0,ac.currentTime+.5); clearTimeout(timer); }
-    }
-    btn.addEventListener('click',()=>set(!on));
-    $('#sndMute').style.display='';
-    // if they turned it on last visit, resume on their first interaction (browsers block sound before that)
-    let pref='0'; try{ pref=localStorage.getItem(KEY)||'0'; }catch(e){}
-    if(pref==='1'){ const go=()=>{ ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>removeEventListener(ev,go,true)); if(!on) set(true); };
-      ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,go,{capture:true,passive:true})); }
-    document.addEventListener('visibilitychange',()=>{ if(!ac) return; if(document.hidden) ac.suspend(); else if(on) ac.resume(); });
+    btn.addEventListener('click',()=>{ closeGate(); if(prog>=.935) openP(!P.classList.contains('on')); else set(!M.enabled,true); });
+    $('#mpClose').addEventListener('click',()=>openP(false));
+    mute.addEventListener('click',()=>{ set(!M.enabled,true); draw(); });
+    $('#mpPrev').addEventListener('click',()=>{ M.prev(); draw(); });
+    $('#mpNext').addEventListener('click',()=>{ M.next(); draw(); });
+    const seekAt=(x)=>{ const r=bar.getBoundingClientRect(); M.seek(clamp((x-r.left)/r.width)); draw(); };
+    bar.addEventListener('pointerdown',e=>{ e.preventDefault(); seekAt(e.clientX); });
+    bar.addEventListener('keydown',e=>{ const st=M.state(); if(!st.duration) return; const d={ArrowLeft:-5,ArrowRight:5}[e.key]; if(!d) return; e.preventDefault(); M.seek(clamp((st.elapsed+d)/st.duration)); draw(); });
+    addEventListener('keydown',e=>{ if(e.key==='Escape'&&P.classList.contains('on')) openP(false); });
+    setInterval(()=>{ if(P.classList.contains('on')) draw(); },250);
+    $('#sndOn').addEventListener('click',()=>{ closeGate(); if(!M.enabled) set(true,true); });
+    $('#sndNo').addEventListener('click',()=>{ closeGate(); set(false,true); });
+    if(pref==='1') arm();                                   // they chose sound before: resume on the first tap or key
+    else if(pref!=='0'){ arm();
+      // never stack on the "Welcome back" card: wait until it's gone. Tapping its buttons already starts the music;
+      // if they scroll it away instead, the sound card shows then (only while still in the intro).
+      const wc=$('#welcome'), show=()=>{ if(!M.enabled&&prog<.9&&!(()=>{try{return localStorage.getItem(KEY)}catch(x){return null}})()) gate.classList.add('on'); };
+      setTimeout(()=>{ if(!wc.classList.contains('on')) return show();
+        const mo=new MutationObserver(()=>{ if(!wc.classList.contains('on')){ mo.disconnect(); setTimeout(show,450); } }); mo.observe(wc,{attributes:true,attributeFilter:['class']}); },1400); }
+    setInterval(()=>{ M.setProgress(prog); if(prog>.935&&gate.classList.contains('on')) gate.classList.remove('on'); },100);
   })();
 
   // ---------- Returning visitors: replay or skip the intro ----------
