@@ -6,6 +6,10 @@
   <meta name="theme-color" content="#000000" />
   <meta name="description" content="SIMATS Anime Club — a scroll-driven cinematic opening." />
   <title>SIMATS Anime Club</title>
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="site.webmanifest" />
   <style>
     @font-face { font-family:"Dela Gothic One"; src:url("assets/fonts/dela-gothic-one-logo.woff2") format("woff2"); font-weight:400; font-display:block; }
     @font-face { font-family:"Manrope"; src:url("assets/fonts/manrope-latin-700-normal.woff2") format("woff2"); font-weight:700; font-display:swap; }
@@ -106,6 +110,7 @@
     .narrator { position:absolute; z-index:30; left:0; top:0; transform-origin:50% 100%; will-change:transform; }
     .narrator svg, .narrator img { width:100%; height:100%; display:block; object-fit:contain; object-position:50% 100%; }
     .narrator img[hidden] { display:none; }
+    .narrator canvas.chibi { position:absolute; left:50%; bottom:0; opacity:0; transform-origin:50% 100%; }
     .narrator img.chibi { position:absolute; left:50%; right:auto; bottom:0; top:auto; width:auto; height:84%; opacity:0; transform-origin:50% 100%; -webkit-mask-image:none; mask-image:none; }
     .narrator .hearts { position:absolute; left:58%; top:4%; font-size:clamp(20px,3.2vh,34px); pointer-events:none; }
     .narrator .hearts i { position:absolute; font-style:normal; opacity:0; filter:drop-shadow(0 2px 6px rgba(220,6,40,.6)); }
@@ -125,6 +130,80 @@
     .chapter p { font-size:14px; line-height:2; color:#dbbdbe; max-width:540px; margin:auto; font-weight:500; }
     .chapter .cta { display:inline-block; margin-top:30px; border:1px solid rgba(230,192,111,.75); padding:14px 28px; color:#f6dca0; text-decoration:none; font-size:11px; letter-spacing:.32em; font-weight:800; background:rgba(10,4,4,.6); transition:background .2s,box-shadow .2s; }
     .chapter .cta:hover,.chapter .cta:focus-visible { background:rgba(144,0,24,.85); box-shadow:0 0 24px rgba(220,6,40,.45); outline:none; }
+    /* What we do */
+    .wwd { background:radial-gradient(ellipse at 50% 0%,rgba(144,0,24,.22),transparent 60%),#050203; padding:80px clamp(18px,5vw,70px) 70px; border-top:1px solid rgba(201,149,69,.18); }
+    .sec-head { text-align:center; margin:0 auto 38px; max-width:900px; }
+    .sec-head p { max-width:620px; margin-left:auto !important; margin-right:auto !important; }
+    .sec-kicker { display:inline-block; background:#a8001c; color:#fff3dc; font-size:10px; font-weight:800; letter-spacing:.3em; padding:6px 12px; }
+    .sec-head h2 { font-family:"Dela Gothic One",Manrope,sans-serif; font-weight:400; color:#f6dca0; font-size:clamp(30px,5vw,58px); margin:14px 0 8px; }
+    .sec-head p { color:#cdb4b6; font-size:14px; line-height:1.8; font-weight:500; margin:0; }
+    .wwd-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; max-width:1180px; margin:0 auto; }
+    .wwd-tile { position:relative; overflow:hidden; border:1px solid rgba(230,192,111,.38); border-radius:16px; padding:26px 22px 24px; background:linear-gradient(160deg,rgba(144,0,24,.22),rgba(12,2,5,.9) 60%); transition:transform .25s, border-color .25s, box-shadow .25s; }
+    .wwd-tile:hover, .wwd-tile:focus-within { transform:translateY(-4px); border-color:#e6c06f; box-shadow:0 18px 40px rgba(0,0,0,.5), 0 0 30px rgba(196,36,63,.25); }
+    .wwd-tile svg.ico { width:64px; height:64px; display:block; margin-bottom:16px; }
+    .wwd-tile h3 { margin:0 0 8px; font-family:"Dela Gothic One",Manrope,sans-serif; font-weight:400; font-size:20px; color:#f6dca0; letter-spacing:.02em; }
+    .wwd-tile p { margin:0; color:#d8c0c2; font-size:13.5px; line-height:1.75; font-weight:500; }
+    .wwd-tile .jp { position:absolute; right:14px; top:12px; font-family:"Dela Gothic One",sans-serif; color:rgba(255,214,227,.16); font-size:34px; pointer-events:none; }
+    @media (max-width:980px) { .wwd-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:520px) { .wwd-grid { grid-template-columns:1fr; } }
+
+    /* Upcoming events */
+    .events { background:#030102; padding:70px clamp(18px,5vw,70px) 70px; border-top:1px solid rgba(201,149,69,.18); }
+    .ev-list { display:grid; gap:16px; max-width:900px; margin:22px auto 0; }
+    .ev-list:empty { display:none; }
+    .meet-wrap { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:20px; max-width:900px; margin:0 auto; align-items:stretch; }
+    .cal { position:relative; background:linear-gradient(170deg,#fff8f0,#f6e6d6); color:#4a0f1a; border-radius:20px; padding:18px 18px 16px; box-shadow:0 18px 40px rgba(0,0,0,.45); border:3px solid #e6c06f; overflow:hidden; }
+    .cal::before { content:""; position:absolute; inset:0; background:url("assets/patterns/seigaiha.svg") 0 0/72px 36px; opacity:.55; pointer-events:none; }
+    .cal > * { position:relative; }
+    .cal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .cal-title { font-family:"Dela Gothic One",Manrope,sans-serif; font-size:22px; color:#9c0f24; letter-spacing:.02em; }
+    .cal-title small { display:block; font-family:Manrope,sans-serif; font-size:10px; letter-spacing:.26em; color:#9a6420; font-weight:800; margin-top:2px; }
+    .cal-nav { width:34px; height:34px; border-radius:50%; border:2px solid #e6c06f; background:#fff; color:#9c0f24; font-size:18px; font-weight:800; cursor:pointer; line-height:1; }
+    .cal-nav:disabled { opacity:.3; cursor:default; }
+    .cal-nav:not(:disabled):hover, .cal-nav:focus-visible { background:#a8001c; color:#fff; outline:none; }
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .cal-dow { text-align:center; font-size:10px; font-weight:800; letter-spacing:.12em; color:#9a6420; padding:4px 0 6px; }
+    .cal-dow.tue { color:#b0122f; }
+    .cal-d { position:relative; aspect-ratio:1; display:grid; place-items:center; border-radius:12px; font-size:13px; font-weight:700; color:#5a2a30; }
+    .cal-d.cd-blank { visibility:hidden; }
+    .cal-d.cd-past { opacity:.38; }
+    .cal-d.cd-today { box-shadow:inset 0 0 0 2px #b0122f; }
+    .cal-d.cd-hol::after { content:""; position:absolute; bottom:4px; width:5px; height:5px; border-radius:50%; background:#9a6420; }
+    .cal-d.cd-on { background:radial-gradient(circle at 50% 42%,#ff8fa6,#c4243f 70%); color:#fff; box-shadow:0 4px 10px rgba(196,36,63,.35); }
+    .cal-d.cd-on::before { content:"✿"; position:absolute; top:-6px; right:-3px; font-size:13px; color:#e6c06f; text-shadow:0 1px 0 #fff; }
+    .cal-d.cd-on.cd-past { background:#e9b9c1; box-shadow:none; }
+    .cal-d.cd-off { background:repeating-linear-gradient(135deg,#efe2d4 0 5px,#e5d3c2 5px 10px); color:#8f7779; text-decoration:line-through; }
+    .cal-d.cd-next { animation:nextPulse 1.8s ease-in-out infinite; }
+    .cal-d.cd-next .cd-tag { position:absolute; bottom:-7px; left:50%; transform:translateX(-50%); background:#e6c06f; color:#4a0f1a; font-size:7.5px; font-weight:800; letter-spacing:.12em; padding:1px 4px; border-radius:4px; }
+    @keyframes nextPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.08); } }
+    .cal-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:14px; font-size:11px; font-weight:700; color:#6b4048; }
+    .cal-legend i { display:inline-block; width:12px; height:12px; border-radius:4px; vertical-align:-2px; margin-right:5px; }
+    .meet-card { border:1px solid rgba(230,192,111,.45); border-radius:20px; padding:24px 22px; background:linear-gradient(160deg,rgba(144,0,24,.35),rgba(12,2,5,.9) 65%); display:flex; flex-direction:column; gap:10px; }
+    .meet-card .big { font-family:"Dela Gothic One",Manrope,sans-serif; font-size:clamp(26px,3.2vw,36px); color:#f6dca0; line-height:1.1; }
+    .meet-card .next { color:#fff1eb; font-size:15px; font-weight:800; }
+    .meet-card .next b { color:#ff9fb2; }
+    .meet-card .meta, .meet-card .skipnote { color:#d8c0c2; font-size:13px; line-height:1.7; font-weight:500; }
+    .meet-card .skipnote b { color:#f6dca0; }
+    .meet-card .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; padding-top:6px; }
+    .meet-card .btns a, .meet-card .btns button { font:inherit; cursor:pointer; text-decoration:none; border:1px solid rgba(230,192,111,.7); background:rgba(10,4,4,.6); color:#f6dca0; font-size:10px; font-weight:800; letter-spacing:.18em; padding:10px 12px; }
+    .meet-card .btns a.wa { background:#a8001c; border-color:#a8001c; color:#fff3dc; }
+    .meet-card .btns a:hover, .meet-card .btns button:hover, .meet-card .btns a:focus-visible, .meet-card .btns button:focus-visible { background:#a8001c; outline:none; }
+    @media (max-width:760px) { .meet-wrap { grid-template-columns:1fr; } }
+    @media (prefers-reduced-motion:reduce) { .cal-d.cd-next { animation:none; } }
+    .ev { display:grid; grid-template-columns:96px 1fr auto; gap:20px; align-items:center; border:1px solid rgba(230,192,111,.38); border-radius:14px; padding:18px 20px; background:linear-gradient(90deg,rgba(144,0,24,.25),rgba(12,2,5,.85) 40%); }
+    .ev-date { text-align:center; border-right:1px solid rgba(230,192,111,.3); padding-right:16px; }
+    .ev-date .d { font-family:"Dela Gothic One",Manrope,sans-serif; font-size:40px; line-height:1; color:#f6dca0; }
+    .ev-date .m { font-size:11px; font-weight:800; letter-spacing:.24em; color:#e6c06f; margin-top:6px; }
+    .ev-tag { display:inline-block; font-size:9px; font-weight:800; letter-spacing:.22em; color:#fff3dc; background:#a8001c; padding:3px 8px; margin-bottom:6px; }
+    .ev h3 { margin:0 0 4px; color:#fff1eb; font-size:18px; font-weight:800; }
+    .ev .meta { color:#d8c0c2; font-size:13px; font-weight:600; }
+    .ev .desc { color:#bfa5a8; font-size:13px; margin-top:6px; font-weight:500; line-height:1.7; }
+    .ev-cal { display:flex; flex-direction:column; gap:8px; }
+    .ev-cal a, .ev-cal button { font:inherit; cursor:pointer; text-decoration:none; border:1px solid rgba(230,192,111,.7); background:rgba(10,4,4,.6); color:#f6dca0; font-size:10px; font-weight:800; letter-spacing:.2em; padding:9px 12px; text-align:center; white-space:nowrap; }
+    .ev-cal a:hover, .ev-cal button:hover, .ev-cal a:focus-visible, .ev-cal button:focus-visible { background:#a8001c; outline:none; }
+    .ev.empty { grid-template-columns:1fr auto; }
+    @media (max-width:640px) { .ev { grid-template-columns:72px 1fr; } .ev-cal { grid-column:1 / -1; flex-direction:row; } .ev-cal a, .ev-cal button { flex:1; } .ev-date .d { font-size:32px; } .ev.empty { grid-template-columns:1fr; } }
+
     .meets { background:#030102; padding:70px 0 80px; overflow:hidden; border-top:1px solid rgba(201,149,69,.18); }
     .meets-head { text-align:center; padding:0 20px; margin-bottom:34px; }
     .meets-kicker { display:inline-block; background:#a8001c; color:#fff3dc; font-size:10px; font-weight:800; letter-spacing:.3em; padding:6px 12px; }
@@ -142,6 +221,22 @@
     .meet .vtag { position:absolute; left:10px; top:10px; font-size:9px; font-weight:800; letter-spacing:.2em; color:#fff3dc; background:rgba(168,0,28,.85); padding:4px 8px; border-radius:2px; }
     @media (max-width:700px) { .meet { height:210px; } .meets-track { animation-duration:55s; } }
     @media (prefers-reduced-motion:reduce) { .meets-track { animation:none; } .meets-rail { overflow-x:auto; } }
+    /* sakura burst easter egg */
+    #sakuraBurst { position:fixed; inset:0; width:100%; height:100%; z-index:120; pointer-events:none; }
+    /* returning visitor + sound toggle */
+    .welcome { position:fixed; z-index:60; left:50%; bottom:clamp(16px,4vh,34px); transform:translate(-50%,20px); opacity:0; pointer-events:none; display:flex; align-items:center; gap:14px; background:rgba(14,3,6,.94); border:1px solid rgba(230,192,111,.6); border-radius:14px; padding:12px 14px 12px 12px; box-shadow:0 18px 40px rgba(0,0,0,.6); transition:opacity .35s, transform .35s; max-width:calc(100vw - 24px); }
+    .welcome.on { opacity:1; transform:translate(-50%,0); pointer-events:auto; }
+    .welcome img { width:46px; height:46px; border-radius:50%; flex:none; }
+    .welcome .wt { color:#fff1eb; font-size:13px; font-weight:700; line-height:1.4; }
+    .welcome .wt small { display:block; color:#cdb4b6; font-weight:500; font-size:11.5px; }
+    .welcome button { font:inherit; cursor:pointer; border:1px solid rgba(230,192,111,.7); background:transparent; color:#f6dca0; font-size:10px; font-weight:800; letter-spacing:.18em; padding:9px 11px; white-space:nowrap; }
+    .welcome button.primary { background:#a8001c; border-color:#a8001c; color:#fff3dc; }
+    .welcome button:hover, .welcome button:focus-visible { outline:none; box-shadow:0 0 0 2px rgba(230,192,111,.6); }
+    @media (max-width:560px) { .welcome { flex-wrap:wrap; justify-content:center; text-align:center; } .welcome .wt { flex:1 1 60%; text-align:left; } }
+    .sound-toggle { position:fixed; z-index:55; left:clamp(12px,3vw,28px); bottom:clamp(14px,3vh,28px); width:38px; height:38px; opacity:.85; border-radius:50%; border:1px solid rgba(230,192,111,.55); background:rgba(10,3,5,.7); color:#f6dca0; cursor:pointer; display:grid; place-items:center; padding:0; }
+    .sound-toggle svg { width:20px; height:20px; }
+    .sound-toggle[aria-pressed="true"] { background:#a8001c; border-color:#e6c06f; }
+    .sound-toggle:focus-visible { outline:2px solid #e6c06f; outline-offset:2px; }
     .lightbox { position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center; background:rgba(4,1,2,.92); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); padding:56px 64px; }
     .lightbox.open { display:flex; animation:lbIn .25s ease-out; }
     @keyframes lbIn { from { opacity:0; } to { opacity:1; } }
@@ -168,7 +263,6 @@
     .foot-sakura { position:absolute; z-index:-1; color:#c4243f; opacity:.22; font-size:44px; line-height:1; pointer-events:none; }
     .foot-grid { display:grid; grid-template-columns:1.7fr .8fr 1.2fr 1fr auto; gap:28px; max-width:1240px; margin:0 auto; align-items:start; }
     .foot-mascot { position:relative; margin:-70px 0 0; width:180px; text-align:center; }
-    .foot-mascot img { animation:benioBob 3.4s ease-in-out infinite; transform-origin:50% 100%; }
     @keyframes benioBob { 0%,100% { transform:translateY(0) rotate(0); } 50% { transform:translateY(-6px) rotate(-1.2deg); } }
     .foot-mascot img { width:100%; height:auto; display:block; filter:drop-shadow(0 10px 18px rgba(122,13,32,.28)); }
     .foot-mascot .heart { position:absolute; width:58px; left:50%; top:62%; transform:translate(-50%,-50%); filter:drop-shadow(0 4px 10px rgba(176,18,47,.55)); animation:heartBeat 1.6s ease-in-out infinite; }
@@ -176,6 +270,14 @@
     .foot-mascot .mini { position:absolute; color:#c4243f; font-size:16px; opacity:0; animation:miniFloat 3.2s ease-in-out infinite; }
     .foot-mascot .m1 { left:22%; top:46%; } .foot-mascot .m2 { right:20%; top:40%; animation-delay:1.6s; font-size:12px; }
     @keyframes miniFloat { 0% { opacity:0; transform:translateY(0) scale(.6); } 20% { opacity:.9; } 100% { opacity:0; transform:translateY(-60px) scale(1.1); } }
+    .foot-mascot .rigbox { position:relative; width:100%; aspect-ratio:1122/1402; cursor:pointer; -webkit-tap-highlight-color:transparent; outline:none; }
+    .foot-mascot .rigbox:focus-visible { outline:2px solid #b0122f; outline-offset:4px; border-radius:12px; }
+    .foot-mascot .rigbox canvas, .foot-mascot .rigbox img { position:absolute; inset:0; width:100%; height:100%; }
+    .foot-mascot .rigbox canvas { filter:drop-shadow(0 10px 18px rgba(122,13,32,.28)); }
+    .foot-mascot .rigbox.live img { visibility:hidden; }
+    .benio-say { position:absolute; left:50%; bottom:calc(100% - 26px); transform:translate(-50%,8px); width:max-content; max-width:230px; background:#fff8f0; color:#4a0f1a; border:2px solid #b0122f; border-radius:14px; padding:9px 13px; font-size:12.5px; line-height:1.5; font-weight:700; text-align:center; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; box-shadow:0 8px 22px rgba(122,13,32,.25); z-index:2; }
+    .benio-say::after { content:""; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); border:8px solid transparent; border-top-color:#b0122f; border-bottom:0; }
+    .benio-say.on { opacity:1; transform:translate(-50%,0); }
     .foot-mascot figcaption { margin-top:6px; font-size:11px; font-weight:800; letter-spacing:.12em; color:#9a6420; }
     @media (prefers-reduced-motion:reduce) { .foot-mascot img, .foot-mascot .heart, .foot-mascot .mini { animation:none; } }
     .foot-name { font-family:"Dela Gothic One",Manrope,sans-serif; font-size:clamp(17px,1.55vw,22px); white-space:nowrap; color:#2a0a12; letter-spacing:.04em; }
@@ -310,6 +412,7 @@
           <img id="narratorImg" alt="" hidden />
           <img id="narratorImg2" class="alt" alt="" hidden />
           <img id="narratorChibi" class="chibi" alt="Sakuraba Benio, chibi" hidden />
+          <canvas id="narratorRig" class="chibi rig" aria-hidden="true" hidden></canvas>
           <span class="hearts" id="hearts" aria-hidden="true"><i>❤️</i><i>❤️</i></span>
           <!-- placeholder narrator (an original character). Set NARRATOR_IMAGE in the script to use your own art. -->
           <svg id="narratorSvg" viewBox="0 0 240 320" aria-hidden="true" style="overflow:visible">
@@ -429,6 +532,25 @@
     </div>
   </section>
 
+  <section class="wwd" id="what-we-do" aria-label="What we do">
+    <div class="sec-head"><span class="sec-kicker">THE CLUB</span><h2>WHAT WE DO</h2><p>Four ways to be part of SIMATS Anime Club. Come for one, stay for all of them.</p></div>
+    <div class="wwd-grid">
+      <article class="wwd-tile" tabindex="0"><span class="jp" aria-hidden="true">上映</span><svg class="ico" viewBox="0 0 64 64" fill="none" stroke="#e6c06f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="12" width="52" height="32" rx="3"/><path d="M27 22 L39 28 L27 34 Z" fill="#c4243f" stroke="#c4243f"/><path d="M22 52 H42 M32 44 V52"/><path d="M10 8 L16 12 M54 8 L48 12" opacity=".6"/></svg><h3>Screenings</h3><p>Watch parties for new seasons, classic films and community-voted picks, with discussion after.</p></article>
+      <article class="wwd-tile" tabindex="0"><span class="jp" aria-hidden="true">仮装</span><svg class="ico" viewBox="0 0 64 64" fill="none" stroke="#e6c06f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10 L22 24 M52 10 L42 24"/><path d="M12 10 Q10 34 32 54 Q54 34 52 10 Q42 20 32 20 Q22 20 12 10 Z"/><path d="M20 32 Q25 28 29 33 M35 33 Q39 28 44 32" stroke="#c4243f"/><path d="M28 44 Q32 47 36 44" /><path d="M18 40 L12 42 M46 40 L52 42" stroke="#c4243f" opacity=".8"/></svg><h3>Cosplay</h3><p>Costume workshops, prop-making help and photo walks. Beginners and pros are equally welcome.</p></article>
+      <article class="wwd-tile" tabindex="0"><span class="jp" aria-hidden="true">絵</span><svg class="ico" viewBox="0 0 64 64" fill="none" stroke="#e6c06f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M30 8 C14 8 6 20 8 32 C10 44 20 52 30 50 C36 49 34 42 38 40 C44 38 56 42 56 30 C56 16 44 8 30 8 Z"/><circle cx="20" cy="26" r="3" fill="#c4243f" stroke="none"/><circle cx="30" cy="18" r="3" fill="#ffd6e3" stroke="none"/><circle cx="42" cy="22" r="3" fill="#e6c06f" stroke="none"/><path d="M58 40 L40 58" stroke-width="3"/><path d="M40 58 Q34 60 36 54" stroke="#c4243f"/></svg><h3>Art Jams</h3><p>Sketch sessions, fan-art challenges and manga panel practice. Bring a pencil or a tablet.</p></article>
+      <article class="wwd-tile" tabindex="0"><span class="jp" aria-hidden="true">祭</span><svg class="ico" viewBox="0 0 64 64" fill="none" stroke="#e6c06f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10 H44 V24 C44 32 38 38 32 38 C26 38 20 32 20 24 Z"/><path d="M20 14 H12 C12 22 16 26 21 27 M44 14 H52 C52 22 48 26 43 27"/><path d="M32 38 V46 M22 54 H42 L40 46 H24 Z"/><path d="M29 18 Q32 15 35 18 Q35 21 32 23 V25" stroke="#c4243f"/><circle cx="32" cy="29" r="1.2" fill="#c4243f" stroke="none"/></svg><h3>Quizzes &amp; Fests</h3><p>Spin-the-wheel quizzes, trivia battles and stalls at college fests, with prizes for the winners.</p></article>
+    </div>
+  </section>
+
+  <section class="events" id="events" aria-label="Upcoming events">
+    <div class="sec-head"><span class="sec-kicker">CALENDAR</span><h2>UPCOMING EVENTS</h2><p>We meet every Tuesday. Holidays are marked, so you always know when we’re on.</p></div>
+    <div class="meet-wrap">
+      <div class="cal" id="meetCal" aria-label="Meet calendar"></div>
+      <div class="meet-card" id="meetCard"></div>
+    </div>
+    <div class="ev-list" id="evList"></div>
+  </section>
+
   <section class="meets" id="meets" aria-label="Recent meets">
     <div class="meets-head">
       <span class="meets-kicker">GALLERY</span>
@@ -457,6 +579,16 @@
     </div>
   </section>
 
+  <canvas id="sakuraBurst" aria-hidden="true" hidden></canvas>
+  <div class="welcome" id="welcome" role="dialog" aria-label="Welcome back">
+    <img src="assets/icon-192.png" alt="" width="46" height="46" />
+    <div class="wt">Okaeri! Welcome back <small>Watch the intro again, or jump straight to the crew?</small></div>
+    <button type="button" id="wReplay">REPLAY INTRO</button>
+    <button type="button" class="primary" id="wSkip">SKIP TO CREW</button>
+  </div>
+  <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false" aria-label="Ambient sound: off">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor" stroke="none"/><path id="sndWaves" d="M16.5 8.5 Q19 12 16.5 15.5 M19 6 Q23 12 19 18" opacity=".35"/><path id="sndMute" d="M17 9 L22 15 M22 9 L17 15"/></svg>
+  </button>
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Gallery viewer">
     <div class="stagebox" id="lbStage"></div>
     <button class="lb-close" id="lbClose" aria-label="Close">✕</button>
@@ -491,7 +623,11 @@
         <a href="conduct.html">Code of Conduct</a>
       </nav>
       <figure class="foot-mascot" id="footMascot">
-        <img id="footMascotImg" src="assets/benio-heart-hands.webp" alt="Sakuraba Benio, the club mascot, making a heart with her hands" width="700" height="873" loading="lazy" decoding="async" />
+        <div class="benio-say" id="benioSay" role="status" aria-live="polite"></div>
+        <div class="rigbox" id="benioBox" role="button" tabindex="0" aria-label="Sakuraba Benio, the club mascot, making a heart with her hands. Tap her!">
+          <img id="footMascotImg" src="assets/benio-heart-hands.webp" alt="" width="700" height="873" loading="lazy" decoding="async" />
+          <canvas id="benioCanvas" aria-hidden="true"></canvas>
+        </div>
         <svg class="heart" id="footHeart" viewBox="0 0 64 58" aria-hidden="true"><defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a76"/><stop offset="1" stop-color="#b0122f"/></linearGradient></defs>
           <path d="M32 56 C 12 40, 0 30, 0 16 C 0 6, 8 0, 17 0 C 24 0, 29 4, 32 9 C 35 4, 40 0, 47 0 C 56 0, 64 6, 64 16 C 64 30, 52 40, 32 56 Z" fill="url(#hg)" stroke="#fff3f5" stroke-width="2.5"/>
           <path d="M14 12 C 18 8, 24 9, 25 13" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" opacity=".75"/></svg>
@@ -508,6 +644,8 @@
 </main>
 
 <script src="assets/oni-mask.js"></script>
+<script src="assets/benio-rig/rig-data.js"></script>
+<script src="assets/benio-rig/benio-rig.js"></script>
 <script>
 (() => {
   'use strict';
@@ -520,7 +658,7 @@
   const logo=$('#logo'), enterBtn=$('#enterBtn'), slashLine=$('#slashLine'), crest=$('#crest'), title=$('#titleCut'), cutLower=$('#cutLower'), banner=$('#banner');
   const hint=$('#hint');
   const logoSvg=$('#logoSvg'), topbar=$('#topbar'), team=$('#team'), cardsEl=$('#cards'), bubble=$('#bubble'), bubbleWho=$('#bubbleWho'), bubbleText=$('#bubbleText'), bubbleTail=$('#bubbleTail');
-  const narrator=$('#narrator'), narratorImg=$('#narratorImg'), narratorImg2=$('#narratorImg2'), narratorChibi=$('#narratorChibi'), heartEls=[...document.querySelectorAll('#hearts i')], narratorSvg=$('#narratorSvg');
+  const narrator=$('#narrator'), narratorImg=$('#narratorImg'), narratorImg2=$('#narratorImg2'), narratorChibi=$('#narratorChibi'), narratorRig=$('#narratorRig'), heartEls=[...document.querySelectorAll('#hearts i')], narratorSvg=$('#narratorSvg');
   const nTail=$('#nTail'), nBody=$('#nBody'), nLegL=$('#nLegL'), nLegR=$('#nLegR'), nArmF=$('#nArmF'), nArmB=$('#nArmB'), nHead=$('#nHead'), nMouthC=$('#nMouthC'), nMouthO=$('#nMouthO');
 
   // ================= TEAM INTRO: edit names, lines and photos here =================
@@ -541,6 +679,64 @@
   // Footer contact links: fill in the club's handles to show them (leave '' to hide).
   // Footer mascot: Benio making a heart with her hands. To change her, point FOOTER_MASCOT at another transparent PNG/WebP in assets/.
   const FOOTER_MASCOT='assets/benio-heart-hands.webp', FOOTER_HEART=false;
+  const FOOTER_RIG=true;   // true: footer Benio is drawn live from her rig (blinks, talks). false: show FOOTER_MASCOT as a still image.
+  // Upcoming events. Add one object per event; past events hide automatically. Times are India time (IST).
+  //   { title:'Spin-the-Wheel Quiz', start:'2026-11-14T15:30', end:'2026-11-14T17:30', venue:'Block 3, Room 204', tag:'QUIZ', desc:'Teams of 3. Prizes!' }
+  const WA_LINK='https://chat.whatsapp.com/GHwQzTsmPQr5xxNzGjINWb?s=cl&p=a&mlu=4&ilr=4&iam=2';
+  const EVENTS=[];
+  // Weekly club meet. weekday: 0=Sun ... 2=Tuesday. Fill time ('16:00') and venue when fixed.
+  const MEET={ weekday:2, time:'', end:'', venue:'', note:'Time and room are shared in our WhatsApp community each week.' };
+  // Tamil Nadu government holidays. A Tuesday on this list is shown as "no meet".
+  // 2026: Government of Tamil Nadu public holiday list. 2027: fixed-date holidays only; add the rest once the 2027 G.O. is out.
+  const TN_HOLIDAYS={
+    '2026-01-01':"New Year's Day",'2026-01-15':'Pongal','2026-01-16':'Thiruvalluvar Day','2026-01-17':'Uzhavar Thirunal',
+    '2026-01-26':'Republic Day','2026-02-01':'Thai Poosam','2026-03-19':'Telugu New Year','2026-03-21':'Ramzan',
+    '2026-03-31':'Mahaveer Jayanthi','2026-04-03':'Good Friday','2026-04-14':'Tamil New Year / Ambedkar Jayanthi',
+    '2026-05-01':'May Day','2026-05-28':'Bakrid','2026-06-26':'Muharram','2026-08-15':'Independence Day',
+    '2026-08-26':'Milad-un-Nabi','2026-09-04':'Krishna Jayanthi','2026-09-14':'Vinayakar Chathurthi',
+    '2026-10-02':'Gandhi Jayanthi','2026-10-19':'Ayutha Pooja','2026-10-20':'Vijaya Dasami','2026-11-08':'Deepavali',
+    '2026-12-25':'Christmas',
+    '2027-01-01':"New Year's Day",'2027-01-26':'Republic Day','2027-04-14':'Tamil New Year / Ambedkar Jayanthi',
+    '2027-05-01':'May Day','2027-08-15':'Independence Day','2027-10-02':'Gandhi Jayanthi','2027-12-25':'Christmas',
+  };
+  // Things Benio says when you tap her in the footer.
+  const BENIO_LINES=[
+    "Konnichiwa! I'm Benio, the club's fox spirit~",
+    "Have you watched this week's episode yet?",
+    "Sub or dub? ...I won't judge. Much.",
+    "My tail is fluffier than yours, ne~",
+    "Join our WhatsApp, onegai! Pretty please?",
+    "Mou~ stop poking me! ...okay, one more time.",
+    "Ganbatte with your exams! Then anime.",
+    "Psst... there might be snacks at the next meet.",
+    "Kawaii is a lifestyle, not a phase!",
+    "Tap me five times fast. I dare you~",
+    "Kyaa~! You found me hiding in the footer!",
+    "Fluffy tail check: 100% fluffy. ✨",
+    "Nya-- wait, I'm a fox. Konkon~! 🦊",
+    "Every Tuesday is my favourite day, ne~",
+    "Did you bring snacks? Benio smells pocky...",
+    "Uwaa~ your scrolling skills are sugoi!",
+    "Hehe, I made this heart just for you ❤️",
+    "One more episode? ...okay, ONE more. Promise~",
+    "Senpai noticed me!! Kyaa~ ❤️",
+    "My ears twitch when someone says 'anime'.",
+    "Ohayo / konbanwa / whatever time it is~!",
+    "Pat pat! You're doing great today.",
+    "Mou~ who keeps poking my ears?!",
+    "Cosplay tip: confidence is the best costume ✨",
+    "I'd share my sakura mochi with you. Maybe.",
+    "Doki doki... are you joining the club?",
+    "Fox spirit blessing activated! ✨ Good luck~",
+    "Drink water between episodes, okay? 💧",
+    "Itadakimasu! ...wait, wrong time. Ehehe~",
+    "Your vibe? Main character energy. ✨",
+    "Gomen, gomen, I was napping in the sakura~",
+    "Benio-chan is officially your mascot now ❤️",
+    "Spoilers are forbidden in this shrine! 🙅",
+    "Sugoi sugoi! You scrolled all the way down!",
+    "Konkon~ that's fox for 'hello'!",
+  ];
   const CLUB_CONTACT={ instagram:'', email:'', whatsapp:'https://chat.whatsapp.com/GHwQzTsmPQr5xxNzGjINWb?s=cl&p=a&mlu=4&ilr=4&iam=2' };
   // ==================================================================================
 
@@ -853,7 +1049,7 @@
     if(NARRATOR_OUTRO_IMAGE){ narratorImg2.src=NARRATOR_OUTRO_IMAGE; narratorImg2.hidden=false; }
     if(SELF.image){ narratorChibi.src=SELF.image; narratorChibi.hidden=false; } }
 
-  let TL=null, logoBox=null, bubbleMinH=0;
+  let TL=null, logoBox=null, bubbleMinH=0; const selfRig={started:false,api:null,expr:''};
   function layoutTeam(){
     const side=W>=760;                                       // desktop: bubble beside the narrator; phone: bubble above it
     const headerH=side?78:62;
@@ -870,6 +1066,7 @@
     narrator.style.width=nW+'px'; narrator.style.height=nH+'px';
     const pad=imgN?(side?W*.02:-nW*.14):(side?W*.06:8);
     const L=pad, R=W-pad-nW, C=imgN&&side?W*.08:(W-nW)/2;
+    { const rh=nH*.92; narratorRig.style.height=rh+'px'; narratorRig.style.width=(rh*1122/1402)+'px'; }
     TL={side,headerH,nH,nW,nTop,bW,bTop,L,R,C,pos:[L,R,L,R,C,C],off:-nW-40};
     // logo geometry for the move into the header
     logo.style.transform='none'; logoSvg.style.transform='none';
@@ -939,10 +1136,17 @@
     const toOutro=k===4?smooth(.04,.22,u):k===5?1:0, toChibi=k===5&&SELF.image?smooth(.02,.12,u):0;
     if(NARRATOR_OUTRO_IMAGE){ narratorImg2.style.opacity=(toOutro*(1-toChibi)).toFixed(3); narratorImg.style.opacity=(1-Math.max(toOutro,toChibi)).toFixed(3); }
     else narratorImg.style.opacity=(1-toChibi).toFixed(3);
+    // Benio's self-intro: her live rig (talks along with the bubble) once loaded, else the still chibi
+    if(t>.7&&!selfRig.started&&window.BenioRig){ selfRig.started=true; narratorRig.hidden=false;
+      BenioRig.mount(narratorRig,{base:'assets/benio-rig/'}).then(api=>{ selfRig.api=api; narratorChibi.hidden=true; lastTeamKey=''; }).catch(()=>{ narratorRig.hidden=true; }); }
     if(SELF.image){
       const hop=k===5?Math.sin(clamp((u-.04)/.22)*Math.PI):0, squash=k===5?Math.sin(clamp((u-.24)/.08)*Math.PI)*.06:0;
-      narratorChibi.style.opacity=toChibi.toFixed(3);
-      narratorChibi.style.transform=`translateX(-50%) translateY(${(-hop*TL.nH*.16).toFixed(1)}px) scale(${(1+squash).toFixed(3)},${(1-squash).toFixed(3)})`;
+      const ch=selfRig.api?narratorRig:narratorChibi;
+      if(selfRig.api){ narratorChibi.style.opacity='0';
+        const done=k===5&&n>=chars.length&&talkIn>.5, want=k!==5?'default':done?'excited':'talking';
+        selfRig.api.talk(k===5&&typing); if(want!==selfRig.expr){ selfRig.expr=want; selfRig.api.expression(want); if(want==='excited') selfRig.api.hop(); } }
+      ch.style.opacity=toChibi.toFixed(3);
+      ch.style.transform=`translateX(-50%) translateY(${(-hop*TL.nH*.16).toFixed(1)}px) scale(${(1+squash).toFixed(3)},${(1-squash).toFixed(3)})`;
       heartEls.forEach((h,i)=>{ const a=k===5?smooth(.7+i*.05,.76+i*.05,u):0, rise=k===5?clamp((u-.7-i*.05)/.3):0;
         h.style.opacity=(a*(1-smooth(.85,1,rise))).toFixed(3);
         h.style.transform=`translate(${(i?28:-6)+Math.sin(rise*6+i)*6}px,${(-rise*TL.nH*.22).toFixed(1)}px) scale(${(.6+.6*a).toFixed(2)}) rotate(${i?12:-12}deg)`; });
@@ -1242,6 +1446,211 @@
     let sx=0; lb.addEventListener('touchstart',e=>{ sx=e.touches[0].clientX; },{passive:true});
     lb.addEventListener('touchend',e=>{ const dx=(e.changedTouches[0]?e.changedTouches[0].clientX:sx)-sx; if(Math.abs(dx)>50) show(cur+(dx<0?1:-1)); },{passive:true});
     window.__lightbox={open,close};
+  })();
+
+  // ---------- Weekly meet calendar (every Tuesday, skipping Tamil Nadu holidays) ----------
+  (()=>{
+    const cal=$('#meetCal'), card=$('#meetCard');
+    const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DOW=['MON','TUE','WED','THU','FRI','SAT','SUN'];
+    const pad=(n)=>String(n).padStart(2,'0'), key=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
+    const istNow=new Date(Date.now()+5.5*3600e3);                   // today's date in India
+    const TY=istNow.getUTCFullYear(), TM=istNow.getUTCMonth(), TD=istNow.getUTCDate(), TODAY=key(TY,TM,TD);
+    const dow=(y,m,d)=>new Date(Date.UTC(y,m,d)).getUTCDay();
+    // list upcoming meet days (and skipped ones) for ~a year
+    const meets=[], skipped=[];
+    for(let i=0;i<380;i++){ const dt=new Date(Date.UTC(TY,TM,TD+i)), y=dt.getUTCFullYear(), m=dt.getUTCMonth(), d=dt.getUTCDate();
+      if(dt.getUTCDay()!==MEET.weekday) continue; const k=key(y,m,d);
+      (TN_HOLIDAYS[k]?skipped:meets).push({k,y,m,d,why:TN_HOLIDAYS[k]}); }
+    const next=meets[0];
+    let vy=next?next.y:TY, vm=next?next.m:TM;   // open on the month of the next meet
+    const nice=(o)=>new Date(Date.UTC(o.y,o.m,o.d)).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+    function draw(){
+      const first=(dow(vy,vm,1)+6)%7, days=new Date(Date.UTC(vy,vm+1,0)).getUTCDate();
+      let g=DOW.map((n,i)=>`<div class="cal-dow${(i+1)%7===MEET.weekday?' tue':''}">${n}</div>`).join('');
+      for(let i=0;i<first;i++) g+='<div class="cal-d cd-blank"></div>';
+      for(let d=1;d<=days;d++){
+        const k=key(vy,vm,d), w=dow(vy,vm,d), hol=TN_HOLIDAYS[k], past=k<TODAY; let c='cal-d', t='', lab=`${d} ${MONTHS[vm]}`;
+        if(w===MEET.weekday){ if(hol){ c+=' cd-off'; t=`No meet: ${hol}`; } else { c+=' cd-on'; t='Club meet'; } }
+        else if(hol){ c+=' cd-hol'; t=hol; }
+        if(past) c+=' cd-past'; if(k===TODAY) c+=' cd-today';
+        const isNext=next&&k===next.k; if(isNext) c+=' cd-next';
+        g+=`<div class="${c}" title="${esc(t)}" aria-label="${esc(lab+(t?', '+t:''))}">${d}${isNext?'<span class="cd-tag">NEXT</span>':''}</div>`;
+      }
+      const atStart=vy===TY&&vm===TM, maxM=(TY*12+TM)+11;
+      cal.innerHTML=`<div class="cal-head"><button class="cal-nav" type="button" aria-label="Previous month" ${atStart?'disabled':''}>‹</button>
+        <div class="cal-title" aria-live="polite">${MONTHS[vm]} ${vy}<small>MEET EVERY TUESDAY</small></div>
+        <button class="cal-nav" type="button" aria-label="Next month" ${vy*12+vm>=maxM?'disabled':''}>›</button></div>
+        <div class="cal-grid">${g}</div>
+        <div class="cal-legend"><span><i style="background:#c4243f"></i>Club meet</span><span><i style="background:repeating-linear-gradient(135deg,#efe2d4 0 3px,#d9c3ae 3px 6px)"></i>Holiday, no meet</span><span><i style="background:#9a6420;border-radius:50%;width:7px;height:7px;margin:0 6px 1px 3px"></i>TN holiday</span></div>`;
+      const [pv,nx]=cal.querySelectorAll('.cal-nav');
+      pv.onclick=()=>{ if(--vm<0){vm=11;vy--;} draw(); }; nx.onclick=()=>{ if(++vm>11){vm=0;vy++;} draw(); };
+    }
+    draw();
+    // card
+    const lim=new Date(Date.UTC(TY,TM+6,TD)), limK=key(lim.getUTCFullYear(),lim.getUTCMonth(),lim.getUTCDate());
+    const soon=skipped.filter(s=>s.k<=limK).slice(0,3);
+    card.innerHTML=`<span class="ev-tag" style="align-self:flex-start">WEEKLY MEET</span>
+      <div class="big">Every Tuesday</div>
+      ${next?`<div class="next">Next meet: <b>${nice(next)}</b></div>`:''}
+      <div class="meta">${MEET.time?esc(MEET.time)+(MEET.venue?' · ':''):''}${MEET.venue?esc(MEET.venue):''}${MEET.time||MEET.venue?'<br>':''}${esc(MEET.note)}</div>
+      <div class="skipnote">${soon.length?'No meet on '+soon.map(s=>`<b>${nice(s)}</b> (${esc(s.why)})`).join(', ')+'.':'No Tuesday holidays in the next few months, so every Tuesday is on!'}</div>
+      <div class="btns"><a class="wa" href="${WA_LINK}" target="_blank" rel="noopener">JOIN ON WHATSAPP ↗</a><a id="meetG" target="_blank" rel="noopener">GOOGLE CAL</a><button type="button" id="meetIcs">ADD .ICS</button></div>`;
+    // recurring calendar entries (all-day unless MEET.time is set)
+    if(next){
+      const ymd=(o)=>`${o.y}${pad(o.m+1)}${pad(o.d)}`, nd=new Date(Date.UTC(next.y,next.m,next.d+1));
+      const end1={y:nd.getUTCFullYear(),m:nd.getUTCMonth(),d:nd.getUTCDate()};
+      const tz=(t)=>t.replace(':','')+'00';
+      const dates=MEET.time?`${ymd(next)}T${tz(MEET.time)}/${ymd(next)}T${tz(MEET.end||MEET.time)}`:`${ymd(next)}/${ymd(end1)}`;
+      $('#meetG').href=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('SIMATS Anime Club meet')}&dates=${dates}${MEET.time?'&ctz=Asia/Kolkata':''}&recur=${encodeURIComponent('RRULE:FREQ=WEEKLY;BYDAY=TU')}&details=${encodeURIComponent(MEET.note)}&location=${encodeURIComponent(MEET.venue||'SIMATS')}`;
+      $('#meetIcs').onclick=()=>{
+        const ex=skipped.map(s=>MEET.time?`EXDATE;TZID=Asia/Kolkata:${ymd(s)}T${tz(MEET.time)}`:`EXDATE;VALUE=DATE:${ymd(s)}`);
+        const st=MEET.time?[`DTSTART;TZID=Asia/Kolkata:${ymd(next)}T${tz(MEET.time)}`,`DTEND;TZID=Asia/Kolkata:${ymd(next)}T${tz(MEET.end||MEET.time)}`]:[`DTSTART;VALUE=DATE:${ymd(next)}`,`DTEND;VALUE=DATE:${ymd(end1)}`];
+        const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//SIMATS Anime Club//EN','BEGIN:VEVENT','UID:simats-weekly-meet@simats-anime-club',
+          'DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),...st,'RRULE:FREQ=WEEKLY;BYDAY=TU',...ex,
+          'SUMMARY:SIMATS Anime Club meet','LOCATION:'+(MEET.venue||'SIMATS'),'DESCRIPTION:'+MEET.note,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+        const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); a.download='simats-anime-club-tuesday-meet.ics'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);
+      };
+    }
+  })();
+
+  // ---------- Upcoming events ----------
+  (()=>{
+    const list=$('#evList'), now=Date.now(), MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const ist=(t)=>new Date(t+(t.length<=16?':00':'')+'+05:30');
+    const up=EVENTS.map(e=>({...e,s:ist(e.start),e2:ist(e.end||e.start)})).filter(e=>e.e2.getTime()>=now).sort((a,b)=>a.s-b.s);
+    const gfmt=(d)=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+    if(!up.length){ list.innerHTML=''; return; }
+    list.innerHTML='';
+    up.forEach((e,i)=>{
+      const d=e.s.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit'}), m=MON[+e.s.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',month:'numeric'})-1];
+      const time=e.s.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',hour:'numeric',minute:'2-digit'});
+      const g=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${gfmt(e.s)}/${gfmt(e.e2>e.s?e.e2:new Date(e.s.getTime()+7200000))}&details=${encodeURIComponent((e.desc||'')+'\nSIMATS Anime Club')}&location=${encodeURIComponent(e.venue||'')}`;
+      const el=document.createElement('article'); el.className='ev';
+      el.innerHTML=`<div class="ev-date"><div class="d">${esc(d)}</div><div class="m">${m}</div></div>
+        <div>${e.tag?`<span class="ev-tag">${esc(e.tag)}</span>`:''}<h3>${esc(e.title)}</h3><div class="meta">${esc(time)}${e.venue?' · '+esc(e.venue):''}</div>${e.desc?`<div class="desc">${esc(e.desc)}</div>`:''}</div>
+        <div class="ev-cal"><a href="${g}" target="_blank" rel="noopener">GOOGLE CAL</a><button type="button">ADD .ICS</button></div>`;
+      el.querySelector('button').addEventListener('click',()=>{
+        const end=e.e2>e.s?e.e2:new Date(e.s.getTime()+7200000), x=(t)=>String(t).replace(/[,;\\]/g,m=>'\\'+m).replace(/\n/g,'\\n');
+        const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//SIMATS Anime Club//EN','BEGIN:VEVENT',`UID:simats-${e.s.getTime()}-${i}@simats-anime-club`,`DTSTAMP:${gfmt(new Date())}`,`DTSTART:${gfmt(e.s)}`,`DTEND:${gfmt(end)}`,`SUMMARY:${x(e.title)}`,`LOCATION:${x(e.venue||'')}`,`DESCRIPTION:${x((e.desc||'')+' — SIMATS Anime Club')}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+        const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); a.download=e.title.replace(/[^\w]+/g,'-').toLowerCase()+'.ics'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);
+      });
+      list.appendChild(el);
+    });
+  })();
+
+  // ---------- Sakura burst (easter egg) ----------
+  const sakuraBurst=(()=>{
+    const cv=$('#sakuraBurst'), c=cv.getContext('2d'); let parts=[], running=false;
+    const imgs=['assets/benio-rig/sakura_flower.svg','assets/benio-rig/sakura_petal.svg'].map(src=>{ const i=new Image(); i.src=src; return i; });
+    function frame(t){
+      const d=Math.min(.05,(t-(frame.l||t))/1000); frame.l=t;
+      const w=innerWidth,h=innerHeight, r=Math.min(devicePixelRatio||1,2);
+      if(cv.width!==Math.round(w*r)){ cv.width=Math.round(w*r); cv.height=Math.round(h*r); }
+      c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,cv.width,cv.height);
+      parts=parts.filter(p=>p.y<h+60);
+      for(const p of parts){ p.vy+=40*d; p.x+=(p.vx+Math.sin(t/600+p.ph)*30)*d; p.y+=p.vy*d; p.a+=p.va*d;
+        c.setTransform(r*Math.cos(p.a),r*Math.sin(p.a),-r*Math.sin(p.a),r*Math.cos(p.a),p.x*r,p.y*r); c.globalAlpha=p.o;
+        const im=imgs[p.k]; if(im.complete&&im.naturalWidth) c.drawImage(im,-p.s/2,-p.s/2,p.s,p.s); }
+      if(parts.length) requestAnimationFrame(frame); else { running=false; cv.hidden=true; frame.l=0; }
+    }
+    return (n)=>{
+      if(reduced) n=Math.min(n||90,18);
+      cv.hidden=false; const w=innerWidth;
+      for(let i=0;i<(n||110);i++) parts.push({x:Math.random()*w,y:-30-Math.random()*innerHeight*.6,vx:(Math.random()-.3)*60,vy:60+Math.random()*120,a:Math.random()*6.28,va:(Math.random()-.5)*4,s:14+Math.random()*26,k:Math.random()<.35?0:1,o:.75+Math.random()*.25,ph:Math.random()*6});
+      if(!running){ running=true; requestAnimationFrame(frame); }
+    };
+  })();
+
+  // ---------- Benio in the footer: live rig + easter eggs ----------
+  (()=>{
+    const box=$('#benioBox'), say=$('#benioSay'); let rigApi=null, hideT=0, taps=[], last=-1;
+    if(window.BenioRig && FOOTER_RIG){
+      const start=()=>BenioRig.mount($('#benioCanvas'),{base:'assets/benio-rig/'}).then(api=>{ rigApi=api; box.classList.add('live'); }).catch(()=>{});
+      if('IntersectionObserver' in window){ const io=new IntersectionObserver(es=>{ if(es[0].isIntersecting){ io.disconnect(); start(); } },{rootMargin:'400px'}); io.observe(box); } else start();
+    }
+    function speak(text,mood){
+      say.textContent=text; say.classList.add('on'); clearTimeout(hideT);
+      let sec=Math.min(4.5,1.2+text.length*.045);
+      if(rigApi){ const d=rigApi.speak(text,{expression:'talking'}); sec=Math.max(sec,d+.6);
+        setTimeout(()=>rigApi.expression(mood||'happy',2.2),d*1000+80); }
+      hideT=setTimeout(()=>say.classList.remove('on'),sec*1000+900);
+    }
+    function poke(){
+      const now=performance.now(); taps=taps.filter(t=>now-t<2500); taps.push(now);
+      if(taps.length>=5){ taps=[]; speak('Yatta!! You found my secret~ ❤️','excited'); rigApi&&rigApi.hop(); sakuraBurst(140); return; }
+      let i; do{ i=Math.floor(Math.random()*BENIO_LINES.length); }while(i===last&&BENIO_LINES.length>1); last=i;
+      speak(BENIO_LINES[i]); rigApi&&rigApi.hop();
+    }
+    box.addEventListener('click',poke);
+    box.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); e.stopPropagation(); poke(); } });
+    // secret words: type "sakura" or "benio" anywhere
+    let buf='';
+    document.addEventListener('keydown',e=>{
+      if(e.key.length!==1||e.ctrlKey||e.metaKey||e.altKey) return;
+      const t=e.target; if(t&&(t.isContentEditable||/INPUT|TEXTAREA|SELECT/.test(t.tagName))) return;
+      buf=(buf+e.key.toLowerCase()).slice(-12);
+      if(buf.endsWith('sakura')||buf.endsWith('benio')){ buf=''; sakuraBurst(160); const r=box.getBoundingClientRect(); if(r.top<innerHeight&&r.bottom>0) speak('Sakura fubuki~! A blossom storm just for you!','laugh'); }
+    });
+  })();
+
+  // ---------- Ambient sound (synthesised koto plucks + wind chimes, off by default) ----------
+  (()=>{
+    const btn=$('#soundToggle'); let ac=null, master=null, on=false, timer=0, chimeT=0;
+    const KEY='simats_sound';
+    const HIRA=[293.66,329.63,349.23,440,466.16];   // D hirajoshi: D E F A Bb
+    function pluck(f,when,vel){
+      const o=ac.createOscillator(), o2=ac.createOscillator(), g=ac.createGain(), lp=ac.createBiquadFilter();
+      o.type='triangle'; o2.type='sine'; o.frequency.setValueAtTime(f*1.006,when); o.frequency.exponentialRampToValueAtTime(f,when+.08); o2.frequency.setValueAtTime(f*2,when);
+      lp.type='lowpass'; lp.frequency.setValueAtTime(3200,when); lp.frequency.exponentialRampToValueAtTime(700,when+1.4);
+      g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime(vel,when+.006); g.gain.exponentialRampToValueAtTime(.0008,when+2.6);
+      const g2=ac.createGain(); g2.gain.value=.25;
+      o.connect(lp); o2.connect(g2).connect(lp); lp.connect(g).connect(master);
+      o.start(when); o2.start(when); o.stop(when+2.7); o2.stop(when+2.7);
+    }
+    function chime(when){
+      const base=1800+Math.random()*1400;
+      for(const m of [1,2.76,5.4]){ const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.value=base*m;
+        g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime(.025/m,when+.004); g.gain.exponentialRampToValueAtTime(.0001,when+3.2);
+        o.connect(g).connect(master); o.start(when); o.stop(when+3.3); }
+    }
+    function phrase(){
+      if(!on) return;
+      const t=ac.currentTime+.05, n=1+Math.floor(Math.random()*3);
+      for(let i=0;i<n;i++){ const oct=Math.random()<.3?2:(Math.random()<.2?.5:1); pluck(HIRA[Math.floor(Math.random()*5)]*oct,t+i*(.32+Math.random()*.2),.18*(1-i*.15)); }
+      if(Math.random()<.35) chime(t+.6+Math.random()*1.5);
+      timer=setTimeout(phrase,1900+Math.random()*2600);
+    }
+    function set(v){
+      on=v; btn.setAttribute('aria-pressed',String(v)); btn.setAttribute('aria-label','Ambient sound: '+(v?'on':'off'));
+      $('#sndMute').style.display=v?'none':''; $('#sndWaves').setAttribute('opacity',v?'1':'.35');
+      try{ localStorage.setItem(KEY,v?'1':'0'); }catch(e){}
+      if(v){
+        if(!ac){ ac=new (window.AudioContext||window.webkitAudioContext)(); master=ac.createGain(); master.gain.value=0; const comp=ac.createDynamicsCompressor(); master.connect(comp).connect(ac.destination); }
+        ac.resume(); master.gain.cancelScheduledValues(ac.currentTime); master.gain.linearRampToValueAtTime(.55,ac.currentTime+1.2);
+        clearTimeout(timer); phrase();
+      } else if(ac){ master.gain.cancelScheduledValues(ac.currentTime); master.gain.linearRampToValueAtTime(0,ac.currentTime+.5); clearTimeout(timer); }
+    }
+    btn.addEventListener('click',()=>set(!on));
+    $('#sndMute').style.display='';
+    // if they turned it on last visit, resume on their first interaction (browsers block sound before that)
+    let pref='0'; try{ pref=localStorage.getItem(KEY)||'0'; }catch(e){}
+    if(pref==='1'){ const go=()=>{ ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>removeEventListener(ev,go,true)); if(!on) set(true); };
+      ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,go,{capture:true,passive:true})); }
+    document.addEventListener('visibilitychange',()=>{ if(!ac) return; if(document.hidden) ac.suspend(); else if(on) ac.resume(); });
+  })();
+
+  // ---------- Returning visitors: replay or skip the intro ----------
+  (()=>{
+    const card=$('#welcome'), KEY='simats_seen_intro';
+    let seen=false; try{ seen=localStorage.getItem(KEY)==='1'; }catch(e){}
+    const hide=()=>card.classList.remove('on');
+    if(seen && window.scrollY<10){ setTimeout(()=>card.classList.add('on'),900); }
+    $('#wReplay').addEventListener('click',hide);
+    $('#wSkip').addEventListener('click',()=>{ hide(); const st=stops(); const y=st[3]; glide=null; window.scrollTo({top:y,behavior:'instant'}); settledY=y; });
+    addEventListener('wheel',hide,{passive:true}); addEventListener('touchmove',hide,{passive:true});
+    // remember once they've watched up to the logo
+    const mark=setInterval(()=>{ if(prog>=.99){ try{ localStorage.setItem(KEY,'1'); }catch(e){} clearInterval(mark); } },1000);
   })();
 
   const at=(px)=>{ sCur=sTarget=px; derive(); if(ready) render(0); };
