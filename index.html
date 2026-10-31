@@ -82,9 +82,9 @@
     .panel { position:absolute; inset:0; overflow:hidden; visibility:hidden; will-change:transform; }
     .panel .art { position:absolute; inset:0; will-change:transform; }
     .panel .art img { width:100%; height:100%; object-fit:cover; object-position:50% 28%; display:block; }
-    .panel .art svg { position:absolute; bottom:0; height:94%; width:auto; left:50%; transform:translateX(-50%); }
-    .panel.fig-right .art svg { left:70%; }
-    .panel.fig-left .art svg { left:30%; }
+    .panel .art svg, .panel .art img.cut { position:absolute; bottom:0; height:94%; width:auto; max-width:none; left:50%; transform:translateX(-50%); object-fit:contain; object-position:50% 100%; filter:drop-shadow(0 18px 40px rgba(0,0,0,.55)); }
+    .panel.fig-right .art svg, .panel.fig-right .art img.cut { left:70%; }
+    .panel.fig-left .art svg, .panel.fig-left .art img.cut { left:30%; }
     .panel .xmark { position:absolute; inset:0; width:100%; height:100%; opacity:.10; }
     .panel .shade { position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.15) 26%,transparent 50%,rgba(0,0,0,.55) 74%,rgba(0,0,0,.9) 100%); }
     .panel .dim { position:absolute; inset:0; background:#000; opacity:0; }
@@ -100,7 +100,8 @@
     .panel.outro .tags { margin-top:16px; color:#ffd6e3; font-size:clamp(11px,1.3vw,15px); font-weight:800; letter-spacing:.24em; text-transform:uppercase; }
     .panel.outro .join { display:inline-block; margin-top:26px; border:1px solid rgba(230,192,111,.75); padding:13px 26px; color:#f6dca0; text-decoration:none; font-size:11px; letter-spacing:.32em; font-weight:800; background:rgba(10,4,4,.6); pointer-events:auto; }
     @media (max-width:759px) {
-      .panel .art svg, .panel.fig-right .art svg, .panel.fig-left .art svg { left:50%; height:82%; bottom:12%; }
+      .panel .art svg, .panel.fig-right .art svg, .panel.fig-left .art svg, .panel .art img.cut, .panel.fig-right .art img.cut, .panel.fig-left .art img.cut { left:50%; height:82%; bottom:12%; }
+      .panel .art img.cut, .panel.fig-right .art img.cut, .panel.fig-left .art img.cut { height:30%; bottom:45.5%; }
       .panel .info, .panel.fig-left .info { left:20px; right:20px; top:84px; max-width:none; text-align:left; }
       .panel .name { font-size:clamp(30px,9vw,44px); }
       .panel .soon { top:auto; bottom:calc(30% + 10px); }
@@ -670,7 +671,7 @@
   const TEAM=[
     {role:'President',      name:'Sudharshshini R', photo:'', line:"First up, Sudharshshini R, our President! She leads SIMATS Anime Club, plans our screenings, events and fests, and keeps the whole crew moving forward."},
     {role:'Vice President', name:'Darshan A',       photo:'', line:"This is Darshan A, our Vice President! He backs every plan, runs our events on the ground, and makes sure every new member feels at home."},
-    {role:'Secretary',      name:'Jayadeep J',      photo:'', line:"Here's Jayadeep J, our Secretary! He keeps our records, sends out every announcement, and built this very website for the club."},
+    {role:'Secretary',      name:'Jayadeep J',      photo:'assets/team/secretary-jayadeep.webp', cutout:true, line:"Here's Jayadeep J, our Secretary! He keeps our records, sends out every announcement, and built this very website for the club."},
     {role:'Treasurer',      name:'Lohithaksha D',   photo:'', line:"And Lohithaksha D, our Treasurer! He manages the club budget, so every screening, cosplay meet and fest stall has what it needs."},
   ];
   // Her playful self-introduction after the closing line. She switches to her chibi form for this beat.
@@ -1036,7 +1037,7 @@
     const d=document.createElement('section'); d.className='panel '+(i%2?'fig-left':'fig-right');
     d.setAttribute('aria-label',m.role+': '+m.name);
     d.style.background=`radial-gradient(ellipse 80% 70% at ${i%2?30:70}% 55%, ${BG[i%4]} 0%, #120206 60%, #000 100%)`;
-    d.innerHTML=`${XMARK}<div class="art">${m.photo?`<img src="${esc(m.photo)}" alt="${esc(m.name)}">`:placeholderArt(i)}</div><div class="shade"></div>
+    d.innerHTML=`${XMARK}<div class="art">${m.photo?`<img src="${esc(m.photo)}" alt="${esc(m.name)}"${m.cutout?' class="cut"':''}>`:placeholderArt(i)}</div><div class="shade"></div>
       ${m.photo?'':'<span class="soon">PHOTO SOON</span>'}
       <div class="info"><div class="num">0${i+1} / 0${TEAM.length}</div><span class="role">${esc(m.role)}</span><div class="name">${esc(m.name)}</div></div><div class="dim"></div>`;
     cardsEl.appendChild(d); return d;
