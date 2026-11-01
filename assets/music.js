@@ -2,12 +2,12 @@
    Everything except "The Rising Sun" is composed here and synthesised live in the browser (no samples).
 
    Score
-   - Intro  "The Rising Sun" by kaazoom (Pixabay, free licence), 2-minute edit. If it can't load, the composed
+   - Intro  "The Rising Sun" by kaazoom (Pixabay, free licence), 30-second edit (loops if the intro runs longer). If it can't load, the composed
             "Oni no Kōshin" (March of the Oni) plays instead: taiko, low strings and a shamisen riff that build with the
             scroll into a shinobue theme, brass stabs, high strings, choir and cymbals (In scale on D, 150 bpm).
    - Logo   a temple gong (tam-tam roar) with an orchestral hit when the SIMATS logo appears.
    - Calm   a shuffled playlist of 32 songs; the next one is random and never one of the last ~12 played:
-            - "The Rising Sun" (full) and its 30-second edit
+            - "The Rising Sun" (full) and its 2-minute edit
             - "Oni no Kōshin" as a full build-up
             - six shinobue-and-orchestra pieces (Kaze no Uta, Hikari no Michi, Ryū no Sora, Yūgure no Shiro, Tabidachi, Hanabi)
             - three hand-written (Sakura no Niwa, Tsuki no Yashiro, Chaya no Kaze) and twenty composed by a seeded
@@ -22,7 +22,7 @@
   let ac=null, out, bus, introG, calmG, fxG, noise, dryOut, introDry, calmDry;
   // Recorded tracks (Pixabay licence: free to use, no attribution required; credited anyway).
   // They skip the synth reverb/compressor and play through their own "dry" path, levelled by *_FILE_GAIN.
-  const INTRO_FILE='assets/music/rising-sun-2min.mp3', INTRO_FILE_GAIN=1.8, CALM_FILE_GAIN=1.2;
+  const INTRO_FILE='assets/music/rising-sun-30s.mp3', INTRO_FILE_GAIN=1.8, CALM_FILE_GAIN=1.2;
   let introM=null, useIntroFile=true, introPending=false, curM=null;
   let enabled=false, timer=0, nextT=0, step=0, prog=0;
   let stage='intro', switchAt=0, calmIdx=0, calmStep=0, calmEndsAt=0, gongPlayed=false, trackG=null;
@@ -298,7 +298,7 @@
       ['Yūgure no Shiro','夕暮れの城','Castle at Dusk',66,'hira',57,'shaku','orch',{horns:true},229],
       ['Tabidachi','旅立ち','Setting Out',96,'yo',60,'shinobue','orch',{pulse:true,horns:true},233],
       ['Hanabi','花火','Fireworks',104,'kumoi',64,'shinobue','orch',{pulse:true,chime:.05},239],
-    ].map(r=>r==='short'?{ name:'The Rising Sun (short)', jp:'ライジング・サン', en:'kaazoom · 30 sec edit', file:'assets/music/rising-sun-30s.mp3', dur:30.3 }
+    ].map(r=>r==='short'?{ name:'The Rising Sun (2 min edit)', jp:'ライジング・サン', en:'kaazoom', file:'assets/music/rising-sun-2min.mp3', dur:118.5 }
       :(([name,jp,en,bpm,sc,root,lead,acc,x,seed])=>Object.assign({name,jp,en,bpm,lead,acc,seed,gen:true,scale:ladder(root,sc),drone:[root-12,root-5]},x))(r))
   ];
   // seeded melody writer: 4-bar phrases from rhythm cells and a gentle random walk, cadencing on the tonic
