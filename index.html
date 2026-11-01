@@ -84,9 +84,9 @@
     .panel .art img { width:100%; height:100%; object-fit:cover; object-position:50% 28%; display:block; }
     .panel .art svg, .panel .art img.cut { position:absolute; bottom:0; height:94%; width:auto; max-width:none; left:50%; transform:translateX(-50%); object-fit:contain; object-position:50% 100%; filter:drop-shadow(0 18px 40px rgba(0,0,0,.55)); }
     .panel.fig-right .art svg { left:70%; }
-    .panel .art img.cut { height:100%; }
-    .panel.fig-right .art img.cut { left:77%; }
-    .panel.fig-left .art img.cut { left:23%; }
+    .panel .art img.cut { height:var(--ph,100%); }   /* per-photo size: TEAM photoH / photoHm */
+    .panel.fig-right .art img.cut { left:var(--pl,77%); }
+    .panel.fig-left .art img.cut { left:var(--pl,23%); }
     .panel.fig-left .art svg { left:30%; }
     .panel .xmark { position:absolute; inset:0; width:100%; height:100%; opacity:.10; }
     .panel .shade { position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.15) 26%,transparent 50%,rgba(0,0,0,.55) 74%,rgba(0,0,0,.9) 100%); }
@@ -104,7 +104,7 @@
     .panel.outro .join { display:inline-block; margin-top:26px; border:1px solid rgba(230,192,111,.75); padding:13px 26px; color:#f6dca0; text-decoration:none; font-size:11px; letter-spacing:.32em; font-weight:800; background:rgba(10,4,4,.6); pointer-events:auto; }
     @media (max-width:759px) {
       .panel .art svg, .panel.fig-right .art svg, .panel.fig-left .art svg, .panel .art img.cut, .panel.fig-right .art img.cut, .panel.fig-left .art img.cut { left:50%; height:82%; bottom:12%; }
-      .panel .art img.cut, .panel.fig-right .art img.cut, .panel.fig-left .art img.cut { height:56%; bottom:19%; left:62%; }
+      .panel .art img.cut, .panel.fig-right .art img.cut, .panel.fig-left .art img.cut { height:var(--phm,56%); bottom:var(--pbm,19%); left:var(--plm,62%); }
       .bubble { background:linear-gradient(180deg,rgba(26,4,9,.8),rgba(12,2,5,.8)); }   /* lets the officer's body show through softly */
       .panel .info, .panel.fig-left .info { left:20px; right:20px; top:84px; max-width:none; text-align:left; }
       .panel .name { font-size:clamp(30px,9vw,44px); }
@@ -753,7 +753,7 @@
   const NARRATOR_OUTRO_IMAGE='assets/narrator-outro.webp';   // her pose on the closing screen ('' = keep the main pose)
   const TEAM=[
     {role:'President',      name:'Sudharshshini R', photo:'', line:"First up, Sudharshshini R, our President! She leads SIMATS Anime Club, plans our screenings, events and fests, and keeps the whole crew moving forward."},
-    {role:'Vice President', name:'Darshan A',       photo:'', line:"This is Darshan A, our Vice President! He backs every plan, runs our events on the ground, and makes sure every new member feels at home."},
+    {role:'Vice President', name:'Darshan A',       photo:'assets/team/vp-darshan.webp', cutout:true, photoH:'80%', photoL:'20%', photoHm:'32%', photoBm:'39.5%', photoLm:'46%', line:"This is Darshan A, our Vice President! He backs every plan, runs our events on the ground, and makes sure every new member feels at home."},
     {role:'Secretary',      name:'Jayadeep J',      photo:'assets/team/secretary-jayadeep.webp', cutout:true, line:"Here's Jayadeep J, our Secretary! He keeps our records, sends out every announcement, and built this very website for the club."},
     {role:'Treasurer',      name:'Lohithaksha D',   photo:'', line:"And Lohithaksha D, our Treasurer! He manages the club budget, so every screening, cosplay meet and fest stall has what it needs."},
   ];
@@ -1118,9 +1118,11 @@
   const BG=['#5a0a1e','#3a0812','#4a0716','#2e0610'];
   const panelEls=TEAM.map((m,i)=>{
     const d=document.createElement('section'); d.className='panel '+(i%2?'fig-left':'fig-right');
+    // optional per-photo placement: photoH/photoL (desktop height, centre), photoHm/photoBm/photoLm (phone height, bottom, centre)
+    function photoVars(m){ const v=[['photoH','--ph'],['photoL','--pl'],['photoHm','--phm'],['photoBm','--pbm'],['photoLm','--plm']].filter(([k])=>m[k]).map(([k,c])=>c+':'+esc(m[k])+';').join(''); return v?` style="${v}"`:''; }
     d.setAttribute('aria-label',m.role+': '+m.name);
     d.style.background=`radial-gradient(ellipse 80% 70% at ${i%2?30:70}% 55%, ${BG[i%4]} 0%, #120206 60%, #000 100%)`;
-    d.innerHTML=`${XMARK}<div class="art">${m.photo?`<img src="${esc(m.photo)}" alt="${esc(m.name)}"${m.cutout?' class="cut"':''}>`:placeholderArt(i)}</div><div class="shade"></div>
+    d.innerHTML=`${XMARK}<div class="art">${m.photo?`<img src="${esc(m.photo)}" alt="${esc(m.name)}"${m.cutout?' class="cut"':''}${photoVars(m)}>`:placeholderArt(i)}</div><div class="shade"></div>
       ${m.photo?'':'<span class="soon">PHOTO SOON</span>'}
       <div class="info"><div class="num">0${i+1} / 0${TEAM.length}</div><span class="role">${esc(m.role)}</span><div class="name">${esc(m.name)}</div></div><div class="dim"></div>`;
     cardsEl.appendChild(d); return d;
@@ -1139,14 +1141,14 @@
     const headerH=side?78:62;
     const imgN=!!NARRATOR_IMAGE, asp=imgN?((narratorImg.naturalWidth/narratorImg.naturalHeight)||.958):240/320;
     // an illustrated narrator is shown visual-novel style: a large bust rising from the bottom edge
-    const nH=imgN?(side?Math.min(H*.52,480):Math.min(H*.37,310)):(side?Math.min(H*.36,330):Math.min(H*.27,230)), nW=nH*asp;
+    const nH=imgN?(side?Math.min(H*.52,480):Math.min(H*.34,290)):(side?Math.min(H*.36,330):Math.min(H*.27,230)), nW=nH*asp;
     const nBottom=imgN?0:(side?56:48), nTop=H-nBottom-nH;
     const bW=side?Math.min(470,W*.36):W-28;
     // measure the tallest narration so the bubble never changes size while it types
     bubble.style.width=bW+'px'; let mh=0;
     for(const t of [...TEAM.map(m=>[m.role,m.line]),[OUTRO.who,OUTRO.line],[SELF.who,SELF.line]]){ bubbleWho.textContent=t[0]; bubbleText.textContent=t[1]; mh=Math.max(mh,bubble.offsetHeight); }
     bubbleText.textContent=''; bubbleMinH=mh; bubble.style.height=mh+'px';
-    const bTop=side? nTop+nH*.42-mh : nTop-mh-16;
+    const bTop=side? nTop+nH*.42-mh : nTop-mh+nH*.06;   // phone: bubble sits low, just over the tips of Benio's ears
     narrator.style.width=nW+'px'; narrator.style.height=nH+'px';
     const pad=imgN?(side?W*.02:-nW*.14):(side?W*.06:8);
     const L=pad, R=W-pad-nW, C=imgN&&side?W*.08:(W-nW)/2;
@@ -1391,6 +1393,8 @@
   // glide length (ms) INTO each stop, in the same order as stops(): tree, oni, logo, 4 officers, closing, Benio, footer
   const DUR=[3200, 6200, 5200, 3600, 2300, 2300, 2300, 2300, 2300, 1500];
   const SKIP_MS=1300;                                   // how fast a "skip" (second scroll mid-glide) catches up
+  const TAIL_MS=650;                                    // gestures this soon after a glide starts are the tail of the same gesture
+  let queuedDir=0, touching=false, lastTouchEnd=-9e9, prevY=window.scrollY;
   let glide=null, suppressUntil=0, lastWheelT=0, wheelUsed=false, settleT=0, lastScrollT=0, gestureStartY=0, settledY=0;
   const pageTop=()=>scene.getBoundingClientRect().top+window.scrollY;
   const maxScroll=()=>document.documentElement.scrollHeight-window.innerHeight;
@@ -1410,25 +1414,36 @@
     // going back up uses the duration of the stop we are leaving, so reversing feels the same speed
     const base=durOverride||(down?DUR[i]:DUR[Math.min(DUR.length-1,i+1)])||2300;
     const dur=durOverride?base:base*clamp(Math.abs(target-from)/Math.max(1,Math.abs(st[Math.min(st.length-1,down?i:i+1)]-st[Math.max(0,down?i-1:i)])),.35,1);
-    const t0=performance.now(), g={target,from,dur,t0}; glide=g;
+    const t0=performance.now(), g={target,from,dur,t0,skipped:false}; glide=g;
     const step=(now)=>{
       if(glide!==g) return;
       const k=clamp((now-t0)/dur), y=from+(target-from)*ease(k);
       window.scrollTo({top:y,behavior:'instant'});
-      if(k<1) requestAnimationFrame(step); else { glide=null; settledY=target; }
+      if(k<1) requestAnimationFrame(step);
+      else { glide=null; settledY=target;
+        if(queuedDir){ const d=queuedDir; queuedDir=0; setTimeout(()=>{ if(!glide&&!suppressed()) glideTo(nextStop(window.scrollY,d)); },140); } }
     };
     requestAnimationFrame(step);
   }
-  // one gesture = one beat; a new gesture during a glide skips to the beat after the current target
+  // One gesture = one beat. During a glide:
+  //  - the first TAIL_MS are ignored (wheel notches / swipe momentum belonging to the gesture that started it)
+  //  - reversing direction heads back straight away
+  //  - going down, one more gesture skips ahead ONE extra beat (never a chain of skips)
+  //  - going up, one more gesture is queued and plays after this beat lands, so scrolling up never races to the top
   function advance(dir){
     if(glide){
       const goingDown=glide.target>glide.from;
-      if((dir>0)===goingDown){ const nxt=nextStop(glide.target,dir); if(nxt!=null) glideTo(nxt,SKIP_MS); }
-      else glideTo(nextStop(window.scrollY,dir),SKIP_MS*.8);    // changed direction mid-glide: head back
+      if((dir>0)!==goingDown){ queuedDir=0; glideTo(nextStop(window.scrollY,dir),SKIP_MS*.8); return; }
+      if(performance.now()-glide.t0<TAIL_MS) return;
+      if(goingDown){ if(!glide.skipped){ const nxt=nextStop(glide.target,dir); if(nxt!=null){ glideTo(nxt,SKIP_MS); if(glide) glide.skipped=true; } } }
+      else queuedDir=-1;
       return;
     }
-    glideTo(nextStop(window.scrollY,dir));
+    queuedDir=0; glideTo(nextStop(window.scrollY,dir));
   }
+  // A phone fling can't be stopped without hiding the page's overflow, and that blanks the sticky stage (black
+  // screen), so it isn't touched: the glide re-sets the scroll position every frame, which keeps it in charge.
+  function killMomentum(){}
   const suppressed=()=>performance.now()<suppressUntil||document.getElementById('lightbox').classList.contains('open');
 
   window.addEventListener('wheel',(e)=>{
@@ -1443,7 +1458,7 @@
   },{passive:false});
 
   let ty0=0, tyLast=0, sy0=0, tGlide=false;
-  window.addEventListener('touchstart',(e)=>{ ty0=tyLast=e.touches[0].clientY; sy0=glide?glide.target:window.scrollY; tGlide=!!glide; },{passive:true});
+  window.addEventListener('touchstart',(e)=>{ touching=true; ty0=tyLast=e.touches[0].clientY; sy0=glide?glide.target:window.scrollY; tGlide=!!glide; },{passive:true});
   window.addEventListener('touchmove',(e)=>{
     tyLast=e.touches[0].clientY;
     if(suppressed()) return;
@@ -1451,13 +1466,20 @@
     if(glide||(dir&&inZone(sy0,dir))){ if(e.cancelable) e.preventDefault(); }
   },{passive:false});
   window.addEventListener('touchend',(e)=>{
+    touching=e.touches&&e.touches.length>0; lastTouchEnd=performance.now();
     if(suppressed()) return;
     const yEnd=e.changedTouches[0]?e.changedTouches[0].clientY:tyLast, dy=ty0-yEnd, dir=Math.sign(dy);
     if(Math.abs(dy)<24) return;
-    if(glide||tGlide){ advance(dir); return; }           // swipe during a glide = skip ahead
-    if(!inZone(sy0,dir)) return;
+    if(glide||tGlide){ advance(dir); return; }           // swipe during a glide
+    if(!inZone(sy0,dir)){
+      // the swipe started in the content below but dragged the page up into the guided part: take over from here
+      const y=window.scrollY, st=stops();
+      if(dir<0 && y<st[st.length-1]-2){ killMomentum(); glideTo(nextStop(Math.min(y+2,st[st.length-1]),-1)); }
+      return;
+    }
     glideTo(nextStop(sy0,dir));
   },{passive:true});
+  window.addEventListener('touchcancel',()=>{ touching=false; },{passive:true});
 
   window.addEventListener('keydown',(e)=>{
     if(suppressed()||e.altKey||e.ctrlKey||e.metaKey) return;
@@ -1469,7 +1491,10 @@
 
   // Safety net: if the page comes to rest between two beats (scrollbar drag, momentum), finish the move.
   window.addEventListener('scroll',()=>{
-    const now=performance.now();
+    const now=performance.now(), yNow=window.scrollY, py=prevY; prevY=yNow;
+    // a fling (after the finger lifted) coming up out of the content into the guided part: catch it at the boundary
+    if(!glide&&!touching&&!suppressed()&&now-lastTouchEnd<3000){ const st=stops(), last=st[st.length-1];
+      if(py>last+2&&yNow<last-2){ killMomentum(); glideTo(nextStop(last,-1)); return; } }
     if(now-lastScrollT>260 && !glide) gestureStartY=settledY;
     lastScrollT=now;
     clearTimeout(settleT);
@@ -1478,11 +1503,14 @@
       const y=window.scrollY, st=stops();
       if(st.some(v=>Math.abs(v-y)<3) || y<=st[0] || y>=st[st.length-1]){ settledY=y; return; }
       const dir=Math.sign(y-gestureStartY)||1;
-      glideTo(nextStop(dir>0?Math.min(gestureStartY,y):Math.max(gestureStartY,y),dir));
+      // measure from where the gesture began, but never from outside the guided part (coming up from the
+      // footer used to measure from the footer and pull the page back DOWN to the join section)
+      const ref=clamp(dir>0?Math.min(gestureStartY,y):Math.max(gestureStartY,y),st[0],st[st.length-1]);
+      glideTo(nextStop(ref,dir));
     },170);
   },{passive:true});
   // "Skip", "Enter", "Join us" and footer links jump directly without being caught by the guide.
-  document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; suppressUntil=performance.now()+2500; }));
+  document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; queuedDir=0; suppressUntil=performance.now()+2500; }));
   settledY=window.scrollY;
 
   (()=>{ const im=$('#footMascotImg'); if(FOOTER_MASCOT&&im.getAttribute('src')!==FOOTER_MASCOT) im.src=FOOTER_MASCOT;
