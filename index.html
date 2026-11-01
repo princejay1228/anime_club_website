@@ -652,7 +652,7 @@
   </div>
   <div class="sound-gate" id="soundGate" role="dialog" aria-label="Music">
     <span class="sg-note" aria-hidden="true">♪</span>
-    <div class="wt">Play with sound? <small>Original taiko &amp; koto score for the intro</small></div>
+    <div class="wt">Play with sound? <small>Epic Japanese-style music for the intro</small></div>
     <button type="button" class="primary" id="sndOn">SOUND ON</button>
     <button type="button" id="sndNo">NO SOUND</button>
   </div>
@@ -719,7 +719,7 @@
     </div>
     <div class="foot-bottom">
       <span>© <span id="year">2026</span> SIMATS Anime Club. All rights reserved.</span>
-      <span>Anime titles, characters and artwork belong to their respective creators and rights holders. This club is not affiliated with any studio or publisher.</span>
+      <span>Anime titles, characters and artwork belong to their respective creators and rights holders. This club is not affiliated with any studio or publisher. Music: “The Rising Sun” by kaazoom (Pixabay); all other music is original to this site.</span>
     </div>
     <div class="foot-credit">Designed by <strong>Jayadeep J</strong> &amp; <strong>Darshan A</strong></div>
   </footer>
@@ -1395,6 +1395,11 @@
   const SKIP_MS=1300;                                   // how fast a "skip" (second scroll mid-glide) catches up
   const TAIL_MS=650;                                    // gestures this soon after a glide starts are the tail of the same gesture
   let queuedDir=0, touching=false, lastTouchEnd=-9e9, prevY=window.scrollY;
+  // Coming up from the footer, the page always stops at the join section ("Your next chapter starts here"), however
+  // hard you scroll: input that keeps arriving (gaps under HOLD_QUIET) is swallowed. From there one scroll up goes to
+  // the Treasurer, and a second scroll within DOUBLE_MS of it goes all the way back to the top.
+  const HOLD_QUIET=450, HOLD_QUIET_TOUCH=1000, DOUBLE_MS=1500, TOP_MS=2800, TREAS_STOP=6;
+  let clubHold=false, lastInputT=-9e9;
   let glide=null, suppressUntil=0, lastWheelT=0, wheelUsed=false, settleT=0, lastScrollT=0, gestureStartY=0, settledY=0;
   const pageTop=()=>scene.getBoundingClientRect().top+window.scrollY;
   const maxScroll=()=>document.documentElement.scrollHeight-window.innerHeight;
@@ -1430,17 +1435,26 @@
   //  - reversing direction heads back straight away
   //  - going down, one more gesture skips ahead ONE extra beat (never a chain of skips)
   //  - going up, one more gesture is queued and plays after this beat lands, so scrolling up never races to the top
+  const clubY=()=>{ const st=stops(); return st[st.length-1]; };
+  function catchAtClub(){ clubHold=true; queuedDir=0; lastInputT=performance.now(); glideTo(clubY(),700); }
   function advance(dir){
     if(glide){
       const goingDown=glide.target>glide.from;
+      if(dir<0&&glide.fromClub&&!glide.toTop&&performance.now()-glide.t0<DOUBLE_MS){ queuedDir=0; glideTo(stops()[0],TOP_MS); if(glide) glide.toTop=true; return; }
       if((dir>0)!==goingDown){ queuedDir=0; glideTo(nextStop(window.scrollY,dir),SKIP_MS*.8); return; }
       if(performance.now()-glide.t0<TAIL_MS) return;
       if(goingDown){ if(!glide.skipped){ const nxt=nextStop(glide.target,dir); if(nxt!=null){ glideTo(nxt,SKIP_MS); if(glide) glide.skipped=true; } } }
       else queuedDir=-1;
       return;
     }
-    queuedDir=0; glideTo(nextStop(window.scrollY,dir));
+    queuedDir=0;
+    { const st=stops(), y=window.scrollY;                 // at (or just above) the join section -> straight to the Treasurer
+      if(dir<0&&y<=st[st.length-1]+3&&y>st[st.length-2]+40){ glideTo(st[TREAS_STOP]); if(glide) glide.fromClub=true; return; } }
+    glideTo(nextStop(window.scrollY,dir));
   }
+  // swallow upward input while the page is being held at the join section
+  function held(dir,quiet=HOLD_QUIET){ const now=performance.now(), gap=now-lastInputT; lastInputT=now;
+    if(!clubHold) return false; if(dir<0&&gap<quiet) return true; clubHold=false; return false; }
   // A phone fling can't be stopped without hiding the page's overflow, and that blanks the sticky stage (black
   // screen), so it isn't touched: the glide re-sets the scroll position every frame, which keeps it in charge.
   function killMomentum(){}
@@ -1449,8 +1463,9 @@
   window.addEventListener('wheel',(e)=>{
     if(suppressed()||e.ctrlKey) return;
     const dir=Math.sign(e.deltaY); if(!dir) return;
-    if(!glide && !inZone(window.scrollY,dir)) return;
+    if(!glide && !inZone(window.scrollY,dir)){ lastInputT=performance.now(); if(dir>0) clubHold=false; return; }
     e.preventDefault();
+    if(held(dir)) return;
     const now=performance.now(), fresh=now-lastWheelT>240; lastWheelT=now;
     if(fresh) wheelUsed=false;
     if(wheelUsed||Math.abs(e.deltaY)<2) return;          // trackpad inertia: one physical gesture counts once
@@ -1470,14 +1485,15 @@
     if(suppressed()) return;
     const yEnd=e.changedTouches[0]?e.changedTouches[0].clientY:tyLast, dy=ty0-yEnd, dir=Math.sign(dy);
     if(Math.abs(dy)<24) return;
+    if(held(dir,HOLD_QUIET_TOUCH)) return;
     if(glide||tGlide){ advance(dir); return; }           // swipe during a glide
     if(!inZone(sy0,dir)){
       // the swipe started in the content below but dragged the page up into the guided part: take over from here
       const y=window.scrollY, st=stops();
-      if(dir<0 && y<st[st.length-1]-2){ killMomentum(); glideTo(nextStop(Math.min(y+2,st[st.length-1]),-1)); }
+      if(dir<0 && sy0>st[st.length-1]+2 && y<st[st.length-1]-2) catchAtClub();   // only when it started below the join section
       return;
     }
-    glideTo(nextStop(sy0,dir));
+    advance(dir);
   },{passive:true});
   window.addEventListener('touchcancel',()=>{ touching=false; },{passive:true});
 
@@ -1485,22 +1501,25 @@
     if(suppressed()||e.altKey||e.ctrlKey||e.metaKey) return;
     const t=e.target; if(t&&(t.isContentEditable||/INPUT|TEXTAREA|SELECT|BUTTON|A/.test(t.tagName)&&e.key===' ')) return;
     const dir={ArrowDown:1,PageDown:1,' ':e.shiftKey?-1:1,ArrowUp:-1,PageUp:-1}[e.key]; if(!dir) return;
-    if(!glide && !inZone(window.scrollY,dir)) return;
-    e.preventDefault(); advance(dir);
+    if(!glide && !inZone(window.scrollY,dir)){ lastInputT=performance.now(); return; }
+    e.preventDefault(); if(held(dir)) return; advance(dir);
   });
 
   // Safety net: if the page comes to rest between two beats (scrollbar drag, momentum), finish the move.
   window.addEventListener('scroll',()=>{
     const now=performance.now(), yNow=window.scrollY, py=prevY; prevY=yNow;
     // a fling (after the finger lifted) coming up out of the content into the guided part: catch it at the boundary
-    if(!glide&&!touching&&!suppressed()&&now-lastTouchEnd<3000){ const st=stops(), last=st[st.length-1];
-      if(py>last+2&&yNow<last-2){ killMomentum(); glideTo(nextStop(last,-1)); return; } }
+    if(!glide&&!touching&&!suppressed()&&(now-lastTouchEnd<3000||now-lastInputT<1500)){ const last=clubY();
+      if(py>last+2&&yNow<last-2){ catchAtClub(); return; } }
+    // while held at the join section, a fling that is still coasting can't drag the page up past it
+    if(clubHold&&!glide&&!touching&&yNow<clubY()-2&&performance.now()-lastInputT<2500){ window.scrollTo({top:clubY(),behavior:'instant'}); return; }
     if(now-lastScrollT>260 && !glide) gestureStartY=settledY;
     lastScrollT=now;
     clearTimeout(settleT);
     settleT=setTimeout(()=>{
       if(glide||suppressed()) return;
       const y=window.scrollY, st=stops();
+      if(clubHold&&y<st[st.length-1]-2&&performance.now()-lastInputT<2500){ glideTo(st[st.length-1],500); return; }   // still held: back to the join section
       if(st.some(v=>Math.abs(v-y)<3) || y<=st[0] || y>=st[st.length-1]){ settledY=y; return; }
       const dir=Math.sign(y-gestureStartY)||1;
       // measure from where the gesture began, but never from outside the guided part (coming up from the
@@ -1510,7 +1529,7 @@
     },170);
   },{passive:true});
   // "Skip", "Enter", "Join us" and footer links jump directly without being caught by the guide.
-  document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; queuedDir=0; suppressUntil=performance.now()+2500; }));
+  document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; queuedDir=0; clubHold=false; suppressUntil=performance.now()+2500; }));
   settledY=window.scrollY;
 
   (()=>{ const im=$('#footMascotImg'); if(FOOTER_MASCOT&&im.getAttribute('src')!==FOOTER_MASCOT) im.src=FOOTER_MASCOT;
