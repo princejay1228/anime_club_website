@@ -115,7 +115,6 @@
     .narrator { position:absolute; z-index:30; left:0; top:0; transform-origin:50% 100%; will-change:transform; }
     .narrator svg, .narrator img { width:100%; height:100%; display:block; object-fit:contain; object-position:50% 100%; }
     .narrator img[hidden] { display:none; }
-    .narrator canvas.chibi { position:absolute; left:50%; bottom:0; opacity:0; transform-origin:50% 100%; }
     .narrator img.chibi { position:absolute; left:50%; right:auto; bottom:0; top:auto; width:auto; height:84%; opacity:0; transform-origin:50% 100%; -webkit-mask-image:none; mask-image:none; }
     .narrator .hearts { position:absolute; left:58%; top:4%; font-size:clamp(20px,3.2vh,34px); pointer-events:none; }
     .narrator .hearts i { position:absolute; font-style:normal; opacity:0; filter:drop-shadow(0 2px 6px rgba(220,6,40,.6)); }
@@ -327,9 +326,10 @@
     @keyframes miniFloat { 0% { opacity:0; transform:translateY(0) scale(.6); } 20% { opacity:.9; } 100% { opacity:0; transform:translateY(-60px) scale(1.1); } }
     .foot-mascot .rigbox { position:relative; width:100%; aspect-ratio:1122/1402; cursor:pointer; -webkit-tap-highlight-color:transparent; outline:none; }
     .foot-mascot .rigbox:focus-visible { outline:2px solid #b0122f; outline-offset:4px; border-radius:12px; }
-    .foot-mascot .rigbox canvas, .foot-mascot .rigbox img { position:absolute; inset:0; width:100%; height:100%; }
-    .foot-mascot .rigbox canvas { filter:drop-shadow(0 10px 18px rgba(122,13,32,.28)); }
-    .foot-mascot .rigbox.live img { visibility:hidden; }
+    .foot-mascot .rigbox img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 10px 18px rgba(122,13,32,.28)); }
+    .benio-hop { animation:benioHop .52s ease-out; }        /* whole-picture bounce only: her face is never redrawn */
+    @keyframes benioHop { 0%,100% { transform:translateY(0); } 45% { transform:translateY(-7%); } }
+    @media (prefers-reduced-motion: reduce) { .benio-hop { animation:none; } }
     .benio-say { position:absolute; left:50%; bottom:calc(100% - 26px); transform:translate(-50%,8px); width:max-content; max-width:230px; background:#fff8f0; color:#4a0f1a; border:2px solid #b0122f; border-radius:14px; padding:9px 13px; font-size:12.5px; line-height:1.5; font-weight:700; text-align:center; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; box-shadow:0 8px 22px rgba(122,13,32,.25); z-index:2; }
     .benio-say::after { content:""; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); border:8px solid transparent; border-top-color:#b0122f; border-bottom:0; }
     .benio-say.on { opacity:1; transform:translate(-50%,0); }
@@ -467,7 +467,6 @@
           <img id="narratorImg" alt="" hidden />
           <img id="narratorImg2" class="alt" alt="" hidden />
           <img id="narratorChibi" class="chibi" alt="Sakuraba Benio, chibi" hidden />
-          <canvas id="narratorRig" class="chibi rig" aria-hidden="true" hidden></canvas>
           <span class="hearts" id="hearts" aria-hidden="true"><i>❤️</i><i>❤️</i></span>
           <!-- placeholder narrator (an original character). Set NARRATOR_IMAGE in the script to use your own art. -->
           <svg id="narratorSvg" viewBox="0 0 240 320" aria-hidden="true" style="overflow:visible">
@@ -707,8 +706,7 @@
       <figure class="foot-mascot" id="footMascot">
         <div class="benio-say" id="benioSay" role="status" aria-live="polite"></div>
         <div class="rigbox" id="benioBox" role="button" tabindex="0" aria-label="Sakuraba Benio, the club mascot, making a heart with her hands. Tap her!">
-          <img id="footMascotImg" src="assets/benio-heart-hands.webp" alt="" width="700" height="873" loading="lazy" decoding="async" />
-          <canvas id="benioCanvas" aria-hidden="true"></canvas>
+          <img id="benioImg" src="assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00_561x701.png" alt="" width="561" height="701" loading="lazy" decoding="async" />
         </div>
         <svg class="heart" id="footHeart" viewBox="0 0 64 58" aria-hidden="true"><defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a76"/><stop offset="1" stop-color="#b0122f"/></linearGradient></defs>
           <path d="M32 56 C 12 40, 0 30, 0 16 C 0 6, 8 0, 17 0 C 24 0, 29 4, 32 9 C 35 4, 40 0, 47 0 C 56 0, 64 6, 64 16 C 64 30, 52 40, 32 56 Z" fill="url(#hg)" stroke="#fff3f5" stroke-width="2.5"/>
@@ -728,8 +726,7 @@
 <script src="assets/oni-mask.js"></script>
 <script src="assets/quotes.js"></script>
 <script src="assets/music.js"></script>
-<script src="assets/benio-rig/rig-data.js"></script>
-<script src="assets/benio-rig/benio-rig.js"></script>
+<script src="assets/benio-v4/benio-v4.js"></script>
 <script>
 (() => {
   'use strict';
@@ -742,7 +739,7 @@
   const logo=$('#logo'), enterBtn=$('#enterBtn'), slashLine=$('#slashLine'), crest=$('#crest'), title=$('#titleCut'), cutLower=$('#cutLower'), banner=$('#banner');
   const hint=$('#hint');
   const logoSvg=$('#logoSvg'), topbar=$('#topbar'), team=$('#team'), cardsEl=$('#cards'), bubble=$('#bubble'), bubbleWho=$('#bubbleWho'), bubbleText=$('#bubbleText'), bubbleTail=$('#bubbleTail');
-  const narrator=$('#narrator'), narratorImg=$('#narratorImg'), narratorImg2=$('#narratorImg2'), narratorChibi=$('#narratorChibi'), narratorRig=$('#narratorRig'), heartEls=[...document.querySelectorAll('#hearts i')], narratorSvg=$('#narratorSvg');
+  const narrator=$('#narrator'), narratorImg=$('#narratorImg'), narratorImg2=$('#narratorImg2'), narratorChibi=$('#narratorChibi'), heartEls=[...document.querySelectorAll('#hearts i')], narratorSvg=$('#narratorSvg');
   const nTail=$('#nTail'), nBody=$('#nBody'), nLegL=$('#nLegL'), nLegR=$('#nLegR'), nArmF=$('#nArmF'), nArmB=$('#nArmB'), nHead=$('#nHead'), nMouthC=$('#nMouthC'), nMouthO=$('#nMouthO');
 
   // ================= TEAM INTRO: edit names, lines and photos here =================
@@ -758,12 +755,12 @@
     {role:'Treasurer',      name:'Lohithaksha D',   photo:'assets/team/treasurer-lohithaksha.webp', cutout:true, photoH:'100%', photoL:'17%', photoHm:'47%', photoBm:'26.5%', photoLm:'38%', line:"And Lohithaksha D, our Treasurer! He manages the club budget, so every screening, cosplay meet and fest stall has what it needs."},
   ];
   // Her playful self-introduction after the closing line. She switches to her chibi form for this beat.
-  const SELF={who:'桜庭 紅緒 · Sakuraba Benio', line:"Ahh!! I forgot to introduce myself, watashi wa SAKURABA Benio desu!! ❤️❤️", image:'assets/benio-chibi.webp'};
+  const SELF={who:'桜庭 紅緒 · Sakuraba Benio', line:"Ahh!! I forgot to introduce myself, watashi wa SAKURABA Benio desu!! ❤️❤️", image:'assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00_561x701.png'};   // Benio V4: complete pre-rendered frames only
   const OUTRO={who:'SIMATS Anime Club', line:"Together, we're SIMATS Anime Club: anime screenings, cosplay, art jams, quizzes and fests all year. Keep scrolling and join the crew!"};
   // Footer contact links: fill in the club's handles to show them (leave '' to hide).
-  // Footer mascot: Benio making a heart with her hands. To change her, point FOOTER_MASCOT at another transparent PNG/WebP in assets/.
-  const FOOTER_MASCOT='assets/benio-heart-hands.webp', FOOTER_HEART=false;
-  const FOOTER_RIG=true;   // true: footer Benio is drawn live from her rig (blinks, talks). false: show FOOTER_MASCOT as a still image.
+  // Footer mascot: Benio making a heart with her hands, animated by the V4 kit (assets/benio-v4/): one <img>
+  // whose src swaps between complete pre-rendered pictures for blinking, talking and expressions.
+  const FOOTER_HEART=false;
   // Upcoming events. Add one object per event; past events hide automatically. Times are India time (IST).
   //   { title:'Spin-the-Wheel Quiz', start:'2026-11-14T15:30', end:'2026-11-14T17:30', venue:'Block 3, Room 204', tag:'QUIZ', desc:'Teams of 3. Prizes!' }
   const WA_LINK='https://chat.whatsapp.com/GHwQzTsmPQr5xxNzGjINWb?s=cl&p=a&mlu=4&ilr=4&iam=2';
@@ -1135,7 +1132,7 @@
     if(NARRATOR_OUTRO_IMAGE){ narratorImg2.src=NARRATOR_OUTRO_IMAGE; narratorImg2.hidden=false; }
     if(SELF.image){ narratorChibi.src=SELF.image; narratorChibi.hidden=false; } }
 
-  let TL=null, logoBox=null, bubbleMinH=0; const selfRig={started:false,api:null,expr:''};
+  let TL=null, logoBox=null, bubbleMinH=0; const selfV4={api:null,expr:''};
   function layoutTeam(){
     const side=W>=760;                                       // desktop: bubble beside the narrator; phone: bubble above it
     const headerH=side?78:62;
@@ -1152,7 +1149,6 @@
     narrator.style.width=nW+'px'; narrator.style.height=nH+'px';
     const pad=imgN?(side?W*.02:-nW*.14):(side?W*.06:8);
     const L=pad, R=W-pad-nW, C=imgN&&side?W*.08:(W-nW)/2;
-    { const rh=nH*.92; narratorRig.style.height=rh+'px'; narratorRig.style.width=(rh*1122/1402)+'px'; }
     TL={side,headerH,nH,nW,nTop,bW,bTop,L,R,C,pos:[L,R,L,R,C,C],off:-nW-40};
     // logo geometry for the move into the header
     logo.style.transform='none'; logoSvg.style.transform='none';
@@ -1222,15 +1218,15 @@
     const toOutro=k===4?smooth(.04,.22,u):k===5?1:0, toChibi=k===5&&SELF.image?smooth(.02,.12,u):0;
     if(NARRATOR_OUTRO_IMAGE){ narratorImg2.style.opacity=(toOutro*(1-toChibi)).toFixed(3); narratorImg.style.opacity=(1-Math.max(toOutro,toChibi)).toFixed(3); }
     else narratorImg.style.opacity=(1-toChibi).toFixed(3);
-    // Benio's self-intro: her live rig (talks along with the bubble) once loaded, else the still chibi
-    if(t>.7&&!selfRig.started&&window.BenioRig){ selfRig.started=true; narratorRig.hidden=false;
-      BenioRig.mount(narratorRig,{base:'assets/benio-rig/'}).then(api=>{ selfRig.api=api; narratorChibi.hidden=true; lastTeamKey=''; }).catch(()=>{ narratorRig.hidden=true; }); }
+    // Benio's self-intro: the V4 frame-swap component (blinks, talks with the bubble, then her original face)
+    // start fetching her pictures as soon as the crew section begins
+    if(t>0&&!selfV4.api&&window.BenioV4){ selfV4.api=new BenioV4(narratorChibi,'assets/benio-v4/'); selfV4.api.preloadTalk(); selfV4.api.autoBlink(true); }
     if(SELF.image){
       const hop=k===5?Math.sin(clamp((u-.04)/.22)*Math.PI):0, squash=k===5?Math.sin(clamp((u-.24)/.08)*Math.PI)*.06:0;
-      const ch=selfRig.api?narratorRig:narratorChibi;
-      if(selfRig.api){ narratorChibi.style.opacity='0';
-        const done=k===5&&n>=chars.length&&talkIn>.5, want=k!==5?'default':done?'excited':'talking';
-        selfRig.api.talk(k===5&&typing); if(want!==selfRig.expr){ selfRig.expr=want; selfRig.api.expression(want); if(want==='excited') selfRig.api.hop(); } }
+      const ch=narratorChibi;
+      if(selfV4.api){
+        const done=k===5&&n>=chars.length&&talkIn>.5, want=k!==5||done?'neutral_open':'talking';   // after speaking she ends on her original open-eyed face (frame 00)
+        selfV4.api.talk(k===5&&typing); if(want!==selfV4.expr){ selfV4.expr=want; if(want!=='talking') selfV4.api.expression(want); } }
       ch.style.opacity=toChibi.toFixed(3);
       ch.style.transform=`translateX(-50%) translateY(${(-hop*TL.nH*.16).toFixed(1)}px) scale(${(1+squash).toFixed(3)},${(1-squash).toFixed(3)})`;
       heartEls.forEach((h,i)=>{ const a=k===5?smooth(.7+i*.05,.76+i*.05,u):0, rise=k===5?clamp((u-.7-i*.05)/.3):0;
@@ -1532,8 +1528,7 @@
   document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; queuedDir=0; clubHold=false; suppressUntil=performance.now()+2500; }));
   settledY=window.scrollY;
 
-  (()=>{ const im=$('#footMascotImg'); if(FOOTER_MASCOT&&im.getAttribute('src')!==FOOTER_MASCOT) im.src=FOOTER_MASCOT;
-    if(!FOOTER_HEART) document.querySelectorAll('#footHeart, #footMascot .mini').forEach(e=>e.remove()); })();
+  (()=>{ if(!FOOTER_HEART) document.querySelectorAll('#footHeart, #footMascot .mini').forEach(e=>e.remove()); })();
   (()=>{ // footer: contact links + year
     const box=$('#contactLinks'), L=[];
     if(CLUB_CONTACT.instagram) L.push(`<a href="https://instagram.com/${encodeURIComponent(CLUB_CONTACT.instagram.replace(/^@/,''))}" target="_blank" rel="noopener">Instagram @${esc(CLUB_CONTACT.instagram.replace(/^@/,''))}</a>`);
@@ -1690,7 +1685,7 @@
   // ---------- Sakura burst (easter egg) ----------
   const sakuraBurst=(()=>{
     const cv=$('#sakuraBurst'), c=cv.getContext('2d'); let parts=[], running=false;
-    const imgs=['assets/benio-rig/sakura_flower.svg','assets/benio-rig/sakura_petal.svg'].map(src=>{ const i=new Image(); i.src=src; return i; });
+    const imgs=['assets/sakura_flower.svg','assets/sakura_petal.svg'].map(src=>{ const i=new Image(); i.src=src; return i; });
     function frame(t){
       const d=Math.min(.05,(t-(frame.l||t))/1000); frame.l=t;
       const w=innerWidth,h=innerHeight, r=Math.min(devicePixelRatio||1,2);
@@ -1710,25 +1705,26 @@
     };
   })();
 
-  // ---------- Benio in the footer: live rig + easter eggs ----------
+  // ---------- Benio in the footer: V4 frame swaps + easter eggs ----------
   (()=>{
-    const box=$('#benioBox'), say=$('#benioSay'); let rigApi=null, hideT=0, taps=[], last=-1;
-    if(window.BenioRig && FOOTER_RIG){
-      const start=()=>BenioRig.mount($('#benioCanvas'),{base:'assets/benio-rig/'}).then(api=>{ rigApi=api; box.classList.add('live'); }).catch(()=>{});
+    const box=$('#benioBox'), say=$('#benioSay'), img=$('#benioImg'); let benio=null, hideT=0, moodT=0, taps=[], last=-1;
+    if(window.BenioV4){
+      const start=()=>{ benio=new BenioV4(img,'assets/benio-v4/'); benio.autoBlink(true); };
       if('IntersectionObserver' in window){ const io=new IntersectionObserver(es=>{ if(es[0].isIntersecting){ io.disconnect(); start(); } },{rootMargin:'400px'}); io.observe(box); } else start();
     }
-    function speak(text,mood){
-      say.textContent=text; say.classList.add('on'); clearTimeout(hideT);
+    const hop=()=>{ img.classList.remove('benio-hop'); void img.offsetWidth; img.classList.add('benio-hop'); };
+    function speak(text){
+      say.textContent=text; say.classList.add('on'); clearTimeout(hideT); clearTimeout(moodT);
       let sec=Math.min(4.5,1.2+text.length*.045);
-      if(rigApi){ const d=rigApi.speak(text,{expression:'talking'}); sec=Math.max(sec,d+.6);
-        setTimeout(()=>rigApi.expression(mood||'happy',2.2),d*1000+80); }
+      if(benio){ const d=benio.speak(text); sec=Math.max(sec,d+.6);
+        moodT=setTimeout(()=>benio.expression('happy_eyes_closed',2.2),d*1000+80); }   // a happy closed-eye smile after talking
       hideT=setTimeout(()=>say.classList.remove('on'),sec*1000+900);
     }
     function poke(){
       const now=performance.now(); taps=taps.filter(t=>now-t<2500); taps.push(now);
-      if(taps.length>=5){ taps=[]; speak('Yatta!! You found my secret~ ❤️','excited'); rigApi&&rigApi.hop(); sakuraBurst(140); return; }
+      if(taps.length>=5){ taps=[]; speak('Yatta!! You found my secret~ ❤️'); hop(); sakuraBurst(140); return; }
       let i; do{ i=Math.floor(Math.random()*BENIO_LINES.length); }while(i===last&&BENIO_LINES.length>1); last=i;
-      speak(BENIO_LINES[i]); rigApi&&rigApi.hop();
+      speak(BENIO_LINES[i]); hop();
     }
     box.addEventListener('click',poke);
     box.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); e.stopPropagation(); poke(); } });
