@@ -79,6 +79,13 @@
     .skip:hover,.skip:focus-visible { opacity:1; }
 
     /* ---------- Header + team intro ---------- */
+    /* the header logo keeps showing on the rest of the page, in exactly the same place and size */
+    .fixed-logo { position:fixed; z-index:52; display:block; opacity:0; pointer-events:none; transition:opacity .2s; }
+    .fixed-logo svg { display:block; width:100%; height:100%; overflow:visible; }
+    /* its own full-width header strip: the page scrolls underneath it */
+    .fixed-topbar { position:fixed; z-index:51; left:0; right:0; top:0; height:86px; opacity:0; pointer-events:none; transition:opacity .2s;
+      background:linear-gradient(180deg,#120307 0%,#070104 100%); border-bottom:1px solid rgba(230,192,111,.45); box-shadow:0 6px 18px rgba(0,0,0,.45); }
+    .fixed-logo.on, .fixed-topbar.on { opacity:1; }
     .topbar { position:absolute; z-index:7; left:0; right:0; top:0; height:120px; opacity:0; pointer-events:none; background:linear-gradient(180deg,rgba(0,0,0,.94) 0%,rgba(0,0,0,.7) 55%,transparent 100%); }
     .team { position:absolute; inset:0; z-index:6; pointer-events:none; opacity:0; }
     .panel { position:absolute; inset:0; overflow:hidden; visibility:hidden; will-change:transform; }
@@ -644,6 +651,8 @@
     </div>
   </section>
 
+  <div class="fixed-logo" id="fixedLogo" role="img" aria-label="SIMATS Anime Club"></div>
+  <div class="fixed-topbar" id="fixedTopbar" aria-hidden="true"></div>
   <canvas id="sakuraBurst" aria-hidden="true" hidden></canvas>
   <div class="welcome" id="welcome" role="dialog" aria-label="Welcome back">
     <img src="assets/benio-face-192.png" alt="" width="46" height="46" />
@@ -1156,6 +1165,8 @@
     logo.style.transform='none'; logoSvg.style.transform='none';
     const r=logoSvg.getBoundingClientRect(), st=stage.getBoundingClientRect();
     logoBox={cy:r.top-st.top+r.height/2, h:r.height};
+    { const hs=headerH*.86/r.height, w=r.width*hs, h=r.height*hs, cx=r.left-st.left+r.width/2, fl=$('#fixedLogo');   // the header position (same maths as renderTeam)
+      Object.assign(fl.style,{left:(cx-w/2)+'px',top:(headerH/2+6-h/2)+'px',width:w+'px',height:h+'px'}); $('#fixedTopbar').style.height=(headerH+8)+'px'; }
     lastTeamKey='';
   }
 
@@ -1535,7 +1546,21 @@
   },{passive:true});
   // "Skip", "Enter", "Join us" and footer links jump directly without being caught by the guide.
   document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; queuedDir=0; clubHold=false; suppressUntil=performance.now()+2500; }));
-  settledY=window.scrollY; updateTouchMode(); addEventListener('resize',updateTouchMode,{passive:true});
+  // ---------- the header logo stays on the rest of the page ----------
+  // A copy of the logo (in its finished state) takes over exactly where the header logo is as the crew section leaves the screen.
+  const fixedLogo=$('#fixedLogo'), fixedTopbar=$('#fixedTopbar');
+  { const c=logoSvg.cloneNode(true); c.removeAttribute('id'); c.removeAttribute('style'); c.setAttribute('aria-hidden','true');
+    c.querySelectorAll('[id]').forEach(el=>{ if(!/^(bladeHi|bladeLo|titleGold|shine|titleArt|cutTop|cutBot)$/.test(el.id)) el.removeAttribute('id'); });
+    c.querySelectorAll('[style]').forEach(el=>el.removeAttribute('style'));
+    const fin=(sel,fn)=>{ const el=c.querySelector(sel); if(el) fn(el); };
+    fin('[clip-path="url(#cutBot)"]',el=>el.setAttribute('transform','translate(-9 1)'));      // finished logo: slash cut slid apart,
+    fin('path[pathLength="1"]',el=>el.setAttribute('stroke-dashoffset','0'));                  // slash line drawn,
+    fixedLogo.appendChild(c); }
+  function updateFixedLogo(){ const on=stage.getBoundingClientRect().top<-.5;   // the sticky stage has started to scroll away
+    if(on!==fixedLogo.classList.contains('on')){ fixedLogo.classList.toggle('on',on); fixedTopbar.classList.toggle('on',on); } }
+  addEventListener('scroll',updateFixedLogo,{passive:true}); addEventListener('resize',updateFixedLogo,{passive:true});
+
+  settledY=window.scrollY; updateTouchMode(); updateFixedLogo(); addEventListener('resize',updateTouchMode,{passive:true});
 
   (()=>{ if(!FOOTER_HEART) document.querySelectorAll('#footHeart, #footMascot .mini').forEach(e=>e.remove()); })();
   (()=>{ // footer: contact links + year
