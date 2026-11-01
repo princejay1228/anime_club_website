@@ -22,6 +22,8 @@
     a { color:inherit; }
     a { -webkit-tap-highlight-color:transparent; }
 
+    html.guided { touch-action:pinch-zoom; }               /* inside the guided part: no native touch scrolling, only one beat per swipe */
+    html.guided-edge { touch-action:pan-down pinch-zoom; } /* at the join section: touch may only scroll on down into the page */
     .experience { height:2070vh; position:relative; } /* intro + logo hold + header move + team intro */ /* +40% scroll per scene, plus a hold on the logo */
     .stage { position:sticky; top:0; height:100vh; height:100svh; min-height:460px; overflow:hidden; background:#000; isolation:isolate; }
     .layer { position:absolute; inset:0; pointer-events:none; }
@@ -749,7 +751,7 @@
   const NARRATOR_IMAGE='assets/narrator.webp';
   const NARRATOR_OUTRO_IMAGE='assets/narrator-outro.webp';   // her pose on the closing screen ('' = keep the main pose)
   const TEAM=[
-    {role:'President',      name:'Sudharshshini R', photo:'', line:"First up, Sudharshshini R, our President! She leads SIMATS Anime Club, plans our screenings, events and fests, and keeps the whole crew moving forward."},
+    {role:'President',      name:'Sudharshshini R', photo:'assets/team/president-sudharshshini.webp', cutout:true, photoH:'94%', photoL:'74%', photoHm:'62%', photoBm:'11%', photoLm:'52%', line:"First up, Sudharshshini R, our President! She leads SIMATS Anime Club, plans our screenings, events and fests, and keeps the whole crew moving forward."},
     {role:'Vice President', name:'Darshan A',       photo:'assets/team/vp-darshan.webp', cutout:true, photoH:'80%', photoL:'20%', photoHm:'32%', photoBm:'39.5%', photoLm:'46%', line:"This is Darshan A, our Vice President! He backs every plan, runs our events on the ground, and makes sure every new member feels at home."},
     {role:'Secretary',      name:'Jayadeep J',      photo:'assets/team/secretary-jayadeep.webp', cutout:true, line:"Here's Jayadeep J, our Secretary! He keeps our records, sends out every announcement, and built this very website for the club."},
     {role:'Treasurer',      name:'Lohithaksha D',   photo:'assets/team/treasurer-lohithaksha.webp', cutout:true, photoH:'100%', photoL:'17%', photoHm:'47%', photoBm:'26.5%', photoLm:'38%', line:"And Lohithaksha D, our Treasurer! He manages the club budget, so every screening, cosplay meet and fest stall has what it needs."},
@@ -1394,6 +1396,9 @@
   // Coming up from the footer, the page always stops at the join section ("Your next chapter starts here"), however
   // hard you scroll: input that keeps arriving (gaps under HOLD_QUIET) is swallowed. From there one scroll up goes to
   // the Treasurer, and a second scroll within DOUBLE_MS of it goes all the way back to the top.
+  // Per-gesture limits: a swipe shorter than MIN_SWIPE_PX (or a wheel tick under MIN_WHEEL) does nothing, and however big
+  // the swipe or flick is, one gesture moves at most one beat (the join-section rules below are the only exceptions).
+  const MIN_SWIPE_PX=40, MIN_WHEEL=4;
   const HOLD_QUIET=450, HOLD_QUIET_TOUCH=1000, DOUBLE_MS=1500, TOP_MS=2800, TREAS_STOP=6;
   let clubHold=false, lastInputT=-9e9;
   let glide=null, suppressUntil=0, lastWheelT=0, wheelUsed=false, settleT=0, lastScrollT=0, gestureStartY=0, settledY=0;
@@ -1464,7 +1469,7 @@
     if(held(dir)) return;
     const now=performance.now(), fresh=now-lastWheelT>240; lastWheelT=now;
     if(fresh) wheelUsed=false;
-    if(wheelUsed||Math.abs(e.deltaY)<2) return;          // trackpad inertia: one physical gesture counts once
+    if(wheelUsed||Math.abs(e.deltaY)<MIN_WHEEL) return;  // trackpad inertia: one physical gesture counts once
     wheelUsed=true; advance(dir);
   },{passive:false});
 
@@ -1480,7 +1485,7 @@
     touching=e.touches&&e.touches.length>0; lastTouchEnd=performance.now();
     if(suppressed()) return;
     const yEnd=e.changedTouches[0]?e.changedTouches[0].clientY:tyLast, dy=ty0-yEnd, dir=Math.sign(dy);
-    if(Math.abs(dy)<24) return;
+    if(Math.abs(dy)<MIN_SWIPE_PX) return;                 // too small to count
     if(held(dir,HOLD_QUIET_TOUCH)) return;
     if(glide||tGlide){ advance(dir); return; }           // swipe during a glide
     if(!inZone(sy0,dir)){
@@ -1502,8 +1507,12 @@
   });
 
   // Safety net: if the page comes to rest between two beats (scrollbar drag, momentum), finish the move.
+  // which touch behaviour the page allows depends on where it is: guided part / join section / normal page below
+  let touchMode='';
+  function updateTouchMode(){ const y=window.scrollY, c=clubY(), m=y<c-2?'guided':(y<=c+2?'guided-edge':'');
+    if(m!==touchMode){ const r=document.documentElement.classList; if(touchMode) r.remove(touchMode); if(m) r.add(m); touchMode=m; } }
   window.addEventListener('scroll',()=>{
-    const now=performance.now(), yNow=window.scrollY, py=prevY; prevY=yNow;
+    const now=performance.now(), yNow=window.scrollY, py=prevY; prevY=yNow; updateTouchMode();
     // a fling (after the finger lifted) coming up out of the content into the guided part: catch it at the boundary
     if(!glide&&!touching&&!suppressed()&&(now-lastTouchEnd<3000||now-lastInputT<1500)){ const last=clubY();
       if(py>last+2&&yNow<last-2){ catchAtClub(); return; } }
@@ -1526,7 +1535,7 @@
   },{passive:true});
   // "Skip", "Enter", "Join us" and footer links jump directly without being caught by the guide.
   document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{ glide=null; queuedDir=0; clubHold=false; suppressUntil=performance.now()+2500; }));
-  settledY=window.scrollY;
+  settledY=window.scrollY; updateTouchMode(); addEventListener('resize',updateTouchMode,{passive:true});
 
   (()=>{ if(!FOOTER_HEART) document.querySelectorAll('#footHeart, #footMascot .mini').forEach(e=>e.remove()); })();
   (()=>{ // footer: contact links + year
