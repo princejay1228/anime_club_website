@@ -21,6 +21,7 @@
     approved: ['MEMBER', 'ok'], awaiting_approval: ['WAITING', 'warn'], pending: ['NO NAME YET', 'dim'],
     rejected: ['REJECTED', 'pink'], suspended: ['SUSPENDED', ''],
   };
+  const when = (t) => (C.isMidnightIst(t) ? C.fmtDate(t) + ', time TBA' : C.fmtDateTime(t));
   const statusTag = (s) => { const t = STATUS_TAG[s] || [s, 'dim']; return h('span', { class: 'tag ' + t[1], text: t[0] }); };
 
   // Run an admin action from a button: spinner, toast, then refresh.
@@ -72,7 +73,7 @@
               h('div', { class: 'sub', text: `${c.event_title} · ${C.ago(c.created_at)}` }), h('div', { class: 'txt', text: c.body.length > 160 ? c.body.slice(0, 160) + '…' : c.body }))))) : h('p', { class: 'hint', text: 'No comments yet.' })),
         h('div', { class: 'card' }, h('h3', { text: 'Next events' }),
           o.next_events.length ? h('div', { class: 'list' }, o.next_events.map((e) => h('div', { class: 'li' },
-            h('div', { class: 'main' }, h('strong', { text: e.title }), h('div', { class: 'sub', text: `${C.fmtDateTime(e.starts_at)}${e.venue ? ' · ' + e.venue : ''} · ${e.source === 'drive' ? 'from Drive' : 'added by hand'}` }))))) : h('p', { class: 'hint', text: 'No upcoming events.' })),
+            h('div', { class: 'main' }, h('strong', { text: e.title }), h('div', { class: 'sub', text: `${when(e.starts_at)}${e.venue ? ' · ' + e.venue : ''} · ${e.source === 'drive' ? 'from Drive' : 'added by hand'}` }))))) : h('p', { class: 'hint', text: 'No upcoming events.' })),
         h('div', { class: 'card' }, h('h3', { text: 'Quick actions' }), h('div', { class: 'row', style: 'margin-top:10px' },
           h('a', { class: 'btn small primary', href: '#approvals', text: `Review requests (${o.members_awaiting})` }),
           h('a', { class: 'btn small', href: '#polls', text: 'New poll' }),
@@ -448,7 +449,7 @@
           h('span', { class: 'tag ' + (e.source === 'drive' ? 'gold' : 'dim'), text: e.source === 'drive' ? 'DRIVE' : 'MANUAL' }),
           e.manual_override ? h('span', { class: 'tag warn', text: 'EDITED HERE' }) : null,
           e.status !== 'scheduled' ? h('span', { class: 'tag ' + (e.status === 'hidden' ? 'dim' : 'pink'), text: e.status.toUpperCase() }) : null),
-        h('div', { class: 'sub', text: [C.fmtDateTime(e.starts_at), e.venue, e.category].filter(Boolean).join(' · ') })), acts);
+        h('div', { class: 'sub', text: [when(e.starts_at), e.venue, e.category].filter(Boolean).join(' · ') })), acts);
     };
 
     view.replaceChildren(
