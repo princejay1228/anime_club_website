@@ -178,6 +178,7 @@
     if (/[?&]code=/.test(location.search)) history.replaceState(null, '', location.pathname + location.hash);
     sb.auth.onAuthStateChange((event, session) => {
       // run outside the auth callback (the client warns against awaiting inside it)
+      if (event === 'INITIAL_SESSION') return;          // already handled by getSession() above
       if (event === 'TOKEN_REFRESHED') { state.session = session; return; }
       if (event === 'SIGNED_IN' && state.user && session?.user?.id === state.user.id) { state.session = session; return; }
       setTimeout(() => setSession(session), 0);

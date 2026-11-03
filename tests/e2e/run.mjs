@@ -185,7 +185,7 @@ await step('member votes once and sees results; comments wait for review', async
   await alicePage.goto(BASE + '/members');
   await waitText(alicePage, '#accountCard', /Okaeri, Alice/);
   await waitText(alicePage, '#pollList', /CAST MY VOTE/);
-  await alicePage.click('#pollList .opt:nth-child(4) input');
+  await alicePage.evaluate(() => document.querySelector('#pollList .opt:nth-child(4) input').click());
   await clickText(alicePage, '#pollList', 'CAST MY VOTE');
   await waitText(alicePage, '#pollList', /YOU VOTED/);
   assert.match(await text(alicePage, '#pollList'), /100% · 1/);

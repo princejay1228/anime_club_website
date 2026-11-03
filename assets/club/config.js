@@ -8,5 +8,5 @@
 //   supabaseKey  = "Publishable key" (sb_publishable_...) or the legacy "anon public" key
 window.CLUB_CONFIG = {
   supabaseUrl: 'https://kfpcqjjwsrveqzlzvlml.supabase.co',
-  supabaseKey: 'PASTE_YOUR_PUBLISHABLE_KEY_HERE',
+  supabaseKey: 'sb_publishable_YsWR9SQDiY5Q-1cbp7kRGA_4PR1C-8G',
 };

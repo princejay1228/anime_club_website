@@ -2,11 +2,14 @@
 // the service role key never reaches the browser.
 import { createClient } from '@supabase/supabase-js';
 
+// SUPABASE_SECRET_KEY is the new "sb_secret_..." key; SUPABASE_SERVICE_ROLE_KEY (legacy JWT) also works.
+export const secretKey = (env = process.env) => env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+
 export function serviceClient(env = process.env) {
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new HttpError(500, 'Server is missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
+  if (!env.SUPABASE_URL || !secretKey(env)) {
+    throw new HttpError(500, 'Server is missing SUPABASE_URL or SUPABASE_SECRET_KEY.');
   }
-  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  return createClient(env.SUPABASE_URL, secretKey(env), {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 }
@@ -53,11 +56,12 @@ export function safeEqual(a, b) {
 // Strip anything that looks like a secret before an error is stored or shown.
 export function redact(msg, env = process.env) {
   let s = String(msg || 'Unknown error').slice(0, 500);
-  for (const k of ['SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_PRIVATE_KEY', 'RESEND_API_KEY', 'CRON_SECRET']) {
+  for (const k of ['SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_PRIVATE_KEY', 'RESEND_API_KEY', 'CRON_SECRET']) {
     const v = env[k];
     if (v && v.length > 8) s = s.split(v).join('[redacted]');
   }
   return s.replace(/-----BEGIN [A-Z ]+-----[\s\S]*?-----END [A-Z ]+-----/g, '[redacted key]')
+          .replace(/\bsb_secret_[\w-]+/g, '[redacted key]')
           .replace(/\beyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,}\b/g, '[redacted token]');
 }
 

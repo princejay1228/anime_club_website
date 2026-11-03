@@ -293,3 +293,10 @@ test('admin email: skipped when already sent, not waiting, or not configured; fa
   assert.equal(op(release, 'update')[0].admin_notified_at, null);
   assert.equal(buildEmail(waiting, 1).subject, 'New member request: Alice <b>K</b>');
 });
+
+test('new-style sb_secret keys are accepted and never leak into errors', async () => {
+  const { secretKey } = await import('../api/_lib/server.js');
+  assert.equal(secretKey({ SUPABASE_SECRET_KEY: 'sb_secret_abc' }), 'sb_secret_abc');
+  assert.equal(secretKey({ SUPABASE_SERVICE_ROLE_KEY: 'eyJlegacy' }), 'eyJlegacy');
+  assert.doesNotMatch(redact('failed with sb_secret_FAKE_test_value-123 in header', {}), /sb_secret_/);
+});

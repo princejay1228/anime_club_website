@@ -55,7 +55,7 @@ The browser never decides who may do what.
 4. In Google Cloud → **OAuth consent screen**, publish the app (or add testers) so students can sign in.
 
 ### 3. Website config
-Paste the **publishable key** (Supabase → Project Settings → API Keys) into `assets/club/config.js`. It is safe to publish. Never put the service role / secret key there.
+Done: `assets/club/config.js` holds the project URL and the **publishable key** (`sb_publishable_…`). It is safe to publish. Never put the service role / secret key there.
 
 ### 4. Vercel environment variables
 Vercel → Project → Settings → **Environment Variables** (see `.env.example`):
@@ -63,7 +63,7 @@ Vercel → Project → Settings → **Environment Variables** (see `.env.example
 | Variable | Required | Value |
 |---|---|---|
 | `SUPABASE_URL` | yes | `https://kfpcqjjwsrveqzlzvlml.supabase.co` |
-| `SUPABASE_SERVICE_ROLE_KEY` | yes | Supabase → API Keys → secret / service_role key |
+| `SUPABASE_SECRET_KEY` | yes | Supabase → API Keys → the `sb_secret_…` key (the legacy `SUPABASE_SERVICE_ROLE_KEY` also works) |
 | `CRON_SECRET` | yes | any long random string (`openssl rand -hex 32`). Vercel sends it to the cron automatically |
 | `EVENTS_SHEET_ID` | one source | the ID in the sheet link (`/d/<ID>/edit`) |
 | `EVENTS_SHEET_RANGE` | no | tab name, default `Events` |
