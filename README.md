@@ -1,6 +1,8 @@
 # SIMATS Anime Club — Cinematic Intro V3
 
-Open **index.html** in any modern browser. No build step, server or internet connection is needed (fonts ship in `assets/fonts`).
+> **Club Hub (sign-in, polls, comments, admin dashboard, Drive event sync):** see [BACKEND.md](BACKEND.md) for setup, deployment and the testing report.
+
+Open **index.html** in any modern browser. No build step, server or internet connection is needed for the intro (fonts ship in `assets/fonts`). The Club Hub pages (`/members`, `/admin`) need the Supabase setup in BACKEND.md.
 
 ## Scroll timeline (progress 0 → 1)
 
