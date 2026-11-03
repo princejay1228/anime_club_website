@@ -43,8 +43,7 @@ The browser never decides who may do what.
 ## Setup (about 30 minutes)
 
 ### 1. Database
-1. If you pasted the early draft SQL from our chat into Supabase, run `supabase/cleanup_earlier_draft.sql` first (it only drops those draft tables).
-2. In Supabase → **SQL Editor**, run the four files in `supabase/migrations/` **in filename order** (or `supabase link` + `supabase db push` with the Supabase CLI).
+In Supabase → **SQL Editor → New query**, paste all of **`supabase/setup_all.sql`** and press **Run**. It is the four migrations in order plus a safety check: it removes the early draft tables from chat if they exist, gives a profile to anyone who already signed in, and refuses to run a second time. (With the Supabase CLI you can instead `supabase link` + `supabase db push` the files in `supabase/migrations/`.)
 
 ### 2. Supabase Auth
 1. **Authentication → Sign In / Providers → Google**: already enabled.
