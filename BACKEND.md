@@ -43,7 +43,7 @@ The browser never decides who may do what.
 ## Setup (about 30 minutes)
 
 ### 1. Database
-In Supabase → **SQL Editor → New query**, paste all of **`supabase/setup_all.sql`** and press **Run**. It is the four migrations in order plus a safety check: it removes the early draft tables from chat if they exist, gives a profile to anyone who already signed in, and refuses to run a second time. (With the Supabase CLI you can instead `supabase link` + `supabase db push` the files in `supabase/migrations/`.)
+In Supabase → **SQL Editor → New query**, paste all of **`supabase/setup_all.sql`** and press **Run**. It is the four migrations in order plus a safety check: it removes the early draft tables from chat if they exist, gives a profile to anyone who already signed in, and refuses to run a second time. If you ran an older copy of the setup and the admin page doesn't appear for the club account, run **`supabase/fix_admin.sql`** (safe to repeat; it ends with a table of every account). (With the Supabase CLI you can instead `supabase link` + `supabase db push` the files in `supabase/migrations/`.)
 
 ### 2. Supabase Auth
 1. **Authentication → Sign In / Providers → Google**: already enabled.
@@ -103,7 +103,7 @@ All automated tests were run and pass. Nothing below was claimed without running
 
 | Suite | How | Result |
 |---|---|---|
-| Database rules — `npm run test:db` | Real migrations on PostgreSQL 16 with a small stand-in for Supabase's `auth` schema and API roles; each check runs as a visitor, a member or an admin | **27 / 27 pass** |
+| Database rules — `npm run test:db` | Real migrations on PostgreSQL 16 with a small stand-in for Supabase's `auth` schema and API roles; each check runs as a visitor, a member or an admin | **28 / 28 pass** |
 | Server functions — `npm test` | Sheet parsing, Google service-account token signing (verified with a real RSA key), sync runner, cron/admin protection, admin email; Google, Resend and Supabase faked | **16 / 16 pass** |
 | Browser walkthrough — `tests/e2e/run.mjs` | Real pages in headless Chrome against Postgres + **PostgREST 12** (the REST layer Supabase uses) + the real `/api` functions | **13 / 13 pass**, run 3 times in a row |
 

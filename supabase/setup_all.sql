@@ -1,7 +1,7 @@
 -- =====================================================================
 -- SIMATS Anime Club — ONE-PASTE DATABASE SETUP
 -- Supabase > SQL Editor > New query > paste ALL of this > Run.
--- It is the four files in supabase/migrations/ in order, plus a safety
+-- It is the five files in supabase/migrations/ in order, plus a safety
 -- check at the top: it finishes an earlier setup that stopped part-way, and
 -- once everything is installed, running it again stops without touching data.
 -- =====================================================================
@@ -13,12 +13,13 @@ begin
   -- fully installed already (the last migration's function exists)? stop without changing anything
   if to_regprocedure('public.apply_event_sync(bigint,jsonb)') is not null
      and to_regprocedure('public.admin_list_log(text,text,integer)') is not null then
-    raise exception 'The club database is already set up and complete. Nothing was changed. Just reload the website.';
+    raise exception 'The club database is already set up and complete. Nothing was changed. Reload the website (if the admin page is missing, run supabase/fix_admin.sql).';
   end if;
   -- an earlier attempt stopped part-way: the site could not work yet, so clear what it made and start clean
   if to_regclass('public.admin_allowlist') is not null or to_regclass('public.event_sync_logs') is not null
      or to_regclass('public.club_settings') is not null then
     drop trigger if exists on_auth_user_created on auth.users;
+    drop trigger if exists on_auth_user_updated on auth.users;
     drop table if exists public.event_sync_logs, public.moderation_log, public.comments, public.votes, public.poll_options,
       public.polls, public.events, public.profiles, public.club_settings, public.admin_allowlist cascade;
     foreach f in array array['_log','_require_admin','_require_member','_clean_text','_poll_phase','_check_comment_body',
@@ -27,7 +28,7 @@ begin
       'admin_overview','admin_review_member','admin_bulk_approve','admin_suspend_member','admin_restore_member','admin_set_admin',
       'admin_save_poll','admin_set_poll_status','admin_delete_poll','admin_list_comments','admin_moderate_comment',
       'admin_set_comment_premoderation','admin_save_event','admin_delete_event','admin_release_event_override',
-      'admin_list_log','apply_event_sync'] loop
+      'admin_list_log','apply_event_sync','_promote_allowlisted_admin','handle_user_updated'] loop
       execute format('drop function if exists public.%I cascade', f);
     end loop;
     raise notice 'Cleared an unfinished earlier setup; installing fresh.';
@@ -45,6 +46,7 @@ begin
     raise notice 'Removed the early draft tables.';
   end if;
 end $$;
+
 
 
 -- ===================== 20261103000001_core_schema.sql =====================
@@ -331,6 +333,7 @@ create trigger on_auth_user_created
 -- Anyone who already signed in before these migrations ran gets a profile too.
 select public._create_profile(u) from auth.users u;
 
+
 -- ===================== 20261103000002_rls_policies.sql =====================
 -- =====================================================================
 -- Row Level Security.
@@ -415,6 +418,7 @@ create policy "admins read moderation log" on public.moderation_log
   for select to authenticated using (public.is_admin());
 create policy "admins read sync logs" on public.event_sync_logs
   for select to authenticated using (public.is_admin());
+
 
 -- ===================== 20261103000003_member_admin_functions.sql =====================
 -- =====================================================================
@@ -1177,6 +1181,7 @@ grant execute on function public.admin_delete_event(uuid)                       
 grant execute on function public.admin_release_event_override(uuid)               to authenticated;
 grant execute on function public.admin_list_log(text, text, int)                   to authenticated;
 
+
 -- ===================== 20261103000004_event_sync.sql =====================
 -- =====================================================================
 -- Google Drive -> events sync.
@@ -1260,5 +1265,62 @@ end $$;
 revoke execute on function public.apply_event_sync(bigint, jsonb) from public, anon, authenticated;
 -- service_role is Supabase's server-only role; it keeps execute.
 grant execute on function public.apply_event_sync(bigint, jsonb) to service_role;
+
+
+-- ===================== 20261103000005_admin_promotion.sql =====================
+-- =====================================================================
+-- Admin bootstrap, made robust.
+-- Supabase can create a Google user first and mark the email as verified
+-- (or link the Google identity) a moment later. The sign-up trigger only
+-- looked at the first moment, so the club account could miss admin rights.
+-- This also checks on every later update of the account, and fixes
+-- accounts that already exist. Safe to run more than once.
+-- =====================================================================
+
+create or replace function public._promote_allowlisted_admin(u auth.users) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare
+  -- Google only: an account that also has an email/password identity is never promoted
+  v_google boolean := coalesce(u.raw_app_meta_data ->> 'provider', '') = 'google'
+                      and not (coalesce(u.raw_app_meta_data -> 'providers', '["google"]'::jsonb) ? 'email');
+begin
+  if not v_google or u.email_confirmed_at is null
+     or not exists (select 1 from public.admin_allowlist a where a.email = lower(coalesce(u.email, ''))) then
+    return false;
+  end if;
+  perform public._create_profile(u);              -- make sure the profile exists
+  update public.profiles set
+    is_admin = true,
+    membership_status = 'approved',
+    full_name = coalesce(full_name, google_name, 'Club Admin'),
+    reviewed_at = coalesce(reviewed_at, now()),
+    suspended_at = null, suspended_by = null, suspension_reason = null
+  where id = u.id and not (is_admin and membership_status = 'approved');
+  if found then
+    insert into public.moderation_log (actor_id, action, target_type, target_id, reason)
+    values (u.id, 'admin_bootstrapped', 'member', u.id::text, 'Email is on admin_allowlist');
+  end if;
+  return true;
+end $$;
+
+create or replace function public.handle_user_updated() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public._promote_allowlisted_admin(new);
+  return new;
+end $$;
+
+drop trigger if exists on_auth_user_updated on auth.users;
+create trigger on_auth_user_updated
+  after update of email_confirmed_at, raw_app_meta_data, email on auth.users
+  for each row execute function public.handle_user_updated();
+
+revoke execute on function public._promote_allowlisted_admin(auth.users) from public, anon, authenticated;
+revoke execute on function public.handle_user_updated() from public, anon, authenticated;
+
+-- Fix accounts that already exist: create any missing profiles, then promote the club account.
+select public._create_profile(u) from auth.users u
+where not exists (select 1 from public.profiles p where p.id = u.id);
+select public._promote_allowlisted_admin(u) from auth.users u;
 
 select 'SIMATS Anime Club database is ready. Sign in as animeclubsimats@gmail.com to become admin.' as result;

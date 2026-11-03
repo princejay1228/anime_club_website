@@ -464,3 +464,24 @@ test('only the intended functions are callable from the website', async () => {
   }
   await rejects(rpc(ALICE, '_log', ['fake', 'member', 'x', null, '{}']), /permission denied/);
 });
+
+test('club account becomes admin even when Google verification lands a moment after sign-up', async () => {
+  await db.query(`delete from auth.users where email in ('animeclubsimats@gmail.com')`);
+  const { rows } = await db.query(`insert into auth.users (email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data)
+    values ('animeclubsimats@gmail.com', null, '{"provider":"google","providers":["google"]}', '{"full_name":"SIMATS Anime Club"}') returning id`);
+  const id = rows[0].id;
+  assert.equal((await profile(id)).is_admin, false, 'not yet verified');
+  await db.query(`update auth.users set email_confirmed_at = now() where id = $1`, [id]);
+  const p = await profile(id);
+  assert.equal(p.is_admin, true);
+  assert.equal(p.membership_status, 'approved');
+  // an account that also has an email/password identity is never promoted
+  await db.query(`update profiles set is_admin=false, membership_status='pending' where id=$1`, [id]);
+  await db.query(`update auth.users set raw_app_meta_data = '{"provider":"google","providers":["google","email"]}' where id = $1`, [id]);
+  assert.equal((await profile(id)).is_admin, false);
+  await db.query(`update auth.users set raw_app_meta_data = '{"provider":"google","providers":["google"]}' where id = $1`, [id]);
+  assert.equal((await profile(id)).is_admin, true);
+  // other accounts are unaffected by updates
+  await db.query(`update auth.users set email_confirmed_at = now() where email = 'alice@example.com'`);
+  assert.equal((await db.query(`select is_admin from profiles where email='alice@example.com'`)).rows[0].is_admin, false);
+});
