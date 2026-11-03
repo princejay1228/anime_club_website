@@ -2,15 +2,35 @@
 -- SIMATS Anime Club — ONE-PASTE DATABASE SETUP
 -- Supabase > SQL Editor > New query > paste ALL of this > Run.
 -- It is the four files in supabase/migrations/ in order, plus a safety
--- check at the top. Run it once. Running it again stops with a message
--- instead of touching your data.
+-- check at the top: it finishes an earlier setup that stopped part-way, and
+-- once everything is installed, running it again stops without touching data.
 -- =====================================================================
 
 do $$
+declare
+  f text;
 begin
-  -- already installed? stop without changing anything
-  if to_regclass('public.event_sync_logs') is not null then
-    raise exception 'The club database is already set up. Nothing was changed.';
+  -- fully installed already (the last migration's function exists)? stop without changing anything
+  if to_regprocedure('public.apply_event_sync(bigint,jsonb)') is not null
+     and to_regprocedure('public.admin_list_log(text,text,integer)') is not null then
+    raise exception 'The club database is already set up and complete. Nothing was changed. Just reload the website.';
+  end if;
+  -- an earlier attempt stopped part-way: the site could not work yet, so clear what it made and start clean
+  if to_regclass('public.admin_allowlist') is not null or to_regclass('public.event_sync_logs') is not null
+     or to_regclass('public.club_settings') is not null then
+    drop trigger if exists on_auth_user_created on auth.users;
+    drop table if exists public.event_sync_logs, public.moderation_log, public.comments, public.votes, public.poll_options,
+      public.polls, public.events, public.profiles, public.club_settings, public.admin_allowlist cascade;
+    foreach f in array array['_log','_require_admin','_require_member','_clean_text','_poll_phase','_check_comment_body',
+      '_create_profile','touch_updated_at','is_admin','is_approved_member','handle_new_user','submit_membership','get_polls',
+      'cast_vote','list_event_comments','event_comment_counts','post_comment','edit_my_comment','delete_my_comment',
+      'admin_overview','admin_review_member','admin_bulk_approve','admin_suspend_member','admin_restore_member','admin_set_admin',
+      'admin_save_poll','admin_set_poll_status','admin_delete_poll','admin_list_comments','admin_moderate_comment',
+      'admin_set_comment_premoderation','admin_save_event','admin_delete_event','admin_release_event_override',
+      'admin_list_log','apply_event_sync'] loop
+      execute format('drop function if exists public.%I cascade', f);
+    end loop;
+    raise notice 'Cleared an unfinished earlier setup; installing fresh.';
   end if;
   -- remove the early draft tables from chat, if they were created (they only held test data)
   if to_regclass('public.poll_votes') is not null
