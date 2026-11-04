@@ -31,7 +31,7 @@ Open **index.html** in any modern browser. No build step, server or internet con
 
 - `index.html` — all markup, CSS and JavaScript (Canvas 2D tree, petals, mask and eye glow; SVG logo).
 - `assets/oni-mask.js` — the oni as a vector path. It's drawn on canvas each frame, so it stays sharp at any zoom.
-- `assets/oni-gold-v3.svg` / `assets/oni-gold-v3.png` — the same mask as a standalone SVG and a 1872×2756 transparent PNG.
+- `assets/oni-gold-v3.svg` / `assets/oni-gold-v3.webp` — the same mask as a standalone SVG and a 1872×2756 transparent PNG.
 - `assets/fonts/` — Dela Gothic One (logo subset) and Manrope, both under the SIL Open Font License.
 
 ## Team photos and narrator
@@ -54,7 +54,7 @@ The Join buttons and the footer link go to the club's WhatsApp community (`CLUB_
 
 ## Site extras
 
-- **Icons:** the browser-tab icon (`favicon.ico`, `assets/favicon-32.png`) is the logo's crossed swords with a gold "S", which stays readable when tiny. The phone home-screen and app icons (`apple-touch-icon.png`, `assets/icon-192.png`, `assets/icon-512.png`, used by `site.webmanifest`) show the whole SIMATS ANIME CLUB logo. The returning-visitor welcome card still shows Benio's face (`assets/benio-face-192.png`).
+- **Icons:** the browser-tab icon (`favicon.ico`, `assets/favicon-32.png`) is the logo's crossed swords with a gold "S", which stays readable when tiny. The phone home-screen and app icons (`apple-touch-icon.png`, `assets/icon-192.png`, `assets/icon-512.png`, used by `site.webmanifest`) show the whole SIMATS ANIME CLUB logo. The returning-visitor welcome card still shows Benio's face (`assets/benio-face-192.webp`).
 - **Returning visitors:** after someone has watched up to the logo once, their next visit shows a small "Okaeri! Welcome back" card with *Replay intro* or *Skip to crew*. The flag lives in their browser (`simats_seen_intro`).
 - **What We Do:** four tiles (Screenings, Cosplay, Art Jams, Quizzes & Fests) with hand-drawn gold icons.
 - **Weekly meet calendar:** a cute month calendar marks every Tuesday as a club meet (`MEET`), greys out Tuesdays that are Tamil Nadu government holidays (`TN_HOLIDAYS`), and shows the next meet with *Join on WhatsApp*, a repeating *Google Cal* event and an *.ics* that skips holiday Tuesdays. Fill `MEET.time`, `MEET.end` and `MEET.venue` once fixed. The 2026 holidays come from the Tamil Nadu government list; for 2027 only fixed-date holidays are in, so add the rest when the 2027 G.O. is published.
@@ -67,8 +67,8 @@ The Join buttons and the footer link go to the club's WhatsApp community (`CLUB_
 
 Benio is animated with her **V4 kit**: every blink, mouth shape and expression is a complete, pre-rendered 561×701 picture of her, and the page only swaps one `<img>`'s `src` between them. Nothing is drawn over her face (no CSS, SVG or canvas eyelids or mouths) and no eye or mouth piece is positioned separately, so her chibi proportions, kimono, gold ornaments and tail never change.
 
-- `assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00…08_561x701.png`: the 9-frame blink, played at the kit's exact timings (0, 48, 82, 108, 137, 203, 235, 276, 330 ms). Frame 00 is her original face.
-- `assets/benio-v4/09_WORKING_WEBSITE_DEMO/talk_open__*.png` / `talk_closed__*.png`: talking, eyes open or closed (9 mouth shapes each); `emotion_*.png`: the 6 expression presets from the kit's demo.
+- `assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00…08_561x701.webp`: the 9-frame blink, played at the kit's exact timings (0, 48, 82, 108, 137, 203, 235, 276, 330 ms). Frame 00 is her original face.
+- `assets/benio-v4/09_WORKING_WEBSITE_DEMO/talk_open__*.webp` / `talk_closed__*.webp`: talking, eyes open or closed (9 mouth shapes each); `emotion_*.webp`: the 6 expression presets from the kit's demo.
 - `assets/benio-v4/benio-v4.js`: the component, adapted from the kit's `benio-v4.js` and demo. `blink()`, `autoBlink()` (every 3–6 s), `speak(text)` (a mouth picture every ~130 ms), `talk(on)`, `expression(name, seconds)`. A whole-picture bounce is the only extra motion.
 - The image files are byte-for-byte copies from the kit with the same folder and file names. Known kit limitation (from its own QA notes): around the closed eyes the skin is a slightly flatter patch than the original painting. Waving, walking or other new poses would need new artwork.
 

@@ -3,8 +3,8 @@
   'use strict';
   const C = window.Club;
   const { h, $, toast, busy, ask, rpc, state } = C;
-  const BENIO = 'assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00_561x701.png';
-  const BENIO_HAPPY = 'assets/benio-v4/09_WORKING_WEBSITE_DEMO/emotion_happy_eyes_closed.png';
+  const BENIO = 'assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00_561x701.webp';
+  const BENIO_HAPPY = 'assets/benio-v4/09_WORKING_WEBSITE_DEMO/emotion_happy_eyes_closed.webp';
   const YEARS = ['1st year', '2nd year', '3rd year', '4th year', '5th year', 'PG / Masters', 'PhD', 'Faculty / Staff', 'Alumni'];
   const status = () => state.profile?.membership_status || (state.user ? 'unknown' : 'signed_out');
   const isMember = () => status() === 'approved';
