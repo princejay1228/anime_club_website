@@ -5,7 +5,8 @@
   const C = window.Club;
   const { h, $, $$, toast, busy, ask, rpc, state } = C;
   const view = $('#view');
-  const TABS = ['overview', 'approvals', 'members', 'polls', 'comments', 'events', 'log'];
+  const TABS = ['overview', 'approvals', 'members', 'polls', 'comments', 'events', 'notices', 'log'];
+  const OFFICES = C.OFFICES;
   let tab = 'overview';
   let started = false;
 
@@ -136,6 +137,7 @@
 
   // ======================= MEMBERS =======================
   let memberFilter = { q: '', s: 'all' };
+  let officeHolders = {};                 // office -> profile holding it
   async function renderMembers() {
     loading();
     let all;
@@ -143,26 +145,27 @@
       const { data, error } = await C.sb.from('profiles').select('*').order('created_at', { ascending: false }).limit(2000);
       if (error) throw new Error(C.friendly(error));
       all = data;
+      officeHolders = Object.fromEntries(all.filter((p) => p.office).map((p) => [p.office, p]));
     } catch (e) { return failed(e, renderMembers); }
 
     const listBox = h('div', { class: 'list' });
     const q = h('input', { class: 'input', type: 'search', placeholder: 'Search name or email', value: memberFilter.q, 'aria-label': 'Search members' });
     const s = h('select', { class: 'input', 'aria-label': 'Filter by status' },
-      [['all', 'Everyone'], ['approved', 'Members'], ['admins', 'Admins'], ['awaiting_approval', 'Waiting'], ['suspended', 'Suspended'], ['rejected', 'Rejected'], ['pending', 'No name yet']]
+      [['all', 'Everyone'], ['approved', 'Members'], ['bearers', 'Office bearers'], ['admins', 'Admins'], ['awaiting_approval', 'Waiting'], ['suspended', 'Suspended'], ['rejected', 'Rejected'], ['pending', 'No name yet']]
         .map(([v, t]) => h('option', { value: v, text: t })));
     s.value = memberFilter.s;
     const countEl = h('span', { class: 'hint' });
 
     const draw = () => {
       memberFilter = { q: q.value.trim().toLowerCase(), s: s.value };
-      const list = all.filter((p) => (memberFilter.s === 'all' || (memberFilter.s === 'admins' ? p.is_admin : p.membership_status === memberFilter.s))
+      const list = all.filter((p) => (memberFilter.s === 'all' || (memberFilter.s === 'admins' ? p.is_admin : memberFilter.s === 'bearers' ? !!p.office : p.membership_status === memberFilter.s))
         && (!memberFilter.q || `${p.full_name || ''} ${p.google_name || ''} ${p.email}`.toLowerCase().includes(memberFilter.q)));
       countEl.textContent = `${list.length} of ${all.length}`;
       listBox.replaceChildren(...(list.length ? list.slice(0, 300).map(memberRow) : [h('p', { class: 'hint', text: 'Nobody matches.' })]));
     };
     q.addEventListener('input', draw); s.addEventListener('change', draw);
 
-    view.replaceChildren(section('Members', 'Suspend, restore and manage admins. Every change is logged.'),
+    view.replaceChildren(section('Members', 'Suspend, restore, manage admins and give office-bearer titles. Every change is logged.'),
       h('div', { class: 'filters' }, q, s, countEl), h('div', { class: 'card' }, listBox));
     draw();
   }
@@ -207,10 +210,11 @@
       });
       acts.append(r);
     }
+    if (s === 'approved') acts.prepend(officePicker(p, name));
     acts.append(btn('History', () => showHistory('member', p.id, name), 'ghost'));
     return h('div', { class: 'li' }, C.avatar(p.avatar_url, name, 'lg'),
       h('div', { class: 'main' },
-        h('div', { class: 'row' }, h('strong', { text: p.full_name || '(no name yet)' }), statusTag(s), p.is_admin ? h('span', { class: 'tag gold', text: 'ADMIN' }) : null, me ? h('span', { class: 'tag dim', text: 'YOU' }) : null),
+        h('div', { class: 'row' }, h('strong', { text: p.full_name || '(no name yet)' }), statusTag(s), p.office ? h('span', { class: 'tag gold', text: OFFICES[p.office].toUpperCase() }) : null, p.is_admin ? h('span', { class: 'tag gold', text: 'ADMIN' }) : null, me ? h('span', { class: 'tag dim', text: 'YOU' }) : null),
         h('div', { class: 'sub', text: [p.email, p.year_of_study, p.department].filter(Boolean).join(' · ') }),
         h('div', { class: 'sub', text: `Signed in ${C.fmtDate(p.created_at)}${p.reviewed_at ? ' · reviewed ' + C.fmtDate(p.reviewed_at) : ''}${p.google_name && p.google_name !== p.full_name ? ' · Google: ' + p.google_name : ''}` }),
         s === 'suspended' ? h('div', { class: 'note err', style: 'margin-top:8px', text: `Suspended ${C.fmtDateTime(p.suspended_at)} — ${p.suspension_reason}` }) : null,
@@ -436,6 +440,11 @@
         });
         acts.append(rel);
       }
+      if ((e.status === 'scheduled' || e.status === 'postponed') && endOf(e) >= now) {
+        const cx = btn('Cancel meeting', null, 'danger');
+        cx.addEventListener('click', () => cancelMeeting(cx, e));
+        acts.append(cx);
+      }
       const del = btn(e.source === 'drive' ? 'Hide' : 'Delete', null, 'danger');
       del.addEventListener('click', async () => {
         const drive = e.source === 'drive';
@@ -449,7 +458,8 @@
           h('span', { class: 'tag ' + (e.source === 'drive' ? 'gold' : 'dim'), text: e.source === 'drive' ? 'DRIVE' : 'MANUAL' }),
           e.manual_override ? h('span', { class: 'tag warn', text: 'EDITED HERE' }) : null,
           e.status !== 'scheduled' ? h('span', { class: 'tag ' + (e.status === 'hidden' ? 'dim' : 'pink'), text: e.status.toUpperCase() }) : null),
-        h('div', { class: 'sub', text: [when(e.starts_at), e.venue, e.category].filter(Boolean).join(' · ') })), acts);
+        h('div', { class: 'sub', text: [when(e.starts_at), e.venue, e.category].filter(Boolean).join(' · ') }),
+        e.status === 'cancelled' && e.cancel_reason ? h('div', { class: 'note err', style: 'margin-top:8px', text: `Cancelled${e.cancelled_at ? ' ' + C.fmtDateTime(e.cancelled_at) : ''} — ${e.cancel_reason}` }) : null), acts);
     };
 
     view.replaceChildren(
@@ -470,7 +480,9 @@
     const ends = f('input', { type: 'datetime-local' }, C.toLocalInput(e?.ends_at));
     const venue = f('input', { maxlength: 140, placeholder: 'e.g. Block 3, Room 204' }, e?.venue);
     const cat = f('input', { maxlength: 40, placeholder: 'QUIZ, SCREENING, COSPLAY…' }, e?.category);
-    const status = h('select', { class: 'input' }, ['scheduled', 'postponed', 'cancelled', 'completed', 'hidden'].map((s) => h('option', { value: s, text: s[0].toUpperCase() + s.slice(1) })));
+    // cancelling goes through the Cancel meeting button (it needs a reason and tells members)
+    const statuses = ['scheduled', 'postponed', 'completed', 'hidden'].concat(e?.status === 'cancelled' ? ['cancelled'] : []);
+    const status = h('select', { class: 'input' }, statuses.map((s) => h('option', { value: s, text: s[0].toUpperCase() + s.slice(1) })));
     status.value = e?.status || 'scheduled';
     const img = f('input', { type: 'url', maxlength: 1000, placeholder: 'https://…' }, e?.image_url);
     const desc = f('textarea', { maxlength: 2000, rows: 4 }, e?.description);
@@ -500,6 +512,126 @@
     document.body.append(dlg); dlg.showModal(); title.focus();
   }
 
+  // ======================= OFFICE BEARERS =======================
+  function officePicker(p, name) {
+    const sel = h('select', { class: 'input small', 'aria-label': 'Office-bearer title for ' + name, style: 'width:auto;min-width:150px' },
+      h('option', { value: '', text: 'No title' }), Object.entries(OFFICES).map(([v, t]) => h('option', { value: v, text: t })));
+    sel.value = p.office || '';
+    sel.addEventListener('change', async () => {
+      const v = sel.value || null;
+      const holder = v && officeHolders[v] && officeHolders[v].id !== p.id ? officeHolders[v] : null;
+      const ok = await ask(v
+        ? { title: `Make ${name} ${OFFICES[v]}?`, confirm: 'Give title',
+            text: holder ? `${holder.full_name || holder.email} is ${OFFICES[v]} now and will lose the title.` : 'The title shows next to their name in the member lounge and on comments.' }
+        : { title: `Remove ${name}'s title?`, text: `They stop being ${OFFICES[p.office]}.`, confirm: 'Remove', danger: true });
+      if (!ok) { sel.value = p.office || ''; return; }
+      sel.disabled = true;
+      try {
+        await rpc('admin_set_position', { p_user: p.id, p_position: v });
+        toast(v ? `${name} is now ${OFFICES[v]}.` : 'Title removed.', 'ok');
+        render();
+      } catch (e) { toast(e.message, 'err'); sel.value = p.office || ''; sel.disabled = false; }
+    });
+    return sel;
+  }
+
+  // Email a notice to approved members (the notice is already on the site either way).
+  async function emailNotice(id) {
+    try {
+      const r = await C.api('/api/notify-members', { notice_id: id });
+      if (r.sent && !r.failed) toast(`Emailed ${r.sent} member${r.sent === 1 ? '' : 's'}.`, 'ok');
+      else if (r.sent) toast(`Emailed ${r.sent} members; ${r.failed} could not be sent (${r.error || 'Gmail refused'}).`, 'err');
+      else if (r.reason === 'email-not-configured') toast('Posted on the site. Email is not set up yet (GMAIL_APP_PASSWORD in Vercel).', 'err');
+      else if (r.reason === 'no-members') toast('Posted. There are no approved members to email yet.', 'ok');
+      else if (r.reason === 'already-emailed-or-missing') toast('This notice was already emailed.', 'ok');
+      else toast('Posted on the site, but the email failed: ' + (r.error || 'unknown error'), 'err');
+      return r;
+    } catch (e) { toast('Posted on the site, but the email failed: ' + e.message, 'err'); return null; }
+  }
+
+  // ======================= CANCEL A MEETING =======================
+  async function cancelMeeting(button, e) {
+    const reason = await ask({
+      title: `Cancel "${e.title}"?`,
+      text: `${when(e.starts_at)}${e.venue ? ' · ' + e.venue : ''}. It comes off the calendar, members see the reason under the bell, and every member gets an email.`,
+      confirm: 'Cancel meeting', danger: true,
+      input: { label: 'Reason (members will see this)', required: true, min: 5, max: 500, multiline: true,
+        placeholder: 'e.g. Internal exams this week — we meet again next Tuesday', requiredMsg: 'Please say why (at least 5 characters).' } });
+    if (!reason) return;
+    busy(button, async () => {
+      try {
+        const noticeId = await rpc('admin_cancel_event', { p_id: e.id, p_reason: reason });
+        toast('Meeting cancelled.', 'ok');
+        await emailNotice(noticeId);
+        render();
+      } catch (x) { toast(x.message, 'err'); }
+    });
+  }
+
+  // ======================= NOTICES =======================
+  async function renderNotices() {
+    loading();
+    let list;
+    try { list = (await rpc('admin_list_notices', { p_limit: 200 })) || []; } catch (e) { return failed(e, renderNotices); }
+
+    const title = h('input', { class: 'input', maxlength: 120, placeholder: 'e.g. Room change for Tuesday' });
+    const body = h('textarea', { class: 'input', maxlength: 4000, rows: 5, placeholder: 'Write the message for all members…' });
+    const mail = h('input', { type: 'checkbox', checked: true });
+    const err = h('div', { class: 'note err', hidden: true, role: 'alert' });
+    const post = h('button', { class: 'btn primary', type: 'button', text: 'Post notice' });
+    post.addEventListener('click', () => {
+      err.hidden = true;
+      if (title.value.trim().length < 3) { err.textContent = 'Give the notice a title (at least 3 characters).'; err.hidden = false; title.focus(); return; }
+      if (body.value.trim().length < 3) { err.textContent = 'Write the message.'; err.hidden = false; body.focus(); return; }
+      busy(post, async () => {
+        try {
+          const id = await rpc('admin_post_notice', { p_title: title.value, p_body: body.value });
+          toast('Notice posted. Members see it under the bell.', 'ok');
+          if (mail.checked) await emailNotice(id);
+          title.value = ''; body.value = '';
+          renderNotices();
+        } catch (x) { err.textContent = x.message; err.hidden = false; }
+      });
+    });
+
+    const row = (n) => {
+      const acts = h('div', { class: 'row' });
+      if (!n.deleted_at && !n.emailed_at) {
+        const em = btn('Email members');
+        em.addEventListener('click', () => busy(em, async () => { await emailNotice(n.id); renderNotices(); }));
+        acts.append(em);
+      }
+      if (!n.deleted_at) {
+        const del = btn('Delete', null, 'danger');
+        del.addEventListener('click', async () => {
+          const why = await ask({ title: 'Delete this notice?', text: 'Members will no longer see it. Emails already sent cannot be taken back.', confirm: 'Delete', danger: true,
+            input: { label: 'Reason', max: 300 } });
+          if (why !== null) act(del, () => rpc('admin_delete_notice', { p_id: n.id, p_reason: why || null }), 'Notice deleted.');
+        });
+        acts.append(del);
+      }
+      const mailText = n.emailed_at ? (n.email_count != null ? `Emailed to ${n.email_count} member${n.email_count === 1 ? '' : 's'}` : 'Sending email…')
+        : n.email_error ? 'Email failed' : 'Not emailed';
+      return h('div', { class: 'li' }, h('div', { class: 'main' },
+        h('div', { class: 'row' }, h('strong', { text: n.title }),
+          h('span', { class: 'tag ' + (n.kind === 'cancellation' ? 'pink' : 'gold'), text: n.kind === 'cancellation' ? 'CANCELLATION' : 'NOTICE' }),
+          n.deleted_at ? h('span', { class: 'tag dim', text: 'DELETED' }) : null),
+        h('div', { class: 'txt notice-body', text: n.body }),
+        h('div', { class: 'sub', text: `${n.author_name} · ${C.fmtDateTime(n.created_at)} · ${mailText}` }),
+        n.email_error ? h('div', { class: 'sub', style: 'color:#ffc2cc', text: n.email_error }) : null), acts);
+    };
+
+    view.replaceChildren(
+      section('Notices', 'Messages for every approved member. They appear under the bell in the member lounge, newest first, with the date and time.'),
+      h('div', { class: 'card' }, h('h3', { text: 'New notice' }),
+        h('label', { class: 'f' }, h('span', null, 'Title'), title),
+        h('label', { class: 'f' }, h('span', null, 'Message'), body),
+        h('label', { class: 'check', style: 'margin:6px 0 10px' }, mail, h('span', { text: 'Also email every approved member (from the club Gmail)' })),
+        err, h('div', { class: 'row end' }, post)),
+      h('h3', { style: 'margin:26px 0 10px', text: 'All notices' }),
+      list.length ? h('div', { class: 'card' }, h('div', { class: 'list' }, list.map(row))) : empty('No notices yet', 'Post one above. Cancelled meetings show up here too.'));
+  }
+
   // ======================= ACTIVITY LOG =======================
   const ACTION = {
     admin_bootstrapped: 'Admin account set up', member_approved: 'Approved member', member_rejected: 'Rejected request',
@@ -510,8 +642,12 @@
     premoderation_on: 'Turned comment review on', premoderation_off: 'Turned comment review off',
     event_created: 'Added event', event_edited: 'Edited event', event_deleted: 'Deleted event', event_hidden: 'Hid Drive event',
     event_override_released: 'Handed event back to sync', sync_manual_success: 'Ran Drive sync', sync_manual_failed: 'Drive sync failed',
+    event_cancelled: 'Cancelled meeting', event_uncancelled: 'Un-cancelled meeting',
+    position_assigned: 'Gave office-bearer title', position_removed: 'Removed office-bearer title',
+    notice_posted: 'Posted notice', notice_deleted: 'Deleted notice',
   };
-  const describe = (l) => l.target_name || l.details?.question || l.details?.title || (l.details?.body ? `"${l.details.body}"` : '') || l.details?.name || '';
+  const describe = (l) => (l.details?.position && OFFICES[l.details.position] ? `${l.details.name || l.target_name || 'Member'} — ${OFFICES[l.details.position]}` : '')
+    || l.target_name || l.details?.question || l.details?.title || (l.details?.body ? `"${l.details.body}"` : '') || l.details?.name || '';
   const logRow = (l) => h('div', { class: 'li' }, h('div', { class: 'main' },
     h('div', { class: 'row' }, h('strong', { text: ACTION[l.action] || l.action }), h('span', { class: 'tag dim', text: l.target_type.toUpperCase() })),
     describe(l) ? h('div', { class: 'txt', text: describe(l).slice(0, 220) }) : null,
@@ -524,7 +660,7 @@
     let list;
     try { list = await rpc('admin_list_log', { p_target_type: logFilter || null, p_target_id: null, p_limit: 300 }); } catch (e) { return failed(e, renderLog); }
     const sel = h('select', { class: 'input', 'aria-label': 'Filter activity' },
-      [['', 'Everything'], ['member', 'Members'], ['comment', 'Comments'], ['poll', 'Polls'], ['event', 'Events'], ['sync', 'Drive sync'], ['settings', 'Settings']].map(([v, t]) => h('option', { value: v, text: t })));
+      [['', 'Everything'], ['member', 'Members'], ['comment', 'Comments'], ['poll', 'Polls'], ['event', 'Events'], ['notice', 'Notices'], ['sync', 'Drive sync'], ['settings', 'Settings']].map(([v, t]) => h('option', { value: v, text: t })));
     sel.value = logFilter;
     sel.addEventListener('change', () => { logFilter = sel.value; renderLog(); });
     view.replaceChildren(section('Activity log', 'Every admin action, newest first. Entries cannot be edited or deleted from the website.'),
@@ -544,7 +680,7 @@
   }
 
   // ======================= routing & gate =======================
-  const RENDER = { overview: renderOverview, approvals: renderApprovals, members: renderMembers, polls: renderPolls, comments: renderComments, events: renderEvents, log: renderLog };
+  const RENDER = { overview: renderOverview, approvals: renderApprovals, members: renderMembers, polls: renderPolls, comments: renderComments, events: renderEvents, notices: renderNotices, log: renderLog };
   function render() { return RENDER[tab](); }
   function route() {
     const t = location.hash.replace('#', '');

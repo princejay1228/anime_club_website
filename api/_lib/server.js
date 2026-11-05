@@ -56,9 +56,10 @@ export function safeEqual(a, b) {
 // Strip anything that looks like a secret before an error is stored or shown.
 export function redact(msg, env = process.env) {
   let s = String(msg || 'Unknown error').slice(0, 500);
-  for (const k of ['SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_PRIVATE_KEY', 'RESEND_API_KEY', 'CRON_SECRET']) {
+  for (const k of ['SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_PRIVATE_KEY', 'RESEND_API_KEY', 'CRON_SECRET', 'GMAIL_APP_PASSWORD']) {
     const v = env[k];
-    if (v && v.length > 8) s = s.split(v).join('[redacted]');
+    if (!v || v.length <= 8) continue;
+    for (const form of new Set([v, v.replace(/\s+/g, '')])) if (form.length > 8) s = s.split(form).join('[redacted]');
   }
   return s.replace(/-----BEGIN [A-Z ]+-----[\s\S]*?-----END [A-Z ]+-----/g, '[redacted key]')
           .replace(/\bsb_secret_[\w-]+/g, '[redacted key]')

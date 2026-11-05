@@ -90,6 +90,16 @@ Create a free Resend account **with animeclubsimats@gmail.com** and set `RESEND_
 2. Sign in on the preview with **animeclubsimats@gmail.com** first: that account becomes admin.
 3. Walk through the checklist below. When happy, merge to `main` for production.
 
+## Update: office bearers, notices and meeting cancellation (5 Nov 2026)
+
+**Live database:** Supabase > SQL Editor > New query > paste all of **`supabase/update_2026_11_05_notices.sql`** > Run. It is safe to run more than once and deletes nothing. (New databases get it from `setup_all.sql`.)
+
+**Emails:** set `GMAIL_APP_PASSWORD` (Secret) in Vercel to an App password of animeclubsimats@gmail.com (Google Account > Security > 2-Step Verification on > App passwords). Optional `GMAIL_USER` if you send from another Gmail. Gmail allows about 500 emails a day from a normal account; members are BCC'd in groups of 90, and each notice is emailed at most once. Without the password, notices still appear under the bell.
+
+- **Office bearers:** Admin > Members > title menu on an approved member (President, Vice President, Secretary, Treasurer; one person each, giving it to someone else takes it from the current holder). Titles show on the member's card, next to their comments and in the "Office bearers" strip of the lounge.
+- **Notices:** Admin > Notices: title + message, optionally emailed to every approved member. Members see them under the bell (lounge, admin header and next to My Lounge on the home page) with date and time; new ones are highlighted and counted until opened. Admins can delete a notice (it stays in the admin history).
+- **Cancel a meeting:** Admin > Events > Cancel meeting. A reason is required. The meeting leaves the upcoming calendar (home page and lounge), shows under Recent with the reason, a cancellation notice is posted and emailed, and the weekly Drive sync will not bring it back. The edit form can no longer set "Cancelled" without a reason; setting a cancelled event back to Scheduled clears the reason.
+
 ## Admin quick guide
 - **Approvals**: approve or reject each request (or tick several and "Approve selected"). Rejected members see your note and can re-apply.
 - **Members**: suspend (reason required, the member sees it), restore, make admin, view history.

@@ -3,13 +3,16 @@
   "private": true,
   "type": "module",
   "description": "SIMATS Anime Club website: static pages plus Vercel functions for event sync and admin notifications.",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "test:db": "node --test supabase/tests/*.test.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.0"
+    "@supabase/supabase-js": "^2.45.0",
+    "nodemailer": "10.2.1"
   },
   "devDependencies": {
     "pg": "^8.12.0"

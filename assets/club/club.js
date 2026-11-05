@@ -40,6 +40,7 @@
 
   // ---------- time (always India time) ----------
   const fmt = (d, opts) => new Date(d).toLocaleString('en-IN', { timeZone: TZ, ...opts });
+  const OFFICES = { president: 'President', vice_president: 'Vice President', secretary: 'Secretary', treasurer: 'Treasurer' };
   const fmtDateTime = (d) => fmt(d, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
   const fmtDate = (d) => fmt(d, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   const fmtTime = (d) => fmt(d, { hour: 'numeric', minute: '2-digit' });
@@ -241,6 +242,10 @@
       if (!state.user) { slot.append(googleButton('Sign in')); return; }
       const p = state.profile || {};
       const name = p.full_name || p.google_name || state.user.email;
+      if (canSeeNotices()) {
+        slot.append(bell.el || buildBell());
+        if (bell.forUser !== state.user.id) { bell.forUser = state.user.id; refreshBell(); }
+      }
       const wrap = h('div', { class: 'acct' });
       const menu = h('div', { class: 'acct-menu', role: 'menu' },
         h('div', { class: 'who' }, name, h('small', { text: state.user.email })),
@@ -258,6 +263,66 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.acct.open').forEach((a) => a.classList.remove('open')); });
     listeners.add(render);
     render();
+    every(120000, refreshBell);           // pick up new notices while the page is open
+  }
+
+  // ---------- notices bell (approved members) ----------
+  const bell = { el: null, badge: null, btn: null, list: null, forUser: null };
+  const BELL_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6v-5a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>';
+  const canSeeNotices = () => !!(state.user && state.profile?.membership_status === 'approved');
+  function buildBell() {
+    const badge = h('span', { class: 'bell-badge', hidden: true });
+    const btn = h('button', { class: 'bell-btn', type: 'button', 'aria-label': 'Notices', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' });
+    btn.innerHTML = BELL_SVG;                // fixed icon markup, no user data
+    btn.append(badge);
+    const list = h('div', { class: 'bell-list' });
+    const panel = h('div', { class: 'bell-panel', role: 'dialog', 'aria-label': 'Club notices' },
+      h('div', { class: 'bell-head' }, h('strong', { text: 'NOTICES' }), h('span', { text: 'From the club admins' })), list);
+    const wrap = h('div', { class: 'bell' }, btn, panel);
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleBell(); });
+    panel.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', () => toggleBell(false));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleBell(false); });
+    Object.assign(bell, { el: wrap, badge, btn, list });
+    return wrap;
+  }
+  function setUnread(n) {
+    if (!bell.badge) return;
+    bell.badge.hidden = !n;
+    bell.badge.textContent = n > 9 ? '9+' : String(n || '');
+    bell.btn.setAttribute('aria-label', n ? `Notices, ${n} new` : 'Notices');
+  }
+  async function refreshBell() {
+    if (!canSeeNotices() || !bell.el) return;
+    try { setUnread((await rpc('notice_unread_count')) || 0); } catch { /* keep the last count */ }
+  }
+  async function toggleBell(force) {
+    if (!bell.el) return;
+    const open = force ?? !bell.el.classList.contains('open');
+    if (force !== undefined && open === bell.el.classList.contains('open')) return;   // already in that state
+    bell.el.classList.toggle('open', open);
+    bell.btn.setAttribute('aria-expanded', String(open));
+    if (!open) return;
+    bell.list.replaceChildren(h('div', { class: 'bell-empty', text: 'Loading notices…' }));
+    try {
+      const items = (await rpc('list_notices', { p_limit: 50 })) || [];
+      bell.list.replaceChildren(...(items.length ? items.map(noticeItem)
+        : [h('div', { class: 'bell-empty', text: 'No notices yet. Club announcements and cancelled meetings show up here.' })]));
+      setUnread(0);
+      if (items.some((n) => n.is_new)) rpc('mark_notices_seen').catch(() => {});
+    } catch (e) { bell.list.replaceChildren(h('div', { class: 'bell-empty', text: e.message })); }
+  }
+  function noticeItem(n) {
+    const cancelled = n.kind === 'cancellation';
+    const by = n.author_name + (n.author_position && OFFICES[n.author_position] ? ', ' + OFFICES[n.author_position] : '');
+    return h('article', { class: 'bell-item' + (n.is_new ? ' new' : '') + (cancelled ? ' cancel' : '') },
+      h('div', { class: 'bell-meta' },
+        h('span', { class: 'bell-tag', text: cancelled ? 'MEETING CANCELLED' : 'NOTICE' }),
+        n.is_new ? h('span', { class: 'bell-new', text: 'NEW' }) : null,
+        h('time', { datetime: n.created_at, text: fmtDateTime(n.created_at) })),
+      h('h4', { text: n.title }),
+      h('p', { text: n.body }),
+      h('div', { class: 'bell-by', text: '— ' + by }));
   }
 
   // Run fn while the tab is visible, every ms.
@@ -274,5 +339,6 @@
     on: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
     h, $, $$, toast, ask, busy, friendly, avatar, googleButton, mountAccount, every,
     fmt, fmtDate, fmtDateTime, fmtTime, ago, isMidnightIst, toLocalInput, fromLocalInput, TZ,
+    OFFICES, openNotices: () => toggleBell(true), refreshBell,
   };
 })();

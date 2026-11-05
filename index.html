@@ -279,6 +279,12 @@
     .hub-chip { position:fixed; z-index:53; right:clamp(12px,3vw,40px); top:25px; height:36px; display:flex; align-items:center; gap:8px; padding:0 14px 0 4px; opacity:0; pointer-events:none; transition:opacity .2s;
       border:1px solid rgba(230,192,111,.7); background:rgba(10,4,4,.75); color:#f6dca0; text-decoration:none; font-size:10px; font-weight:800; letter-spacing:.22em; }
     .hub-chip.on { opacity:1; pointer-events:auto; }
+    .hub-bell { position:fixed; z-index:53; top:25px; width:36px; height:36px; display:grid; place-items:center; opacity:0; pointer-events:none; transition:opacity .2s;
+      border:1px solid rgba(230,192,111,.7); background:rgba(10,4,4,.75); color:#f6dca0; text-decoration:none; }
+    .hub-bell.on { opacity:1; pointer-events:auto; }
+    .hub-bell:hover, .hub-bell:focus-visible { background:rgba(144,0,24,.85); box-shadow:0 0 20px rgba(220,6,40,.4); outline:none; }
+    .hub-bell .hb-n { position:absolute; top:-7px; right:-7px; min-width:18px; height:18px; padding:0 4px; border-radius:9px; background:#e0123a; color:#fff;
+      font:800 10px/18px Manrope,sans-serif; text-align:center; box-shadow:0 0 10px rgba(224,18,58,.6); }
     .hub-chip:hover, .hub-chip:focus-visible { background:rgba(144,0,24,.85); box-shadow:0 0 20px rgba(220,6,40,.4); outline:none; }
     .hub-chip .hc-av { width:28px; height:28px; border-radius:50%; object-fit:cover; display:grid; place-items:center; background:#2a0a12; font-family:"Dela Gothic One",Manrope,sans-serif; font-size:11px; letter-spacing:0; color:#f6dca0; }
     @media (max-width:760px) { .hub-chip { padding:0 4px; } .hub-chip .hc-t { display:none; } }
@@ -683,6 +689,7 @@
   <div class="fixed-logo" id="fixedLogo" role="img" aria-label="SIMATS Anime Club"></div>
   <div class="fixed-topbar" id="fixedTopbar" aria-hidden="true"></div>
   <a class="eng-logo" id="engLogo" href="https://simatsengineering.com" target="_blank" rel="noopener" aria-label="SIMATS Engineering website"><img src="assets/logos/simats-engineering.webp" alt="SIMATS Engineering" /></a>
+  <a class="hub-bell" id="hubBell" href="/members#notices" aria-label="Notices" hidden><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6v-5a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg><span class="hb-n" hidden></span></a>
   <a class="hub-chip" id="hubChip" href="/members" aria-label="Member lounge: polls, events and comments"><span class="hc-av" aria-hidden="true">★</span><span class="hc-t">MEMBER LOUNGE</span></a>
   <canvas id="sakuraBurst" aria-hidden="true" hidden></canvas>
   <div class="welcome" id="welcome" role="dialog" aria-label="Welcome back">
@@ -780,6 +787,20 @@
     const pic=m.avatar_url||m.picture;
     if(pic&&/^https:\/\//.test(pic)){ const i=document.createElement('img'); i.className='hc-av'; i.alt=''; i.referrerPolicy='no-referrer'; i.src=pic; i.onerror=()=>i.replaceWith(av); av.replaceWith(i); }
     else av.textContent=((m.full_name||u.email||'?').trim()[0]||'?').toUpperCase();
+    // Bell: only for approved members whose sign-in is still valid; the database answers 0 for anyone else.
+    const tok=JSON.parse(raw)||{};
+    if(tok.access_token&&c.supabaseKey&&(!tok.expires_at||tok.expires_at*1000>Date.now()+30000)){
+      const call=(fn)=>fetch(c.supabaseUrl+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:c.supabaseKey,authorization:'Bearer '+tok.access_token,'content-type':'application/json'},body:'{}'})
+        .then((r)=>r.ok?r.json():Promise.reject(r.status));
+      Promise.all([call('is_approved_member'),call('notice_unread_count')]).then(([ok,n])=>{
+        if(ok!==true) return;
+        const b=document.getElementById('hubBell'); b.hidden=false;
+        const place=()=>{ const r=chip.getBoundingClientRect(); b.style.right=(document.documentElement.clientWidth-r.left+8)+'px'; b.style.top=getComputedStyle(chip).top; };
+        place(); addEventListener('resize',place);
+        if(n>0){ const s=b.querySelector('.hb-n'); s.hidden=false; s.textContent=n>9?'9+':String(n); b.setAttribute('aria-label','Notices, '+n+' new'); }
+        b.classList.toggle('on',chip.classList.contains('on'));
+      }).catch(()=>{});
+    }
   }catch(e){} })();
 </script>
 <script src="assets/oni-mask.js"></script>
@@ -1214,7 +1235,7 @@
     const r=logoSvg.getBoundingClientRect(), st=stage.getBoundingClientRect();
     logoBox={cy:r.top-st.top+r.height/2, h:r.height};
     { const hs=headerH*.86/r.height, w=r.width*hs, h=r.height*hs, cx=r.left-st.left+r.width/2, fl=$('#fixedLogo');   // the header position (same maths as renderTeam)
-      Object.assign(fl.style,{left:(cx-w/2)+'px',top:(headerH/2+6-h/2)+'px',width:w+'px',height:h+'px'}); $('#fixedTopbar').style.height=(headerH+8)+'px'; const hc=$('#hubChip'); if(hc) hc.style.top=Math.max(6,headerH/2+6-18)+'px'; const eg=$('#engLogo'); if(eg) eg.style.top=Math.max(6,headerH/2+6-18)+'px'; }
+      Object.assign(fl.style,{left:(cx-w/2)+'px',top:(headerH/2+6-h/2)+'px',width:w+'px',height:h+'px'}); $('#fixedTopbar').style.height=(headerH+8)+'px'; const hc=$('#hubChip'); if(hc) hc.style.top=Math.max(6,headerH/2+6-18)+'px'; const eg=$('#engLogo'); if(eg) eg.style.top=Math.max(6,headerH/2+6-18)+'px'; const hb=$('#hubBell'); if(hb) hb.style.top=Math.max(6,headerH/2+6-18)+'px'; }
     lastTeamKey='';
   }
 
@@ -1605,7 +1626,7 @@
     fin('path[pathLength="1"]',el=>el.setAttribute('stroke-dashoffset','0'));                  // slash line drawn,
     fixedLogo.appendChild(c); }
   function updateFixedLogo(){ const on=stage.getBoundingClientRect().top<-.5;   // the sticky stage has started to scroll away
-    if(on!==fixedLogo.classList.contains('on')){ fixedLogo.classList.toggle('on',on); fixedTopbar.classList.toggle('on',on); $('#hubChip')?.classList.toggle('on',on); $('#engLogo')?.classList.toggle('on',on); } }
+    if(on!==fixedLogo.classList.contains('on')){ fixedLogo.classList.toggle('on',on); fixedTopbar.classList.toggle('on',on); $('#hubChip')?.classList.toggle('on',on); $('#engLogo')?.classList.toggle('on',on); const hb=$('#hubBell'); if(hb&&!hb.hidden) hb.classList.toggle('on',on); } }
   addEventListener('scroll',updateFixedLogo,{passive:true}); addEventListener('resize',updateFixedLogo,{passive:true});
 
   settledY=window.scrollY; updateTouchMode(); updateFixedLogo(); addEventListener('resize',updateTouchMode,{passive:true});

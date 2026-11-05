@@ -87,6 +87,7 @@ Object.assign(process.env, {
 });
 const sync = (await import(path.join(ROOT, 'api/sync-events.js'))).default;
 const notify = (await import(path.join(ROOT, 'api/notify-admin.js'))).default;
+const notifyMembers = (await import(path.join(ROOT, 'api/notify-members.js'))).default;
 
 // ---------- HTTP ----------
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp',
@@ -114,7 +115,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith('/auth/v1/')) { res.writeHead(204); return res.end(); }
     if (url.pathname.startsWith('/api/')) {
       req.body = body.length ? JSON.parse(body) : {};
-      return (url.pathname === '/api/sync-events' ? sync : notify)(req, res);
+      return (url.pathname === '/api/sync-events' ? sync : url.pathname === '/api/notify-members' ? notifyMembers : notify)(req, res);
     }
     if (url.pathname === '/assets/club/config.js') {
       res.writeHead(200, { 'content-type': 'text/javascript' });

@@ -452,12 +452,117 @@ test('poll deletion is logged with its results', async () => {
   assert.equal(entry.details.results['Anime quiz night'], 2);
 });
 
+// ---------- office bearers, notices, meeting cancellation ----------
+async function approvedMember(email, name) {
+  const id = await newUser(email, { name });
+  await rpc(id, 'submit_membership', [name, null, null]);
+  await rpc(ADMIN, 'admin_review_member', [id, true, null]);
+  return id;
+}
+let PRES1, PRES2, PENDING;
+
+test('admins assign office-bearer titles; one holder per title; members cannot', async () => {
+  PRES1 = await approvedMember('pres1@example.com', 'Priya Raman');
+  PRES2 = await approvedMember('pres2@example.com', 'Rahul Dev');
+  PENDING = await newUser('pending2@example.com');
+  await rejects(rpc(PRES1, 'admin_set_position', [PRES1, 'president']), /Only club admins/);
+  await rejects(rpc(ADMIN, 'admin_set_position', [PRES1, 'emperor']), /Unknown office-bearer title/);
+  await rejects(rpc(ADMIN, 'admin_set_position', [PENDING, 'treasurer']), /Only approved members/);
+  await rpc(ADMIN, 'admin_set_position', [PRES1, 'president']);
+  assert.equal((await profile(PRES1)).office, 'president');
+  // giving the title to someone else takes it from the current holder
+  await rpc(ADMIN, 'admin_set_position', [PRES2, 'president']);
+  assert.equal((await profile(PRES1)).office, null);
+  assert.equal((await profile(PRES2)).office, 'president');
+  await rpc(ADMIN, 'admin_set_position', [PRES1, 'treasurer']);
+  // a member cannot set their own title directly either
+  await rejects(one(PRES1, `update profiles set office='secretary' where id=$1`, [PRES1]), /permission denied/);
+  // everyone can see the office bearers: names and titles only
+  const list = await rpc(null, 'list_office_bearers');
+  assert.deepEqual(list.map((r) => [r.office, r.full_name]), [['president', 'Rahul Dev'], ['treasurer', 'Priya Raman']]);
+  assert.ok(!('email' in list[0]));
+  const log = await db.query(`select action from moderation_log where target_id=$1 order by id`, [PRES1]);
+  assert.deepEqual(log.rows.map((r) => r.action).filter((a) => a.startsWith('position')), ['position_assigned', 'position_removed', 'position_assigned']);
+  // comment authors carry their title
+  const [{ admin_save_event: ev }] = await rpc(ADMIN, 'admin_save_event', [null, 'Title test', new Date(Date.now() + 5 * 86400e3), null, null, null, null, null, 'scheduled']);
+  await rpc(ADMIN, 'admin_set_comment_premoderation', [false]);
+  await rpc(PRES2, 'post_comment', [ev, 'Hello from the president']);
+  const comments = await rpc(null, 'list_event_comments', [ev]);
+  assert.equal(comments.find((c) => c.author_name === 'Rahul Dev')?.author_position, 'president');
+});
+
+test('notices: admins post, approved members read, the bell counts unread', async () => {
+  await rejects(rpc(PRES1, 'admin_post_notice', ['Hello all', 'Meeting moved']), /Only club admins/);
+  await rejects(rpc(ADMIN, 'admin_post_notice', ['Hi', 'Body text']), /title/);
+  await rejects(rpc(ADMIN, 'admin_post_notice', ['Room change', '  ']), /message/);
+  const [{ admin_post_notice: n1 }] = await rpc(ADMIN, 'admin_post_notice', ['Room change', 'Tuesday meet is in Block B, room 204.']);
+  assert.ok(n1);
+  const [{ notice_unread_count: c1 }] = await rpc(PRES1, 'notice_unread_count');
+  assert.equal(c1, 1);
+  const list = await rpc(PRES1, 'list_notices', [50]);
+  assert.equal(list[0].title, 'Room change');
+  assert.equal(list[0].is_new, true);
+  assert.equal(list[0].author_name, 'Club Admin');
+  await rpc(PRES1, 'mark_notices_seen');
+  assert.equal((await rpc(PRES1, 'notice_unread_count'))[0].notice_unread_count, 0);
+  assert.equal((await rpc(PRES1, 'list_notices', [50]))[0].is_new, false);
+  // not for pending members or visitors, and nobody writes notices directly
+  await rejects(rpc(PENDING, 'list_notices', [50]), /tell us your name/);
+  assert.equal((await rpc(PENDING, 'notice_unread_count'))[0].notice_unread_count, 0);
+  await rejects(rpc(null, 'notice_unread_count'), /permission denied/);
+  await rejects(rpc(null, 'list_notices', [50]), /permission denied/);
+  assert.equal((await one(PRES1, `select * from notices`)).length, 0, 'members read notices only through list_notices');
+  await rejects(one(PRES1, `insert into notices (title, body) values ('Fake', 'Fake notice')`), /permission denied/);
+  // admins delete; the notice disappears for members but stays in the admin history
+  await rpc(ADMIN, 'admin_delete_notice', [n1, 'Posted by mistake']);
+  assert.equal((await rpc(PRES1, 'list_notices', [50])).length, 0);
+  const hist = await rpc(ADMIN, 'admin_list_notices', [100]);
+  assert.ok(hist.find((n) => String(n.id) === String(n1))?.deleted_at);
+});
+
+test('cancelling a meeting needs a reason, posts a notice and survives the Drive sync', async () => {
+  const start = new Date(Date.now() + 3 * 86400e3);
+  const [{ admin_save_event: ev }] = await rpc(ADMIN, 'admin_save_event', [null, 'Tuesday meet', start, null, 'Room 204', null, null, null, 'scheduled']);
+  await rejects(rpc(PRES1, 'admin_cancel_event', [ev, 'Exams this week']), /Only club admins/);
+  await rejects(rpc(ADMIN, 'admin_cancel_event', [ev, '']), /why/);
+  await rejects(rpc(ADMIN, 'admin_cancel_event', [ev, 'no']), /why/);
+  // the edit form cannot cancel without a reason
+  await rejects(rpc(ADMIN, 'admin_save_event', [ev, 'Tuesday meet', start, null, 'Room 204', null, null, null, 'cancelled']), /Cancel meeting button/);
+  const [{ admin_cancel_event: nid }] = await rpc(ADMIN, 'admin_cancel_event', [ev, 'Internal exams this week']);
+  const e = (await db.query('select * from events where id=$1', [ev])).rows[0];
+  assert.equal(e.status, 'cancelled');
+  assert.equal(e.cancel_reason, 'Internal exams this week');
+  await rejects(rpc(ADMIN, 'admin_cancel_event', [ev, 'Internal exams this week']), /already cancelled/);
+  const [n] = (await rpc(PRES1, 'list_notices', [50])).filter((x) => String(x.id) === String(nid));
+  assert.equal(n.kind, 'cancellation');
+  assert.match(n.title, /^Cancelled: Tuesday meet/);
+  assert.match(n.body, /Room 204/);
+  assert.match(n.body, /Reason: Internal exams this week/);
+  // visitors still see the event (so the page can show it as cancelled) with its reason
+  const pub = await one(null, `select status, cancel_reason from events where id=$1`, [ev]);
+  assert.deepEqual(pub[0], { status: 'cancelled', cancel_reason: 'Internal exams this week' });
+  const log = await db.query(`select reason from moderation_log where action='event_cancelled' and target_id=$1`, [ev]);
+  assert.equal(log.rows[0].reason, 'Internal exams this week');
+  // un-cancelling through the edit form clears the reason
+  await rpc(ADMIN, 'admin_save_event', [ev, 'Tuesday meet', start, null, 'Room 204', null, null, null, 'scheduled']);
+  const back = (await db.query('select status, cancel_reason, cancelled_at from events where id=$1', [ev])).rows[0];
+  assert.deepEqual(back, { status: 'scheduled', cancel_reason: null, cancelled_at: null });
+
+  // a Drive event cancelled here is not brought back by the weekly sync
+  await sync([row('tue-1', 'Drive Tuesday meet')]);
+  const drive = (await db.query(`select id from events where external_id='tue-1'`)).rows[0].id;
+  await rpc(ADMIN, 'admin_cancel_event', [drive, 'Venue not available']);
+  await sync([row('tue-1', 'Drive Tuesday meet (edited)')]);
+  const after = (await db.query(`select status, cancel_reason, title from events where id=$1`, [drive])).rows[0];
+  assert.deepEqual(after, { status: 'cancelled', cancel_reason: 'Venue not available', title: 'Drive Tuesday meet' });
+});
+
 test('only the intended functions are callable from the website', async () => {
   const q = (role) => db.query(`
     select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and has_function_privilege($1, p.oid, 'execute') order by 1`, [role]);
   const anon = (await q('anon')).rows.map((r) => r.proname);
-  assert.deepEqual(anon, ['event_comment_counts', 'get_polls', 'is_admin', 'is_approved_member', 'list_event_comments']);
+  assert.deepEqual(anon, ['event_comment_counts', 'get_polls', 'is_admin', 'is_approved_member', 'list_event_comments', 'list_office_bearers']);
   const authed = (await q('authenticated')).rows.map((r) => r.proname);
   for (const internal of ['_log', '_require_admin', '_require_member', 'handle_new_user', 'apply_event_sync', 'touch_updated_at']) {
     assert.ok(!authed.includes(internal), internal + ' must not be callable');

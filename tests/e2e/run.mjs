@@ -258,6 +258,88 @@ await step('activity log records every admin action', async () => {
   await shot(adminPage, '13-admin-log');
 });
 
+await step('office bearers, notices under the bell, and cancelling a meeting with a reason', async () => {
+  // admin gives Alice a title
+  await adminPage.goto(BASE + '/admin#members');
+  await waitText(adminPage, '#view', /Alice Kumar/);
+  await adminPage.evaluate(() => {
+    const row = [...document.querySelectorAll('#view .li')].find((r) => r.innerText.includes('Alice Kumar'));
+    const sel = row.querySelector('select'); sel.value = 'secretary'; sel.dispatchEvent(new Event('change'));
+  });
+  await dialogOk(adminPage);
+  await adminPage.waitForFunction(() => [...document.querySelectorAll('#view .li')].some((r) => r.innerText.includes('Alice Kumar') && /SECRETARY/.test(r.innerText)), { timeout: 8000 });
+
+  // admin posts a notice (email is not set up in this test, so it is only posted on the site)
+  await adminPage.goto(BASE + '/admin#notices');
+  await waitText(adminPage, '#view', /New notice/);
+  await clickText(adminPage, '#view', 'Post notice');
+  await waitText(adminPage, '#view', /title/);                                 // empty form is refused
+  await adminPage.type('#view input.input', 'Room change for Tuesday');
+  await adminPage.type('#view textarea', 'We meet in Block B, room 204 this week.\nBring your quiz teams!');
+  await clickText(adminPage, '#view', 'Post notice');
+  await waitText(adminPage, '#view', /All notices[\s\S]*Room change for Tuesday/);
+  assert.match(await text(adminPage, '#view'), /Not emailed|Email failed/);
+  await shot(adminPage, '14a-admin-notices');
+
+  // Alice sees the bell with 1 new notice, opens it, and it is marked as seen
+  await alicePage.goto(BASE + '/members');
+  await waitText(alicePage, '#accountCard', /SECRETARY/);
+  await alicePage.waitForFunction(() => document.querySelector('.bell-badge:not([hidden])')?.innerText === '1', { timeout: 8000 });
+  await alicePage.click('.bell-btn');
+  await waitText(alicePage, '.bell-panel', /Room change for Tuesday/);
+  const panel = await text(alicePage, '.bell-panel');
+  assert.match(panel, /NEW/);
+  assert.match(panel, /Block B, room 204/);
+  assert.match(panel, /2026|2027/, 'notice shows its date');
+  assert.match(panel, /SIMATS Anime Club/, 'notice shows who posted it');
+  await shot(alicePage, '14b-member-bell', false);
+  await alicePage.waitForFunction(() => document.querySelector('.bell-badge')?.hidden === true, { timeout: 5000 });
+  await new Promise((r) => setTimeout(r, 400));
+  const seen = await db.query('select notices_seen_at from profiles where id=$1', [ALICE]);
+  assert.ok(seen.rows[0].notices_seen_at, 'opening the bell marks notices as seen');
+  await waitText(alicePage, '#bearers', /Alice Kumar[\s\S]*Secretary/);
+
+  // admin cancels a meeting: a reason is required
+  const evId = await adminPage.evaluate(() => Club.rpc('admin_save_event', { p_id: null, p_title: 'Tuesday meet', p_starts_at: new Date(Date.now() + 2 * 86400e3).toISOString(),
+    p_ends_at: null, p_venue: 'Block B, Room 204', p_description: null, p_image_url: null, p_category: 'MEETUP', p_status: 'scheduled' }));
+  await adminPage.goto(BASE + '/admin#events');
+  await waitText(adminPage, '#view', /Tuesday meet/);
+  await adminPage.evaluate(() => {
+    const row = [...document.querySelectorAll('#view .li')].find((r) => r.innerText.includes('Tuesday meet'));
+    [...row.querySelectorAll('button')].find((b) => /cancel meeting/i.test(b.innerText)).click();
+  });
+  await adminPage.waitForSelector('dialog[open]');
+  await adminPage.click('dialog[open] button[value="ok"]');
+  assert.match(await text(adminPage, 'dialog[open] .note.err'), /why/i);
+  await adminPage.type('dialog[open] textarea', 'Internal exams this week');
+  await adminPage.click('dialog[open] button[value="ok"]');
+  await adminPage.waitForFunction(() => !document.querySelector('dialog[open]'));
+  await adminPage.evaluate(() => { const s = document.querySelector('#view select'); if (s) { s.value = 'all'; s.dispatchEvent(new Event('change')); } });
+  await waitText(adminPage, '#view', /Cancelled .* Internal exams this week/);
+  await shot(adminPage, '14c-admin-cancelled');
+  const ev = (await db.query('select status, cancel_reason from events where id=$1', [evId])).rows[0];
+  assert.deepEqual(ev, { status: 'cancelled', cancel_reason: 'Internal exams this week' });
+
+  // members: gone from upcoming, shown under Recent with the reason, and a new notice under the bell
+  await alicePage.goto(BASE + '/members');
+  await waitText(alicePage, '#eventList', /Spin-the-Wheel Quiz/);
+  assert.doesNotMatch(await text(alicePage, '#eventList'), /Tuesday meet/);
+  await alicePage.click('#tabPast');
+  await waitText(alicePage, '#eventList', /Tuesday meet[\s\S]*This meeting is cancelled\. Reason: Internal exams this week/);
+  await alicePage.waitForFunction(() => document.querySelector('.bell-badge:not([hidden])')?.innerText === '1', { timeout: 8000 });
+  await alicePage.click('.bell-btn');
+  await waitText(alicePage, '.bell-panel', /MEETING CANCELLED[\s\S]*Cancelled: Tuesday meet[\s\S]*Reason: Internal exams this week/);
+  await shot(alicePage, '14d-member-cancelled', false);
+
+  // home page calendar does not list the cancelled meeting; approved members get the bell there too
+  const home = await pageAs(ALICE);
+  await home.goto(BASE + '/');
+  await home.waitForFunction(() => document.querySelector('#evList')?.innerText.includes('Spin-the-Wheel Quiz'), { timeout: 10000 });
+  assert.doesNotMatch(await text(home, '#evList'), /Tuesday meet/);
+  await home.waitForFunction(() => document.getElementById('hubBell') && !document.getElementById('hubBell').hidden, { timeout: 8000 });
+  assert.equal(await home.$eval('#hubBell', (b) => b.getAttribute('href')), '/members#notices');
+});
+
 await step('phone layout: hub and dashboard', async () => {
   const p = await pageAs(ALICE, { width: 390, height: 844 });
   await p.goto(BASE + '/members');
@@ -282,8 +364,9 @@ if (process.env.E2E_INDEX !== '0') await step('home page shows Drive events and 
   await (await p.$('#evList')).screenshot({ path: path.join(OUT, '16-home-events.png') });
   const phone = await pageAs(ALICE, { width: 390, height: 844 });
   await phone.goto(BASE + '/');
-  await phone.evaluate(() => window.scrollTo(0, document.querySelector('#club').offsetTop + 200));
-  await phone.waitForFunction(() => document.querySelector('#hubChip.on'), { timeout: 8000 });
+  // keep scrolling (like a person would) until the header bar shows; the first scroll can land before the page has laid out
+  await phone.waitForFunction(() => { window.scrollTo(0, document.querySelector('#club').offsetTop + 200); return document.querySelector('#hubChip.on'); },
+    { timeout: 12000, polling: 300 });
   await new Promise((r) => setTimeout(r, 500));
   const chip = await phone.$eval('#hubChip', (e) => e.getBoundingClientRect().toJSON());
   const logo = await phone.$eval('#fixedLogo', (e) => e.getBoundingClientRect().toJSON());

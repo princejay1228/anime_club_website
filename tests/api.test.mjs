@@ -9,6 +9,7 @@ import { readEventSheet, getGoogleAccessToken } from '../api/_lib/drive-source.j
 import { runSync } from '../api/sync-events.js';
 import syncHandler from '../api/sync-events.js';
 import notifyHandler, { notify, buildEmail } from '../api/notify-admin.js';
+import { notifyMembers, buildNoticeEmail, BATCH } from '../api/notify-members.js';
 import { requireAdmin, redact, safeEqual } from '../api/_lib/server.js';
 
 // ---------- a tiny fake Supabase client ----------
@@ -299,4 +300,59 @@ test('new-style sb_secret keys are accepted and never leak into errors', async (
   assert.equal(secretKey({ SUPABASE_SECRET_KEY: 'sb_secret_abc' }), 'sb_secret_abc');
   assert.equal(secretKey({ SUPABASE_SERVICE_ROLE_KEY: 'eyJlegacy' }), 'eyJlegacy');
   assert.doesNotMatch(redact('failed with sb_secret_FAKE_test_value-123 in header', {}), /sb_secret_/);
+});
+
+// ---------- member notices by email (Gmail) ----------
+const noticeRow = { id: 7, kind: 'notice', title: 'Room <change>', body: 'Tuesday meet is in Block B.\n\nBring <b>snacks</b>.' };
+function noticeSb({ members, claim = true }) {
+  return fakeSb((q) => {
+    if (q.table === 'notices' && op(q, 'update') && op(q, 'is')) return { data: claim ? [noticeRow] : [], error: null };
+    if (q.table === 'notices') return { data: null, error: null };
+    if (q.table === 'profiles') return { data: members, error: null };
+    return { data: null, error: null };
+  });
+}
+const fakeTransport = (sentLog, failOn = -1) => () => ({
+  n: 0,
+  async sendMail(m) { if (this.n++ === failOn) throw Object.assign(new Error('Invalid login: 535 fake pass word here'), {}); sentLog.push(m); },
+  close() {},
+});
+
+test('member notice email: BCC in batches, escaped, from the club Gmail, claimed once', async () => {
+  const members = Array.from({ length: BATCH + 5 }, (_, i) => ({ email: `m${i}@example.com` }))
+    .concat([{ email: 'M0@Example.com' }, { email: 'not-an-email' }, { email: null }]);
+  const sent = [];
+  const sb = noticeSb({ members });
+  const env = { GMAIL_APP_PASSWORD: 'abcd efgh ijkl mnop', SITE_URL: 'https://simats-anime-club.vercel.app' };
+  const out = await notifyMembers({ sb, env, noticeId: 7, makeTransport: fakeTransport(sent) });
+  assert.deepEqual(out, { sent: BATCH + 5, failed: 0 });
+  assert.equal(sent.length, 2, 'two batches');
+  assert.equal(sent[0].bcc.length, BATCH);
+  assert.equal(sent[0].to, 'animeclubsimats@gmail.com', 'members are only in BCC');
+  assert.match(sent[0].from, /animeclubsimats@gmail\.com/);
+  assert.ok(!sent.flatMap((m) => m.bcc).includes('not-an-email'));
+  assert.equal(new Set(sent.flatMap((m) => m.bcc)).size, BATCH + 5, 'duplicates removed');
+  assert.match(sent[0].html, /Room &lt;change&gt;/);
+  assert.doesNotMatch(sent[0].html, /<b>snacks<\/b>/);
+  assert.match(sent[0].html, /\/members#notices/);
+  const final = sb.calls.filter((c) => c.table === 'notices' && op(c, 'update')).pop();
+  assert.equal(op(final, 'update')[0].email_count, BATCH + 5);
+  // already claimed: nothing is sent again
+  const again = await notifyMembers({ sb: noticeSb({ members, claim: false }), env, noticeId: 7, makeTransport: fakeTransport(sent) });
+  assert.equal(again.reason, 'already-emailed-or-missing');
+  assert.equal(sent.length, 2);
+});
+
+test('member notice email: not configured, bad id, failure releases the claim and hides the password', async () => {
+  const members = [{ email: 'a@example.com' }];
+  assert.equal((await notifyMembers({ sb: noticeSb({ members }), env: {}, noticeId: 7 })).reason, 'email-not-configured');
+  await assert.rejects(notifyMembers({ sb: noticeSb({ members }), env: { GMAIL_APP_PASSWORD: 'x'.repeat(16) }, noticeId: 'abc' }), /notice_id/);
+  const sb = noticeSb({ members });
+  const env = { GMAIL_APP_PASSWORD: 'fake pass word here' };
+  const out = await notifyMembers({ sb, env, noticeId: 7, makeTransport: fakeTransport([], 0) });
+  assert.equal(out.reason, 'email-failed');
+  assert.doesNotMatch(out.error, /fake pass|word here/);
+  const release = sb.calls.filter((c) => c.table === 'notices' && op(c, 'update')).pop();
+  assert.equal(op(release, 'update')[0].emailed_at, null, 'claim released so the admin can retry');
+  assert.equal(buildNoticeEmail({ kind: 'cancellation', title: 'Cancelled: Tuesday meet', body: 'Reason: exams' }).subject, 'Cancelled: Tuesday meet');
 });
