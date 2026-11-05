@@ -10,6 +10,7 @@
   <title>SIMATS Anime Club</title>
   <link rel="icon" href="favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="canonical" href="https://simats-anime-club.vercel.app/" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <style>
@@ -376,6 +377,10 @@
     .foot-bottom { max-width:1180px; margin:40px auto 0; padding-top:20px; border-top:1px solid rgba(122,13,32,.18); display:flex; flex-wrap:wrap; gap:8px 26px; font-size:11px; color:#7a5a5e; }
     .foot-credit { max-width:1180px; margin:22px auto 0; padding-top:16px; border-top:1px solid rgba(154,100,32,.3); text-align:center; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:#7a5a5e; }
     .foot-credit strong { color:#b0122f; font-weight:800; }
+    .credit-glow { display:inline-block; text-decoration:none; padding:0 2px; }
+    .credit-glow strong { color:#c8102e; text-shadow:0 0 1px #fff, 0 0 2px #fff, 0 0 8px rgba(230,30,60,.75), 0 0 18px rgba(230,30,60,.45); transition:text-shadow .2s, color .2s; }
+    .credit-glow:hover strong, .credit-glow:focus-visible strong { color:#e0123a; text-shadow:0 0 1px #fff, 0 0 8px rgba(240,30,70,.8), 0 0 20px rgba(240,30,70,.5); }
+    .credit-glow:focus-visible { outline:1px dashed #c8102e; outline-offset:3px; }
     @media (max-width:1100px) and (min-width:761px) { .foot-grid { grid-template-columns:1.4fr 1fr 1.2fr 1fr; } .foot-mascot { grid-column:1 / -1; justify-self:center; margin-top:0; } }
     @media (max-width:760px) { .foot-mascot { grid-column:1 / -1; justify-self:center; margin:4px 0 0; width:170px; } .site-footer { padding-top:128px; } .foot-kumo { width:130px; height:46px; } .foot-kumo.k1 { top:70px; right:4%; } .foot-kumo.k2 { top:74px; left:4%; } .foot-sakura { display:none; } .foot-grid { grid-template-columns:1fr 1fr; gap:28px; } .foot-brand { grid-column:1 / -1; } .foot-bottom { flex-direction:column; } }
 
@@ -757,7 +762,7 @@
       <span>© <span id="year">2026</span> SIMATS Anime Club. All rights reserved.</span>
       <span>Anime titles, characters and artwork belong to their respective creators and rights holders. This club is not affiliated with any studio or publisher. Music: “The Rising Sun” by kaazoom (Pixabay); all other music is original to this site.</span>
     </div>
-    <div class="foot-credit">Designed by <strong>Jayadeep J</strong> &amp; <strong>Darshan A</strong></div>
+    <div class="foot-credit">Designed by <a class="credit-glow" href="https://www.instagram.com/prince_jay128/" target="_blank" rel="noopener" aria-label="Jayadeep J on Instagram"><strong>Jayadeep J</strong></a> &amp; <strong>Darshan A</strong></div>
   </footer>
 </main>
 
