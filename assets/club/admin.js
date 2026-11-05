@@ -622,7 +622,7 @@
     };
 
     view.replaceChildren(
-      section('Notices', 'Messages for every approved member. They appear under the bell in the member lounge, newest first, with the date and time.'),
+      section('Notices', 'Public announcements: everyone sees them on the home page notice board and under the bell, newest first, with the date and time. Approved members can also get them by email.'),
       h('div', { class: 'card' }, h('h3', { text: 'New notice' }),
         h('label', { class: 'f' }, h('span', null, 'Title'), title),
         h('label', { class: 'f' }, h('span', null, 'Message'), body),
