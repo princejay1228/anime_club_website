@@ -5,6 +5,7 @@
 // Reads the events sheet, validates every row, then applies the changes in
 // one database transaction (apply_event_sync). If anything fails, the events
 // table keeps its last good state and the failure is logged.
+import { runGallerySync } from './_lib/google-drive.js';
 import { serviceClient, requireAdmin, bearer, safeEqual, redact, send, wrap, HttpError } from './_lib/server.js';
 import { readEventSheet, describeSource } from './_lib/drive-source.js';
 import { normalizeRows } from './_lib/events-normalize.js';
@@ -56,6 +57,10 @@ export default wrap(async (req, res) => {
     if (!safeEqual(bearer(req), env.CRON_SECRET)) throw new HttpError(401, 'Not allowed.');
     const sb = serviceClient(env);
     const out = await runSync({ sb, env, trigger: 'cron' });
+    // the gallery refreshes on the same weekly run (a failure here never affects the events)
+    if (env.GOOGLE_API_KEY) {
+      out.gallery = await runGallerySync({ sb, env }).catch((e) => ({ ok: false, error: redact(e.message, env) }));
+    }
     return send(res, out.ok ? 200 : 502, out);
   }
   if (req.method === 'POST') {

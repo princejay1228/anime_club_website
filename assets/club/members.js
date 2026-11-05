@@ -106,7 +106,8 @@
     box.replaceChildren(h('div', { class: 'card member-card' },
       C.avatar(p.avatar_url, p.full_name, 'lg'),
       h('div', { class: 'body' },
-        h('span', { class: 'tag ok', text: p.is_admin ? 'ADMIN · MEMBER' : 'MEMBER' }),
+        h('div', { class: 'row' }, h('span', { class: 'tag ok', text: p.is_admin ? 'ADMIN · MEMBER' : 'MEMBER' }),
+          p.office && C.OFFICES[p.office] ? h('span', { class: 'tag gold', text: C.OFFICES[p.office].toUpperCase() }) : null),
         h('h3', { text: `Okaeri, ${p.full_name.split(' ')[0]}!` }),
         h('p', { text: 'You can vote in polls and comment on events.' + (p.is_admin ? ' You also have access to the admin dashboard.' : '') }),
         p.is_admin ? h('div', { class: 'row' }, h('a', { class: 'btn primary', href: '/admin', text: 'ADMIN DASHBOARD' })) : null)));
@@ -243,6 +244,7 @@
         h('div', { class: 'row' }, e.category ? h('span', { class: 'tag', text: e.category }) : null, statusTag ? h('span', { class: 'tag ' + statusTag[1], text: statusTag[0] }) : null),
         h('h3', { text: e.title }),
         h('div', { class: 'meta', text: [C.fmt(s, { weekday: 'long', day: 'numeric', month: 'long' }), time, e.venue].filter(Boolean).join(' · ') }),
+        e.status === 'cancelled' ? h('div', { class: 'ev-cancel', text: 'This meeting is cancelled' + (e.cancel_reason ? '. Reason: ' + e.cancel_reason : '.') }) : null,
         e.description ? h('div', { class: 'desc', text: e.description }) : null,
         img, toggle, panel));
     if (open.has(e.id)) { panel.hidden = false; toggle.setAttribute('aria-expanded', 'true'); loadComments(e, panel); }
@@ -255,8 +257,8 @@
     $('#tabPast').setAttribute('aria-selected', String(tab === 'past'));
     const now = Date.now();
     const list = tab === 'up'
-      ? events.filter((e) => endOf(e) >= now)
-      : events.filter((e) => endOf(e) < now && now - endOf(e) < 120 * 86400e3).reverse().slice(0, 20);
+      ? events.filter((e) => endOf(e) >= now && e.status !== 'cancelled')
+      : events.filter((e) => (endOf(e) < now || e.status === 'cancelled') && now - endOf(e) < 120 * 86400e3).reverse().slice(0, 20);
     if (!list.length) {
       box.replaceChildren(h('div', { class: 'state' },
         h('span', { class: 'big', text: tab === 'up' ? 'No upcoming events yet' : 'No recent events' }),
@@ -272,7 +274,7 @@
     if (!C.configured) { $('#eventList').replaceChildren(h('div', { class: 'state', text: 'Events will appear here once the members area is set up.' })); return; }
     try {
       const [{ data, error }, cnt, st] = await Promise.all([
-        C.sb.from('events').select('id,title,starts_at,ends_at,venue,description,image_url,category,status').neq('status', 'hidden').order('starts_at', { ascending: true }).limit(400),
+        C.sb.from('events').select('id,title,starts_at,ends_at,venue,description,image_url,category,status,cancel_reason').neq('status', 'hidden').order('starts_at', { ascending: true }).limit(400),
         rpc('event_comment_counts').catch(() => []),
         C.sb.from('club_settings').select('comment_premoderation').maybeSingle(),
       ]);
@@ -280,14 +282,14 @@
       events = data || [];
       counts = Object.fromEntries((cnt || []).map((r) => [r.event_id, r.comments]));
       premod = st?.data?.comment_premoderation ?? true;
-      if (tab === 'up' && !events.some((e) => endOf(e) >= Date.now()) && events.length) tab = 'past';
+      if (tab === 'up' && !events.some((e) => endOf(e) >= Date.now() && e.status !== 'cancelled') && events.length) tab = 'past';
       renderEvents();
       // deep link: /members#event-<id>
       const m = /^#event-([\w-]+)/.exec(location.hash);
       if (m) {
         const ev = events.find((e) => e.id === m[1]);
         if (ev) {
-          tab = endOf(ev) >= Date.now() ? 'up' : 'past'; open.add(ev.id); renderEvents();
+          tab = endOf(ev) >= Date.now() && ev.status !== 'cancelled' ? 'up' : 'past'; open.add(ev.id); renderEvents();
           document.getElementById('event-' + ev.id)?.scrollIntoView({ block: 'start' });
         }
       }
@@ -317,7 +319,9 @@
     const row = h('div', { class: 'cm ' + c.status },
       C.avatar(c.author_avatar, c.author_name),
       h('div', { class: 'b' },
-        h('div', { class: 'h' }, h('strong', { text: c.author_name }), c.is_mine ? h('span', { class: 'tag gold', text: 'YOU' }) : null,
+        h('div', { class: 'h' }, h('strong', { text: c.author_name }),
+          c.author_position && C.OFFICES[c.author_position] ? h('span', { class: 'tag gold office-tag', text: C.OFFICES[c.author_position].toUpperCase() }) : null,
+          c.is_mine ? h('span', { class: 'tag gold', text: 'YOU' }) : null,
           h('time', { datetime: c.created_at, title: C.fmtDateTime(c.created_at), text: C.ago(c.created_at) }),
           c.edited_at ? h('span', { class: 'ed', text: '· edited' }) : null),
         text, flag ? h('div', { class: 'flag', text: flag }) : null));
@@ -388,6 +392,20 @@
     });
   }
 
+  // ======================= office bearers =======================
+  async function loadBearers() {
+    const box = $('#bearers');
+    if (!box || !C.configured) return;
+    try {
+      const list = (await rpc('list_office_bearers')) || [];
+      if (!list.length) { box.hidden = true; return; }
+      box.replaceChildren(h('span', { class: 'kicker', text: 'OFFICE BEARERS · 役員' }),
+        h('div', { class: 'bearers' }, list.map((b) => h('div', { class: 'bearer' }, C.avatar(b.avatar_url, b.full_name),
+          h('div', null, h('strong', { text: b.full_name }), h('span', { text: C.OFFICES[b.office] || b.office }))))));
+      box.hidden = false;
+    } catch { box.hidden = true; }
+  }
+
   // ======================= start =======================
   C.mountAccount($('#acctSlot'));
   let first = true, who = null;
@@ -396,7 +414,10 @@
     if (!state.ready) return;
     const now = (state.user?.id || '') + '|' + (state.profile?.membership_status || '');
     if (now !== who) { who = now; loadPolls(); }   // results visibility depends on who is signed in
-    if (first) { first = false; loadEvents(); } else renderEvents();
+    if (first) {
+      first = false; loadEvents(); loadBearers();
+      if (location.hash === '#notices') setTimeout(() => C.openNotices(), 50);   // from the bell on the home page or a notice email
+    } else renderEvents();
   });
   renderAccount();
   C.init().catch((e) => { console.error(e); toast(C.friendly(e), 'err'); });

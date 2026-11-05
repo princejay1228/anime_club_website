@@ -5,7 +5,8 @@
   const C = window.Club;
   const { h, $, $$, toast, busy, ask, rpc, state } = C;
   const view = $('#view');
-  const TABS = ['overview', 'approvals', 'members', 'polls', 'comments', 'events', 'log'];
+  const TABS = ['overview', 'approvals', 'members', 'polls', 'comments', 'events', 'notices', 'gallery', 'log'];
+  const OFFICES = C.OFFICES;
   let tab = 'overview';
   let started = false;
 
@@ -136,6 +137,7 @@
 
   // ======================= MEMBERS =======================
   let memberFilter = { q: '', s: 'all' };
+  let officeHolders = {};                 // office -> profile holding it
   async function renderMembers() {
     loading();
     let all;
@@ -143,26 +145,27 @@
       const { data, error } = await C.sb.from('profiles').select('*').order('created_at', { ascending: false }).limit(2000);
       if (error) throw new Error(C.friendly(error));
       all = data;
+      officeHolders = Object.fromEntries(all.filter((p) => p.office).map((p) => [p.office, p]));
     } catch (e) { return failed(e, renderMembers); }
 
     const listBox = h('div', { class: 'list' });
     const q = h('input', { class: 'input', type: 'search', placeholder: 'Search name or email', value: memberFilter.q, 'aria-label': 'Search members' });
     const s = h('select', { class: 'input', 'aria-label': 'Filter by status' },
-      [['all', 'Everyone'], ['approved', 'Members'], ['admins', 'Admins'], ['awaiting_approval', 'Waiting'], ['suspended', 'Suspended'], ['rejected', 'Rejected'], ['pending', 'No name yet']]
+      [['all', 'Everyone'], ['approved', 'Members'], ['bearers', 'Office bearers'], ['admins', 'Admins'], ['awaiting_approval', 'Waiting'], ['suspended', 'Suspended'], ['rejected', 'Rejected'], ['pending', 'No name yet']]
         .map(([v, t]) => h('option', { value: v, text: t })));
     s.value = memberFilter.s;
     const countEl = h('span', { class: 'hint' });
 
     const draw = () => {
       memberFilter = { q: q.value.trim().toLowerCase(), s: s.value };
-      const list = all.filter((p) => (memberFilter.s === 'all' || (memberFilter.s === 'admins' ? p.is_admin : p.membership_status === memberFilter.s))
+      const list = all.filter((p) => (memberFilter.s === 'all' || (memberFilter.s === 'admins' ? p.is_admin : memberFilter.s === 'bearers' ? !!p.office : p.membership_status === memberFilter.s))
         && (!memberFilter.q || `${p.full_name || ''} ${p.google_name || ''} ${p.email}`.toLowerCase().includes(memberFilter.q)));
       countEl.textContent = `${list.length} of ${all.length}`;
       listBox.replaceChildren(...(list.length ? list.slice(0, 300).map(memberRow) : [h('p', { class: 'hint', text: 'Nobody matches.' })]));
     };
     q.addEventListener('input', draw); s.addEventListener('change', draw);
 
-    view.replaceChildren(section('Members', 'Suspend, restore and manage admins. Every change is logged.'),
+    view.replaceChildren(section('Members', 'Suspend, restore, manage admins and give office-bearer titles. Every change is logged.'),
       h('div', { class: 'filters' }, q, s, countEl), h('div', { class: 'card' }, listBox));
     draw();
   }
@@ -207,10 +210,11 @@
       });
       acts.append(r);
     }
+    if (s === 'approved') acts.prepend(officePicker(p, name));
     acts.append(btn('History', () => showHistory('member', p.id, name), 'ghost'));
     return h('div', { class: 'li' }, C.avatar(p.avatar_url, name, 'lg'),
       h('div', { class: 'main' },
-        h('div', { class: 'row' }, h('strong', { text: p.full_name || '(no name yet)' }), statusTag(s), p.is_admin ? h('span', { class: 'tag gold', text: 'ADMIN' }) : null, me ? h('span', { class: 'tag dim', text: 'YOU' }) : null),
+        h('div', { class: 'row' }, h('strong', { text: p.full_name || '(no name yet)' }), statusTag(s), p.office ? h('span', { class: 'tag gold', text: OFFICES[p.office].toUpperCase() }) : null, p.is_admin ? h('span', { class: 'tag gold', text: 'ADMIN' }) : null, me ? h('span', { class: 'tag dim', text: 'YOU' }) : null),
         h('div', { class: 'sub', text: [p.email, p.year_of_study, p.department].filter(Boolean).join(' · ') }),
         h('div', { class: 'sub', text: `Signed in ${C.fmtDate(p.created_at)}${p.reviewed_at ? ' · reviewed ' + C.fmtDate(p.reviewed_at) : ''}${p.google_name && p.google_name !== p.full_name ? ' · Google: ' + p.google_name : ''}` }),
         s === 'suspended' ? h('div', { class: 'note err', style: 'margin-top:8px', text: `Suspended ${C.fmtDateTime(p.suspended_at)} — ${p.suspension_reason}` }) : null,
@@ -436,6 +440,11 @@
         });
         acts.append(rel);
       }
+      if ((e.status === 'scheduled' || e.status === 'postponed') && endOf(e) >= now) {
+        const cx = btn('Cancel meeting', null, 'danger');
+        cx.addEventListener('click', () => cancelMeeting(cx, e));
+        acts.append(cx);
+      }
       const del = btn(e.source === 'drive' ? 'Hide' : 'Delete', null, 'danger');
       del.addEventListener('click', async () => {
         const drive = e.source === 'drive';
@@ -449,7 +458,8 @@
           h('span', { class: 'tag ' + (e.source === 'drive' ? 'gold' : 'dim'), text: e.source === 'drive' ? 'DRIVE' : 'MANUAL' }),
           e.manual_override ? h('span', { class: 'tag warn', text: 'EDITED HERE' }) : null,
           e.status !== 'scheduled' ? h('span', { class: 'tag ' + (e.status === 'hidden' ? 'dim' : 'pink'), text: e.status.toUpperCase() }) : null),
-        h('div', { class: 'sub', text: [when(e.starts_at), e.venue, e.category].filter(Boolean).join(' · ') })), acts);
+        h('div', { class: 'sub', text: [when(e.starts_at), e.venue, e.category].filter(Boolean).join(' · ') }),
+        e.status === 'cancelled' && e.cancel_reason ? h('div', { class: 'note err', style: 'margin-top:8px', text: `Cancelled${e.cancelled_at ? ' ' + C.fmtDateTime(e.cancelled_at) : ''} — ${e.cancel_reason}` }) : null), acts);
     };
 
     view.replaceChildren(
@@ -470,7 +480,9 @@
     const ends = f('input', { type: 'datetime-local' }, C.toLocalInput(e?.ends_at));
     const venue = f('input', { maxlength: 140, placeholder: 'e.g. Block 3, Room 204' }, e?.venue);
     const cat = f('input', { maxlength: 40, placeholder: 'QUIZ, SCREENING, COSPLAY…' }, e?.category);
-    const status = h('select', { class: 'input' }, ['scheduled', 'postponed', 'cancelled', 'completed', 'hidden'].map((s) => h('option', { value: s, text: s[0].toUpperCase() + s.slice(1) })));
+    // cancelling goes through the Cancel meeting button (it needs a reason and tells members)
+    const statuses = ['scheduled', 'postponed', 'completed', 'hidden'].concat(e?.status === 'cancelled' ? ['cancelled'] : []);
+    const status = h('select', { class: 'input' }, statuses.map((s) => h('option', { value: s, text: s[0].toUpperCase() + s.slice(1) })));
     status.value = e?.status || 'scheduled';
     const img = f('input', { type: 'url', maxlength: 1000, placeholder: 'https://…' }, e?.image_url);
     const desc = f('textarea', { maxlength: 2000, rows: 4 }, e?.description);
@@ -500,6 +512,273 @@
     document.body.append(dlg); dlg.showModal(); title.focus();
   }
 
+  // ======================= OFFICE BEARERS =======================
+  function officePicker(p, name) {
+    const sel = h('select', { class: 'input small', 'aria-label': 'Office-bearer title for ' + name, style: 'width:auto;min-width:150px' },
+      h('option', { value: '', text: 'No title' }), Object.entries(OFFICES).map(([v, t]) => h('option', { value: v, text: t })));
+    sel.value = p.office || '';
+    sel.addEventListener('change', async () => {
+      const v = sel.value || null;
+      const holder = v && officeHolders[v] && officeHolders[v].id !== p.id ? officeHolders[v] : null;
+      const ok = await ask(v
+        ? { title: `Make ${name} ${OFFICES[v]}?`, confirm: 'Give title',
+            text: holder ? `${holder.full_name || holder.email} is ${OFFICES[v]} now and will lose the title.` : 'The title shows next to their name in the member lounge and on comments.' }
+        : { title: `Remove ${name}'s title?`, text: `They stop being ${OFFICES[p.office]}.`, confirm: 'Remove', danger: true });
+      if (!ok) { sel.value = p.office || ''; return; }
+      sel.disabled = true;
+      try {
+        await rpc('admin_set_position', { p_user: p.id, p_position: v });
+        toast(v ? `${name} is now ${OFFICES[v]}.` : 'Title removed.', 'ok');
+        render();
+      } catch (e) { toast(e.message, 'err'); sel.value = p.office || ''; sel.disabled = false; }
+    });
+    return sel;
+  }
+
+  // Email a notice to approved members (the notice is already on the site either way).
+  async function emailNotice(id) {
+    try {
+      const r = await C.api('/api/notify-members', { notice_id: id });
+      if (r.sent && !r.failed) toast(`Emailed ${r.sent} member${r.sent === 1 ? '' : 's'}.`, 'ok');
+      else if (r.sent) toast(`Emailed ${r.sent} members; ${r.failed} could not be sent (${r.error || 'Gmail refused'}).`, 'err');
+      else if (r.reason === 'email-not-configured') toast('Posted on the site. Email is not set up yet (GMAIL_APP_PASSWORD in Vercel).', 'err');
+      else if (r.reason === 'no-members') toast('Posted. There are no approved members to email yet.', 'ok');
+      else if (r.reason === 'already-emailed-or-missing') toast('This notice was already emailed.', 'ok');
+      else toast('Posted on the site, but the email failed: ' + (r.error || 'unknown error'), 'err');
+      return r;
+    } catch (e) { toast('Posted on the site, but the email failed: ' + e.message, 'err'); return null; }
+  }
+
+  // ======================= CANCEL A MEETING =======================
+  async function cancelMeeting(button, e) {
+    const reason = await ask({
+      title: `Cancel "${e.title}"?`,
+      text: `${when(e.starts_at)}${e.venue ? ' · ' + e.venue : ''}. It comes off the calendar, members see the reason under the bell, and every member gets an email.`,
+      confirm: 'Cancel meeting', danger: true,
+      input: { label: 'Reason (members will see this)', required: true, min: 5, max: 500, multiline: true,
+        placeholder: 'e.g. Internal exams this week — we meet again next Tuesday', requiredMsg: 'Please say why (at least 5 characters).' } });
+    if (!reason) return;
+    busy(button, async () => {
+      try {
+        const noticeId = await rpc('admin_cancel_event', { p_id: e.id, p_reason: reason });
+        toast('Meeting cancelled.', 'ok');
+        await emailNotice(noticeId);
+        render();
+      } catch (x) { toast(x.message, 'err'); }
+    });
+  }
+
+  // ======================= NOTICES =======================
+  async function renderNotices() {
+    loading();
+    let list;
+    try { list = (await rpc('admin_list_notices', { p_limit: 200 })) || []; } catch (e) { return failed(e, renderNotices); }
+
+    const title = h('input', { class: 'input', maxlength: 120, placeholder: 'e.g. Room change for Tuesday' });
+    const body = h('textarea', { class: 'input', maxlength: 4000, rows: 5, placeholder: 'Write the message for all members…' });
+    const mail = h('input', { type: 'checkbox', checked: true });
+    const err = h('div', { class: 'note err', hidden: true, role: 'alert' });
+    const post = h('button', { class: 'btn primary', type: 'button', text: 'Post notice' });
+    post.addEventListener('click', () => {
+      err.hidden = true;
+      if (title.value.trim().length < 3) { err.textContent = 'Give the notice a title (at least 3 characters).'; err.hidden = false; title.focus(); return; }
+      if (body.value.trim().length < 3) { err.textContent = 'Write the message.'; err.hidden = false; body.focus(); return; }
+      busy(post, async () => {
+        try {
+          const id = await rpc('admin_post_notice', { p_title: title.value, p_body: body.value });
+          toast('Notice posted. Members see it under the bell.', 'ok');
+          if (mail.checked) await emailNotice(id);
+          title.value = ''; body.value = '';
+          renderNotices();
+        } catch (x) { err.textContent = x.message; err.hidden = false; }
+      });
+    });
+
+    const row = (n) => {
+      const acts = h('div', { class: 'row' });
+      if (!n.deleted_at && !n.emailed_at) {
+        const em = btn('Email members');
+        em.addEventListener('click', () => busy(em, async () => { await emailNotice(n.id); renderNotices(); }));
+        acts.append(em);
+      }
+      if (!n.deleted_at) {
+        const del = btn('Delete', null, 'danger');
+        del.addEventListener('click', async () => {
+          const why = await ask({ title: 'Delete this notice?', text: 'Members will no longer see it. Emails already sent cannot be taken back.', confirm: 'Delete', danger: true,
+            input: { label: 'Reason', max: 300 } });
+          if (why !== null) act(del, () => rpc('admin_delete_notice', { p_id: n.id, p_reason: why || null }), 'Notice deleted.');
+        });
+        acts.append(del);
+      }
+      const mailText = n.emailed_at ? (n.email_count != null ? `Emailed to ${n.email_count} member${n.email_count === 1 ? '' : 's'}` : 'Sending email…')
+        : n.email_error ? 'Email failed' : 'Not emailed';
+      return h('div', { class: 'li' }, h('div', { class: 'main' },
+        h('div', { class: 'row' }, h('strong', { text: n.title }),
+          h('span', { class: 'tag ' + (n.kind === 'cancellation' ? 'pink' : 'gold'), text: n.kind === 'cancellation' ? 'CANCELLATION' : 'NOTICE' }),
+          n.deleted_at ? h('span', { class: 'tag dim', text: 'DELETED' }) : null),
+        h('div', { class: 'txt notice-body', text: n.body }),
+        h('div', { class: 'sub', text: `${n.author_name} · ${C.fmtDateTime(n.created_at)} · ${mailText}` }),
+        n.email_error ? h('div', { class: 'sub', style: 'color:#ffc2cc', text: n.email_error }) : null), acts);
+    };
+
+    view.replaceChildren(
+      section('Notices', 'Messages for every approved member. They appear under the bell in the member lounge, newest first, with the date and time.'),
+      h('div', { class: 'card' }, h('h3', { text: 'New notice' }),
+        h('label', { class: 'f' }, h('span', null, 'Title'), title),
+        h('label', { class: 'f' }, h('span', null, 'Message'), body),
+        h('label', { class: 'check', style: 'margin:6px 0 10px' }, mail, h('span', { text: 'Also email every approved member (from the club Gmail)' })),
+        err, h('div', { class: 'row end' }, post)),
+      h('h3', { style: 'margin:26px 0 10px', text: 'All notices' }),
+      list.length ? h('div', { class: 'card' }, h('div', { class: 'list' }, list.map(row))) : empty('No notices yet', 'Post one above. Cancelled meetings show up here too.'));
+  }
+
+  // ======================= GALLERY (Google Drive) =======================
+  const driveThumb = (id, w = 600) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+  const MAX_UPLOAD = 2 * 1024 ** 3;                  // 2 GB per file
+  const mb = (n) => (n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(1) + ' GB' : Math.max(0.1, n / 1024 ** 2).toFixed(1) + ' MB');
+
+  // Upload one file straight from this browser to Google Drive (resumable upload).
+  // Vercel only hands out the short-lived permission; the file itself never passes through it.
+  async function uploadToDrive(file, tok, onProgress) {
+    const start = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,mimeType', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${tok.access_token}`, 'content-type': 'application/json; charset=UTF-8',
+        'x-upload-content-type': file.type || 'application/octet-stream', 'x-upload-content-length': String(file.size) },
+      body: JSON.stringify({ name: file.name, parents: [tok.folder_id] }),
+    });
+    if (!start.ok) {
+      const b = await start.json().catch(() => ({}));
+      throw new Error(b?.error?.message || `Google refused the upload (${start.status}).`);
+    }
+    const session = start.headers.get('location');
+    if (!session) throw new Error('Google did not return an upload address.');
+    return new Promise((resolve, reject) => {
+      const x = new XMLHttpRequest();
+      x.open('PUT', session);
+      x.setRequestHeader('content-type', file.type || 'application/octet-stream');
+      x.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+      x.onload = () => (x.status >= 200 && x.status < 300 ? resolve(JSON.parse(x.responseText || '{}')) : reject(new Error(`Upload failed (${x.status}).`)));
+      x.onerror = () => reject(new Error('Connection lost during the upload.'));
+      x.send(file);
+    });
+  }
+
+  async function renderGallery() {
+    loading();
+    let st, items;
+    try {
+      const [a, b] = await Promise.all([
+        C.api('/api/gallery', { action: 'status' }),
+        C.sb.from('gallery_items').select('*').order('sort_time', { ascending: false }).limit(500),
+      ]);
+      if (b.error) throw new Error(C.friendly(b.error));
+      st = a; items = b.data || [];
+    } catch (e) { return failed(e, renderGallery); }
+
+    // ---- Drive connection + refresh ----
+    const syncBtn = btn('↻ Refresh from Drive', null, 'primary');
+    syncBtn.disabled = !st.listing;
+    syncBtn.addEventListener('click', () => busy(syncBtn, async () => {
+      try { const r = await C.api('/api/gallery', { action: 'sync' }); toast(`Gallery refreshed: ${r.total} item${r.total === 1 ? '' : 's'} (${r.added} new, ${r.removed} removed).`, 'ok'); renderGallery(); }
+      catch (e) { toast(e.message, 'err'); }
+    }));
+    const connectBtn = btn(st.connected ? 'Reconnect Google Drive' : 'Connect Google Drive', null, st.connected ? 'ghost' : 'primary');
+    connectBtn.disabled = !st.uploads;
+    connectBtn.addEventListener('click', () => busy(connectBtn, async () => {
+      try { const { url } = await C.api('/api/gallery', { action: 'connect-url' }); location.href = url; } catch (e) { toast(e.message, 'err'); }
+    }));
+    const discBtn = st.connected ? btn('Disconnect', null, 'danger') : null;
+    discBtn?.addEventListener('click', async () => {
+      if (await ask({ title: 'Disconnect Google Drive?', text: 'Uploads from this page stop until you connect again. Photos already in Drive stay in the gallery.', confirm: 'Disconnect', danger: true }))
+        act(discBtn, () => C.api('/api/gallery', { action: 'disconnect' }), 'Google Drive disconnected.');
+    });
+    const setup = [];
+    if (!st.listing) setup.push('GOOGLE_API_KEY (lets the site read the Drive folder)');
+    if (!st.uploads) setup.push('GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET (for uploads from this page)');
+    const folderLinks = (st.folders || []).map((f, i) => h('a', { href: `https://drive.google.com/drive/folders/${encodeURIComponent(f)}`, target: '_blank', rel: 'noopener',
+      text: f === st.upload_folder_id ? 'Website uploads folder ↗' : (i === 0 ? 'Gallery folder ↗' : 'Folder ↗') }));
+
+    // ---- upload ----
+    const input = h('input', { type: 'file', accept: 'image/*,video/*', multiple: true, hidden: true });
+    const pick = btn('⇪ Upload photos / videos', () => input.click(), 'primary');
+    pick.disabled = !st.connected || !st.uploads;
+    const queue = h('div', { class: 'upl-list' });
+    input.addEventListener('change', async () => {
+      const files = [...input.files]; input.value = '';
+      if (!files.length) return;
+      const rows = files.map((f) => {
+        const bar = h('div', { class: 'upl-bar' }, h('span'));
+        const state = h('span', { class: 'upl-state', text: 'Waiting…' });
+        const row = h('div', { class: 'upl-row' }, h('div', { class: 'upl-name', text: `${f.name} · ${mb(f.size)}` }), bar, state);
+        queue.append(row);
+        return { f, bar, state, row };
+      });
+      pick.disabled = true;
+      let tok, done = 0;
+      try { tok = await C.api('/api/gallery', { action: 'upload-token' }); }
+      catch (e) { toast(e.message, 'err'); rows.forEach((r) => { r.state.textContent = 'Not uploaded'; r.row.classList.add('err'); }); pick.disabled = false; return; }
+      for (const r of rows) {
+        if (!/^(image|video)\//.test(r.f.type)) { r.state.textContent = 'Skipped: not a photo or video'; r.row.classList.add('err'); continue; }
+        if (r.f.size > MAX_UPLOAD) { r.state.textContent = 'Skipped: bigger than 2 GB'; r.row.classList.add('err'); continue; }
+        // the permission lasts about an hour; get a fresh one for long upload sessions
+        if (Date.now() > (tok._t || (tok._t = Date.now())) + (tok.expires_in - 300) * 1000) {
+          try { tok = await C.api('/api/gallery', { action: 'upload-token' }); tok._t = Date.now(); } catch (e) { r.state.textContent = e.message; r.row.classList.add('err'); continue; }
+        }
+        r.state.textContent = 'Uploading…';
+        try {
+          await uploadToDrive(r.f, tok, (p) => { r.bar.firstChild.style.width = Math.round(p * 100) + '%'; r.state.textContent = Math.round(p * 100) + '%'; });
+          r.bar.firstChild.style.width = '100%'; r.state.textContent = 'Uploaded ✓'; r.row.classList.add('ok'); done++;
+        } catch (e) { r.state.textContent = e.message; r.row.classList.add('err'); }
+      }
+      pick.disabled = false;
+      if (done) {
+        toast(`${done} file${done === 1 ? '' : 's'} uploaded to Drive. Updating the gallery…`, 'ok');
+        try { await C.api('/api/gallery', { action: 'sync' }); } catch (e) { toast(e.message, 'err'); }
+        setTimeout(renderGallery, 600);
+      }
+    });
+
+    // ---- items ----
+    const tile = (it) => {
+      const tog = btn(it.hidden ? 'Show' : 'Hide', null, it.hidden ? 'primary' : 'ghost');
+      tog.addEventListener('click', () => act(tog, () => rpc('admin_set_gallery_hidden', { p_id: it.id, p_hidden: !it.hidden }),
+        it.hidden ? 'Shown on the home page.' : 'Hidden from the home page.'));
+      return h('div', { class: 'g-tile' + (it.hidden ? ' hidden-item' : '') },
+        h('a', { class: 'g-thumb', href: `https://drive.google.com/file/d/${encodeURIComponent(it.drive_id)}/view`, target: '_blank', rel: 'noopener', title: 'Open in Drive' },
+          h('img', { src: driveThumb(it.drive_id), alt: it.name || '', loading: 'lazy', referrerpolicy: 'no-referrer', onerror: (e) => { e.currentTarget.replaceWith(h('span', { class: 'g-noimg', text: it.kind === 'video' ? '▶' : '🖼' })); } }),
+          it.kind === 'video' ? h('span', { class: 'vtag', text: '▶ VIDEO' }) : null),
+        h('div', { class: 'g-meta' }, h('div', { class: 'g-name', text: it.name || it.drive_id }),
+          h('div', { class: 'sub', text: `${C.fmtDate(it.sort_time)}${it.hidden ? ' · hidden' : ''}` })),
+        h('div', { class: 'row' }, tog));
+    };
+    const shown = items.filter((i) => !i.hidden).length;
+
+    view.replaceChildren(
+      section('Gallery', 'The "Recent meets" strip on the home page shows the photos and videos in the club Drive folder, newest first. Add files in Drive or upload them here.'),
+      setup.length ? h('div', { class: 'note warn', style: 'margin-bottom:14px' }, 'Still to set up in Vercel: ' + setup.join('; ') + '. See BACKEND.md → Gallery.') : null,
+      h('div', { class: 'grid2' },
+        h('div', { class: 'card' }, h('h3', { text: 'Google Drive' }),
+          h('p', { class: 'hint', text: st.connected ? `Uploads go to the club Drive (${st.account_email || 'connected'}), into the "website uploads" folder.` : 'Connect the club Google account once to upload from this page. Reading the folder works without it.' }),
+          folderLinks.length ? h('div', { class: 'row', style: 'margin:6px 0 4px' }, folderLinks) : null,
+          h('div', { class: 'row', style: 'margin-top:10px' }, syncBtn, connectBtn, discBtn),
+          h('p', { class: 'hint', style: 'margin-top:10px', text: 'The gallery also refreshes by itself every Monday with the event sync.' })),
+        h('div', { class: 'card' }, h('h3', { text: 'Upload' }),
+          h('p', { class: 'hint', text: 'Photos and videos go straight from your device to Google Drive (Vercel bandwidth is not used). Up to 2 GB per file.' }),
+          h('div', { class: 'row', style: 'margin-top:8px' }, pick), input, queue)),
+      h('div', { class: 'filters', style: 'margin-top:22px' }, h('span', { class: 'hint', text: `${items.length} item${items.length === 1 ? '' : 's'} · ${shown} on the home page` })),
+      items.length ? h('div', { class: 'g-grid' }, items.map(tile))
+        : empty('The gallery is empty', st.listing ? 'Add photos to the Drive folder (shared as "Anyone with the link"), then press Refresh from Drive.' : 'Set up the Google API key first, then refresh.'));
+  }
+
+  // Back from Google's sign-in page
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (!q.has('drive')) return;
+    if (q.get('drive') === 'connected') setTimeout(() => toast('Google Drive connected. You can upload photos and videos now.', 'ok'), 300);
+    else setTimeout(() => toast('Google Drive was not connected: ' + (q.get('msg') || 'unknown error'), 'err'), 300);
+    history.replaceState(null, '', location.pathname + location.hash);
+  })();
+
   // ======================= ACTIVITY LOG =======================
   const ACTION = {
     admin_bootstrapped: 'Admin account set up', member_approved: 'Approved member', member_rejected: 'Rejected request',
@@ -510,8 +789,14 @@
     premoderation_on: 'Turned comment review on', premoderation_off: 'Turned comment review off',
     event_created: 'Added event', event_edited: 'Edited event', event_deleted: 'Deleted event', event_hidden: 'Hid Drive event',
     event_override_released: 'Handed event back to sync', sync_manual_success: 'Ran Drive sync', sync_manual_failed: 'Drive sync failed',
+    event_cancelled: 'Cancelled meeting', event_uncancelled: 'Un-cancelled meeting',
+    position_assigned: 'Gave office-bearer title', position_removed: 'Removed office-bearer title',
+    notice_posted: 'Posted notice', notice_deleted: 'Deleted notice',
+    gallery_hidden: 'Hid gallery item', gallery_shown: 'Showed gallery item', gallery_synced: 'Refreshed gallery from Drive',
+    gallery_sync_failed: 'Gallery refresh failed', drive_connected: 'Connected Google Drive', drive_disconnected: 'Disconnected Google Drive',
   };
-  const describe = (l) => l.target_name || l.details?.question || l.details?.title || (l.details?.body ? `"${l.details.body}"` : '') || l.details?.name || '';
+  const describe = (l) => (l.details?.position && OFFICES[l.details.position] ? `${l.details.name || l.target_name || 'Member'} — ${OFFICES[l.details.position]}` : '')
+    || l.target_name || l.details?.question || l.details?.title || (l.details?.body ? `"${l.details.body}"` : '') || l.details?.name || '';
   const logRow = (l) => h('div', { class: 'li' }, h('div', { class: 'main' },
     h('div', { class: 'row' }, h('strong', { text: ACTION[l.action] || l.action }), h('span', { class: 'tag dim', text: l.target_type.toUpperCase() })),
     describe(l) ? h('div', { class: 'txt', text: describe(l).slice(0, 220) }) : null,
@@ -524,7 +809,7 @@
     let list;
     try { list = await rpc('admin_list_log', { p_target_type: logFilter || null, p_target_id: null, p_limit: 300 }); } catch (e) { return failed(e, renderLog); }
     const sel = h('select', { class: 'input', 'aria-label': 'Filter activity' },
-      [['', 'Everything'], ['member', 'Members'], ['comment', 'Comments'], ['poll', 'Polls'], ['event', 'Events'], ['sync', 'Drive sync'], ['settings', 'Settings']].map(([v, t]) => h('option', { value: v, text: t })));
+      [['', 'Everything'], ['member', 'Members'], ['comment', 'Comments'], ['poll', 'Polls'], ['event', 'Events'], ['notice', 'Notices'], ['gallery', 'Gallery'], ['sync', 'Drive sync'], ['settings', 'Settings']].map(([v, t]) => h('option', { value: v, text: t })));
     sel.value = logFilter;
     sel.addEventListener('change', () => { logFilter = sel.value; renderLog(); });
     view.replaceChildren(section('Activity log', 'Every admin action, newest first. Entries cannot be edited or deleted from the website.'),
@@ -544,7 +829,7 @@
   }
 
   // ======================= routing & gate =======================
-  const RENDER = { overview: renderOverview, approvals: renderApprovals, members: renderMembers, polls: renderPolls, comments: renderComments, events: renderEvents, log: renderLog };
+  const RENDER = { overview: renderOverview, approvals: renderApprovals, members: renderMembers, polls: renderPolls, comments: renderComments, events: renderEvents, notices: renderNotices, gallery: renderGallery, log: renderLog };
   function render() { return RENDER[tab](); }
   function route() {
     const t = location.hash.replace('#', '');

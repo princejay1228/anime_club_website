@@ -9,6 +9,7 @@ import { readEventSheet, getGoogleAccessToken } from '../api/_lib/drive-source.j
 import { runSync } from '../api/sync-events.js';
 import syncHandler from '../api/sync-events.js';
 import notifyHandler, { notify, buildEmail } from '../api/notify-admin.js';
+import { notifyMembers, buildNoticeEmail, BATCH } from '../api/notify-members.js';
 import { requireAdmin, redact, safeEqual } from '../api/_lib/server.js';
 
 // ---------- a tiny fake Supabase client ----------
@@ -299,4 +300,186 @@ test('new-style sb_secret keys are accepted and never leak into errors', async (
   assert.equal(secretKey({ SUPABASE_SECRET_KEY: 'sb_secret_abc' }), 'sb_secret_abc');
   assert.equal(secretKey({ SUPABASE_SERVICE_ROLE_KEY: 'eyJlegacy' }), 'eyJlegacy');
   assert.doesNotMatch(redact('failed with sb_secret_FAKE_test_value-123 in header', {}), /sb_secret_/);
+});
+
+// ---------- member notices by email (Gmail) ----------
+const noticeRow = { id: 7, kind: 'notice', title: 'Room <change>', body: 'Tuesday meet is in Block B.\n\nBring <b>snacks</b>.' };
+function noticeSb({ members, claim = true }) {
+  return fakeSb((q) => {
+    if (q.table === 'notices' && op(q, 'update') && op(q, 'is')) return { data: claim ? [noticeRow] : [], error: null };
+    if (q.table === 'notices') return { data: null, error: null };
+    if (q.table === 'profiles') return { data: members, error: null };
+    return { data: null, error: null };
+  });
+}
+const fakeTransport = (sentLog, failOn = -1) => () => ({
+  n: 0,
+  async sendMail(m) { if (this.n++ === failOn) throw Object.assign(new Error('Invalid login: 535 fake pass word here'), {}); sentLog.push(m); },
+  close() {},
+});
+
+test('member notice email: BCC in batches, escaped, from the club Gmail, claimed once', async () => {
+  const members = Array.from({ length: BATCH + 5 }, (_, i) => ({ email: `m${i}@example.com` }))
+    .concat([{ email: 'M0@Example.com' }, { email: 'not-an-email' }, { email: null }]);
+  const sent = [];
+  const sb = noticeSb({ members });
+  const env = { GMAIL_APP_PASSWORD: 'abcd efgh ijkl mnop', SITE_URL: 'https://simats-anime-club.vercel.app' };
+  const out = await notifyMembers({ sb, env, noticeId: 7, makeTransport: fakeTransport(sent) });
+  assert.deepEqual(out, { sent: BATCH + 5, failed: 0 });
+  assert.equal(sent.length, 2, 'two batches');
+  assert.equal(sent[0].bcc.length, BATCH);
+  assert.equal(sent[0].to, 'animeclubsimats@gmail.com', 'members are only in BCC');
+  assert.match(sent[0].from, /animeclubsimats@gmail\.com/);
+  assert.ok(!sent.flatMap((m) => m.bcc).includes('not-an-email'));
+  assert.equal(new Set(sent.flatMap((m) => m.bcc)).size, BATCH + 5, 'duplicates removed');
+  assert.match(sent[0].html, /Room &lt;change&gt;/);
+  assert.doesNotMatch(sent[0].html, /<b>snacks<\/b>/);
+  assert.match(sent[0].html, /\/members#notices/);
+  const final = sb.calls.filter((c) => c.table === 'notices' && op(c, 'update')).pop();
+  assert.equal(op(final, 'update')[0].email_count, BATCH + 5);
+  // already claimed: nothing is sent again
+  const again = await notifyMembers({ sb: noticeSb({ members, claim: false }), env, noticeId: 7, makeTransport: fakeTransport(sent) });
+  assert.equal(again.reason, 'already-emailed-or-missing');
+  assert.equal(sent.length, 2);
+});
+
+test('member notice email: not configured, bad id, failure releases the claim and hides the password', async () => {
+  const members = [{ email: 'a@example.com' }];
+  assert.equal((await notifyMembers({ sb: noticeSb({ members }), env: {}, noticeId: 7 })).reason, 'email-not-configured');
+  await assert.rejects(notifyMembers({ sb: noticeSb({ members }), env: { GMAIL_APP_PASSWORD: 'x'.repeat(16) }, noticeId: 'abc' }), /notice_id/);
+  const sb = noticeSb({ members });
+  const env = { GMAIL_APP_PASSWORD: 'fake pass word here' };
+  const out = await notifyMembers({ sb, env, noticeId: 7, makeTransport: fakeTransport([], 0) });
+  assert.equal(out.reason, 'email-failed');
+  assert.doesNotMatch(out.error, /fake pass|word here/);
+  const release = sb.calls.filter((c) => c.table === 'notices' && op(c, 'update')).pop();
+  assert.equal(op(release, 'update')[0].emailed_at, null, 'claim released so the admin can retry');
+  assert.equal(buildNoticeEmail({ kind: 'cancellation', title: 'Cancelled: Tuesday meet', body: 'Reason: exams' }).subject, 'Cancelled: Tuesday meet');
+});
+
+// ---------- gallery from Google Drive ----------
+const gd = await import('../api/_lib/google-drive.js');
+const gallery = await import('../api/gallery.js');
+const SECRET = 'test-secret-value-1234567890';
+
+test('Drive token is stored AES-256-GCM encrypted; tampering or a wrong key is refused', () => {
+  const enc = gd.encryptToken('1//refresh-token-value', SECRET);
+  assert.match(enc, /^v1\./);
+  assert.doesNotMatch(enc, /refresh-token-value/);
+  assert.equal(gd.decryptToken(enc, SECRET), '1//refresh-token-value');
+  assert.notEqual(gd.encryptToken('same', SECRET), gd.encryptToken('same', SECRET), 'fresh IV every time');
+  const parts = enc.split('.'); parts[3] = Buffer.from('x' + Buffer.from(parts[3], 'base64url').toString('latin1').slice(1), 'latin1').toString('base64url');
+  assert.throws(() => gd.decryptToken(parts.join('.'), SECRET));
+  assert.throws(() => gd.decryptToken(enc, 'another-secret-value-123'));
+});
+
+test('Google sign-in state is signed and expires', () => {
+  const st = gd.signState({ uid: 'u2', exp: Date.now() + 60_000 }, SECRET);
+  assert.equal(gd.verifyState(st, SECRET).uid, 'u2');
+  const [body, sig] = st.split('.');
+  assert.equal(gd.verifyState(body + '.' + (sig[0] === 'A' ? 'B' : 'A') + sig.slice(1), SECRET), null);
+  assert.equal(gd.verifyState((body[0] === 'e' ? 'f' : 'e') + body.slice(1) + '.' + sig, SECRET), null);
+  assert.equal(gd.verifyState(gd.signState({ uid: 'u2', exp: Date.now() - 1 }, SECRET), SECRET), null);
+  const forged = Buffer.from(JSON.stringify({ uid: 'attacker', exp: Date.now() + 1e6 })).toString('base64url') + '.' + st.split('.')[1];
+  assert.equal(gd.verifyState(forged, SECRET), null);
+});
+
+test('Drive files become gallery items (photos, videos; rotation and photo time)', () => {
+  const p = gd.toGalleryItem({ id: 'PHOTO_id_123456', name: 'meet.jpg', mimeType: 'image/jpeg', createdTime: '2026-11-04T10:00:00Z',
+    imageMediaMetadata: { width: 4000, height: 3000, rotation: 1, time: '2026:11:03 18:20:05' } }, 'FOLDER_id_12345');
+  assert.deepEqual(p, { drive_id: 'PHOTO_id_123456', folder_id: 'FOLDER_id_12345', name: 'meet.jpg', kind: 'photo', mime_type: 'image/jpeg',
+    width: 3000, height: 4000, sort_time: '2026-11-03T18:20:05+05:30' });
+  assert.equal(gd.toGalleryItem({ id: 'VIDEO_id_123456', mimeType: 'video/mp4', createdTime: 't', videoMediaMetadata: { width: 1920, height: 1080 } }, 'F').kind, 'video');
+  assert.equal(gd.toGalleryItem({ id: 'DOC_id_12345678', mimeType: 'application/pdf' }, 'F'), null);
+  assert.equal(gd.toGalleryItem({ id: 'bad id', mimeType: 'image/png' }, 'F'), null);
+  assert.deepEqual(gd.galleryFolders({}, 'UPLOAD_folder_1'), [gd.DEFAULT_GALLERY_FOLDER, 'UPLOAD_folder_1']);
+  assert.deepEqual(gd.galleryFolders({ GALLERY_FOLDER_ID: 'AAAAAAAAAAAA, bad, BBBBBBBBBBBB' }), ['AAAAAAAAAAAA', 'BBBBBBBBBBBB']);
+});
+
+test('gallery sync lists every page of each folder with the API key and saves the list', async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    calls.push(url);
+    const u = new URL(url);
+    assert.equal(u.searchParams.get('key'), 'AIza-test');
+    if (u.searchParams.get('q').includes(gd.DEFAULT_GALLERY_FOLDER)) {
+      return u.searchParams.get('pageToken')
+        ? Response.json({ files: [{ id: 'PHOTO_two_12345', mimeType: 'image/png', createdTime: '2026-01-02T00:00:00Z' }] })
+        : Response.json({ nextPageToken: 'p2', files: [{ id: 'PHOTO_one_12345', mimeType: 'image/jpeg', createdTime: '2026-01-01T00:00:00Z' }] });
+    }
+    return Response.json({ files: [{ id: 'VIDEO_one_12345', mimeType: 'video/mp4', createdTime: '2026-01-03T00:00:00Z' }] });
+  };
+  let saved;
+  const sb = fakeSb((q) => ({ data: q.table === 'drive_connection' ? { upload_folder_id: 'UPLOAD_folder_1' } : null, error: null }),
+    { rpc: (fn, args) => { saved = { fn, args }; return { data: { added: 3, updated: 0, removed: 0, total: 3 }, error: null }; } });
+  assert.equal((await gd.runGallerySync({ sb, env: {}, fetchImpl })).ok, false, 'no API key: nothing runs');
+  const out = await gd.runGallerySync({ sb, env: { GOOGLE_API_KEY: 'AIza-test' }, fetchImpl });
+  assert.equal(out.ok, true);
+  assert.equal(calls.length, 3);
+  assert.equal(saved.fn, 'apply_gallery_sync');
+  assert.deepEqual(saved.args.p_items.map((i) => i.drive_id), ['PHOTO_one_12345', 'PHOTO_two_12345', 'VIDEO_one_12345']);
+  assert.deepEqual(saved.args.p_folders, [gd.DEFAULT_GALLERY_FOLDER, 'UPLOAD_folder_1']);
+  await assert.rejects(gd.listFolder('MISSING_folder_1', 'k', async () => new Response('{}', { status: 404 })), /not shared as "Anyone with the link"/);
+});
+
+const oauthEnv = { GOOGLE_OAUTH_CLIENT_ID: 'cid.apps.googleusercontent.com', GOOGLE_OAUTH_CLIENT_SECRET: 'GOCSPX-secret', TOKEN_ENC_KEY: SECRET,
+  SITE_URL: 'https://simats-anime-club.vercel.app', GOOGLE_API_KEY: 'AIza-test' };
+
+test('connecting Drive: admin-only signed link, refresh token saved encrypted, upload folder made public', async () => {
+  const sbFor = (adminRow) => fakeSb((q) => {
+    if (q.table === 'profiles') return { data: adminRow, error: null };
+    if (q.table === 'drive_connection' && op(q, 'upsert')) return { data: null, error: null };
+    if (q.table === 'drive_connection') return { data: null, error: null };
+    return { data: null, error: null };
+  }, { rpc: () => ({ data: { added: 0, removed: 0, total: 0 }, error: null }) });
+  const user = { id: 'admin-1' };
+  const { url } = await gallery.handleAction({ sb: sbFor(null), env: oauthEnv, user, body: { action: 'connect-url' } });
+  const u = new URL(url);
+  assert.equal(u.searchParams.get('scope'), gd.DRIVE_SCOPE);
+  assert.equal(u.searchParams.get('redirect_uri'), 'https://simats-anime-club.vercel.app/api/gallery');
+  assert.equal(u.searchParams.get('access_type'), 'offline');
+  const state = u.searchParams.get('state');
+
+  // a non-admin (or a stale link) cannot finish the connection
+  const cb = async (sb, query) => decodeURIComponent(await gallery.handleCallback({ sb, env: oauthEnv, query }));
+  assert.match(await cb(sbFor({ id: 'admin-1', is_admin: false, membership_status: 'approved' }), { code: 'c', state }), /Only club admins/);
+  assert.match(await cb(sbFor(null), { code: 'c', state: 'forged.state' }), /expired/);
+  assert.match(await cb(sbFor(null), { error: 'access_denied' }), /cancelled/);
+
+  const google = [];
+  const fetchImpl = async (url, opts = {}) => {
+    google.push([String(url), opts.method || 'GET', opts.body]);
+    if (String(url).startsWith('https://oauth2.googleapis.com/token')) return Response.json({ access_token: 'ya29.access', refresh_token: '1//refresh-secret', expires_in: 3599 });
+    if (String(url).includes('/permissions')) return Response.json({ id: 'anyoneWithLink' });
+    if (String(url).includes('/about')) return Response.json({ user: { emailAddress: 'animeclubsimats@gmail.com' } });
+    if (String(url).includes('/drive/v3/files?fields=id')) return Response.json({ id: 'NEW_folder_12345' });
+    return Response.json({ files: [] });
+  };
+  const sb = sbFor({ id: 'admin-1', is_admin: true, membership_status: 'approved' });
+  assert.equal(await gallery.handleCallback({ sb, env: oauthEnv, query: { code: 'auth-code', state }, fetchImpl }), 'drive=connected');
+  const saved = sb.calls.find((c) => c.table === 'drive_connection' && op(c, 'upsert'));
+  const row = op(saved, 'upsert')[0];
+  assert.equal(row.upload_folder_id, 'NEW_folder_12345');
+  assert.equal(row.account_email, 'animeclubsimats@gmail.com');
+  assert.doesNotMatch(row.refresh_token_enc, /refresh-secret/, 'never stored in plain text');
+  assert.equal(gd.decryptToken(row.refresh_token_enc, SECRET), '1//refresh-secret');
+  const perm = google.find(([u]) => u.includes('/permissions'));
+  assert.deepEqual(JSON.parse(perm[2]), { role: 'reader', type: 'anyone' });
+  assert.ok(sb.calls.some((c) => c.table === 'moderation_log' && op(c, 'insert')?.[0].action === 'drive_connected'));
+});
+
+test('upload token comes from the saved connection; a revoked connection asks to reconnect', async () => {
+  const enc = gd.encryptToken('1//refresh-secret', SECRET);
+  const sb = fakeSb((q) => ({ data: q.table === 'drive_connection' ? { refresh_token_enc: enc, upload_folder_id: 'UP_folder_12345' } : null, error: null }));
+  const ok = await gallery.handleAction({ sb, env: oauthEnv, user: { id: 'a' }, body: { action: 'upload-token' },
+    fetchImpl: async (url, opts) => { assert.match(opts.body, /refresh_token=1%2F%2Frefresh-secret/); return Response.json({ access_token: 'ya29.short', expires_in: 3599 }); } });
+  assert.deepEqual(ok, { access_token: 'ya29.short', expires_in: 3599, folder_id: 'UP_folder_12345' });
+  await assert.rejects(gallery.handleAction({ sb, env: oauthEnv, user: { id: 'a' }, body: { action: 'upload-token' },
+    fetchImpl: async () => Response.json({ error: 'invalid_grant' }, { status: 400 }) }), /Connect Google Drive again/);
+  await assert.rejects(gallery.handleAction({ sb, env: { ...oauthEnv, TOKEN_ENC_KEY: 'a-different-key-12345678' }, user: { id: 'a' }, body: { action: 'upload-token' } }), /cannot be read/);
+  await assert.rejects(gallery.handleAction({ sb, env: {}, user: { id: 'a' }, body: { action: 'upload-token' } }), /not set up/);
+  await assert.rejects(gallery.handleAction({ sb, env: oauthEnv, user: { id: 'a' }, body: { action: 'nope' } }), /Unknown action/);
+  const st = await gallery.handleAction({ sb, env: oauthEnv, user: { id: 'a' }, body: { action: 'status' } });
+  assert.deepEqual([st.listing, st.uploads, st.connected], [true, true, true]);
+  assert.ok(!('refresh_token_enc' in st), 'status never returns the token');
 });
