@@ -1,5 +1,9 @@
 # SIMATS Anime Club — Cinematic Intro V3
 
+**Live site: [simats-anime-club.vercel.app](https://simats-anime-club.vercel.app/)** · [Join the club](https://forms.gle/Sns8qhu15cQ7UoHT7) · [Instagram @animeclubsimats](https://www.instagram.com/animeclubsimats/)
+
+The official website of SIMATS Anime Club, the student-run anime community at Saveetha School of Engineering, SIMATS, Chennai.
+
 > **Club Hub (sign-in, polls, comments, admin dashboard, Drive event sync):** see [BACKEND.md](BACKEND.md) for setup, deployment and the testing report.
 
 Open **index.html** in any modern browser. No build step, server or internet connection is needed for the intro (fonts ship in `assets/fonts`). The Club Hub pages (`/members`, `/admin`) need the Supabase setup in BACKEND.md.

@@ -464,7 +464,7 @@
 
     view.replaceChildren(
       section('Events', 'Imported every Monday morning from the Google Drive sheet. Events you add or edit here are never overwritten by the sync.',
-        btn('+ Add event', () => eventEditor(null), 'primary')),
+        btn('Cancel a Tuesday meet', () => cancelTuesday(evs), 'danger'), btn('+ Add event', () => eventEditor(null), 'primary')),
       h('div', { class: 'card' }, h('h3', { text: 'Google Drive sync' }),
         h('p', { class: 'hint', text: 'A failed sync never removes events: the site keeps the last good data.' }),
         h('div', { class: 'row', style: 'margin-top:8px' }, syncBtn), result,
@@ -566,6 +566,51 @@
         render();
       } catch (x) { toast(x.message, 'err'); }
     });
+  }
+
+  // Cancel one of the weekly Tuesday meets: it shows as cancelled on the home-page calendar,
+  // a notice is posted and members are emailed. (Behind the scenes it is a "Tuesday meet" event that gets cancelled.)
+  const istKey = (iso) => { const t = new Date(new Date(iso).getTime() + 5.5 * 3600e3); return t.toISOString().slice(0, 10); };
+  const isWeeklyMeet = (e) => /WEEKLY MEET/i.test(e.category || '') || /\b(tuesday|weekly) meet\b/i.test(e.title || '');
+  function cancelTuesday(evs) {
+    const today = new Date(Date.now() + 5.5 * 3600e3);
+    const tuesdays = [];
+    for (let i = 0; tuesdays.length < 16 && i < 120; i++) {
+      const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + i));
+      if (d.getUTCDay() === 2) tuesdays.push(d.toISOString().slice(0, 10));
+    }
+    const label = (k) => new Date(k + 'T00:00:00Z').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const taken = (k) => evs.find((e) => e.status === 'cancelled' && isWeeklyMeet(e) && istKey(e.starts_at) === k);
+    const sel = h('select', { class: 'input' }, tuesdays.map((k) => h('option', { value: k, text: label(k) + (taken(k) ? ' — already cancelled' : ''), disabled: !!taken(k) })));
+    const firstFree = tuesdays.find((k) => !taken(k)); if (firstFree) sel.value = firstFree;
+    const why = h('textarea', { class: 'input', rows: 3, maxlength: 500, placeholder: 'e.g. Internal exams this week — see you next Tuesday!' });
+    const err = h('div', { class: 'note err', hidden: true, role: 'alert' });
+    const go = h('button', { class: 'btn danger', type: 'button', text: 'Cancel this meet' });
+    const dlg = h('dialog', { class: 'dlg', style: 'width:min(560px,94vw)' },
+      h('h3', { text: 'Cancel a Tuesday meet' }),
+      h('p', { class: 'sub', text: 'The day shows as cancelled on the home-page calendar, a notice goes on the notice board and under the bell, and approved members get an email.' }),
+      h('label', { class: 'f' }, h('span', null, 'Which Tuesday'), sel),
+      h('label', { class: 'f' }, h('span', null, 'Reason (everyone will see this)'), why), err,
+      h('div', { class: 'row end' }, h('button', { class: 'btn ghost', type: 'button', text: 'Keep the meet', onclick: () => dlg.close() }), go));
+    go.addEventListener('click', () => {
+      err.hidden = true;
+      if (why.value.trim().length < 5) { err.textContent = 'Please say why (at least 5 characters).'; err.hidden = false; why.focus(); return; }
+      busy(go, async () => {
+        try {
+          const k = sel.value;
+          const existing = evs.find((e) => e.status !== 'hidden' && e.status !== 'cancelled' && isWeeklyMeet(e) && istKey(e.starts_at) === k);
+          const id = existing?.id || await rpc('admin_save_event', { p_id: null, p_title: 'Tuesday meet', p_starts_at: `${k}T00:00:00+05:30`, p_ends_at: null,
+            p_venue: null, p_description: null, p_image_url: null, p_category: 'WEEKLY MEET', p_status: 'scheduled' });
+          const noticeId = await rpc('admin_cancel_event', { p_id: id, p_reason: why.value });
+          dlg.close();
+          toast(`Tuesday meet on ${label(k)} cancelled.`, 'ok');
+          await emailNotice(noticeId);
+          render();
+        } catch (x) { err.textContent = x.message; err.hidden = false; }
+      });
+    });
+    dlg.addEventListener('close', () => dlg.remove());
+    document.body.append(dlg); dlg.showModal(); why.focus();
   }
 
   // ======================= NOTICES =======================
