@@ -208,6 +208,20 @@
     .cal-d.cd-next { animation:nextPulse 1.8s ease-in-out infinite; }
     .cal-d.cd-next .cd-tag { position:absolute; bottom:-7px; left:50%; transform:translateX(-50%); background:#e6c06f; color:#4a0f1a; font-size:7.5px; font-weight:800; letter-spacing:.12em; padding:1px 4px; border-radius:4px; }
     @keyframes nextPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.08); } }
+    .cal-d[role="button"] { cursor:pointer; }
+    .cal-d[role="button"]:focus-visible { outline:2px solid #b0122f; outline-offset:2px; }
+    .cal-d.cd-picked { box-shadow:inset 0 0 0 2px #e6c06f, 0 0 0 2px #b0122f; }
+    .cal-d.cd-cx { background:repeating-linear-gradient(135deg,#f6d3da 0 5px,#ebb7c1 5px 10px); color:#9a1f35; box-shadow:inset 0 0 0 1.5px #c4243f; }
+    .cal-d .cd-tag.cx { position:absolute; bottom:-7px; left:50%; transform:translateX(-50%); background:#c4243f; color:#fff; font-size:7.5px; font-weight:800; letter-spacing:.12em; padding:1px 4px; border-radius:4px; text-decoration:none; }
+    .cal-d.cd-ev::after { content:""; position:absolute; bottom:4px; left:50%; transform:translateX(-50%); width:6px; height:6px; border-radius:50%; background:#e6c06f; box-shadow:0 0 0 1.5px #fff; }
+    .cal-d.cd-ev.cd-hol::after { left:calc(50% + 5px); }
+    .cal-d.cd-evx::after { background:#c4243f; }
+    .cal-detail { margin-top:12px; padding:10px 12px; border-radius:10px; background:#fff7ef; border:1px solid #ecd6c2; font-size:12.5px; color:#5a2a30; }
+    .cal-detail .cdt-date { font-weight:800; color:#b0122f; font-size:11px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:4px; }
+    .cal-detail .cdt-row { padding:3px 0; line-height:1.5; }
+    .cal-detail .cdt-row.cx b { text-decoration:line-through; }
+    .cal-detail .cdt-x { background:#c4243f; color:#fff; font-size:9px; font-weight:800; letter-spacing:.14em; padding:1px 5px; border-radius:3px; }
+    .cal-detail .cdt-why { color:#7a4a50; font-size:12px; }
     .cal-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:14px; font-size:11px; font-weight:700; color:#6b4048; }
     .cal-legend i { display:inline-block; width:12px; height:12px; border-radius:4px; vertical-align:-2px; margin-right:5px; }
     .meet-card { border:1px solid rgba(230,192,111,.45); border-radius:20px; padding:24px 22px; background:linear-gradient(160deg,rgba(144,0,24,.35),rgba(12,2,5,.9) 65%); display:flex; flex-direction:column; gap:10px; }
@@ -1821,6 +1835,8 @@
   })();
 
   // ---------- Weekly meet calendar (every Tuesday, skipping Tamil Nadu holidays) ----------
+  // Connected to the club events: a Tuesday meet cancelled in the admin dashboard shows as cancelled
+  // (with the reason), and other events get a marker; tap a marked day for the details.
   (()=>{
     const cal=$('#meetCal'), card=$('#meetCard');
     const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1829,60 +1845,102 @@
     const istNow=new Date(Date.now()+5.5*3600e3);                   // today's date in India
     const TY=istNow.getUTCFullYear(), TM=istNow.getUTCMonth(), TD=istNow.getUTCDate(), TODAY=key(TY,TM,TD);
     const dow=(y,m,d)=>new Date(Date.UTC(y,m,d)).getUTCDay();
-    // list upcoming meet days (and skipped ones) for ~a year
-    const meets=[], skipped=[];
-    for(let i=0;i<380;i++){ const dt=new Date(Date.UTC(TY,TM,TD+i)), y=dt.getUTCFullYear(), m=dt.getUTCMonth(), d=dt.getUTCDate();
-      if(dt.getUTCDay()!==MEET.weekday) continue; const k=key(y,m,d);
-      (TN_HOLIDAYS[k]?skipped:meets).push({k,y,m,d,why:TN_HOLIDAYS[k]}); }
-    const next=meets[0];
-    let vy=next?next.y:TY, vm=next?next.m:TM;   // open on the month of the next meet
+    const istKey=(iso)=>{ const t=new Date(new Date(iso).getTime()+5.5*3600e3); return key(t.getUTCFullYear(),t.getUTCMonth(),t.getUTCDate()); };
+    const istTime=(iso)=>{ const t=new Date(new Date(iso).getTime()+5.5*3600e3); return t.getUTCHours()||t.getUTCMinutes()?new Date(iso).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Kolkata'}):''; };
+    let EV={};                                                         // 'YYYY-MM-DD' -> events that day
+    // a cancelled weekly meet (made with "Cancel a Tuesday meet" in the admin dashboard, or titled like one)
+    const meetCancel=(k)=>(EV[k]||[]).find(e=>e.status==='cancelled'&&(/WEEKLY MEET/i.test(e.category||'')||/\b(tuesday|weekly) meet\b/i.test(e.title||'')));
+    let meets=[], skipped=[], next=null, vy=TY, vm=TM, opened=false, picked=null;
+    function plan(){   // upcoming meet days (and skipped ones) for ~a year
+      meets=[]; skipped=[];
+      for(let i=0;i<380;i++){ const dt=new Date(Date.UTC(TY,TM,TD+i)), y=dt.getUTCFullYear(), m=dt.getUTCMonth(), d=dt.getUTCDate();
+        if(dt.getUTCDay()!==MEET.weekday) continue; const k=key(y,m,d), cx=meetCancel(k);
+        if(TN_HOLIDAYS[k]) skipped.push({k,y,m,d,why:TN_HOLIDAYS[k]});
+        else if(cx) skipped.push({k,y,m,d,why:'cancelled'+(cx.cancel_reason?': '+cx.cancel_reason:''),cancelled:true});
+        else meets.push({k,y,m,d}); }
+      next=meets[0];
+      if(!opened){ opened=true; if(next){ vy=next.y; vm=next.m; } }   // open on the month of the next meet
+    }
     const nice=(o)=>new Date(Date.UTC(o.y,o.m,o.d)).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+    function detail(k){
+      const box=cal.querySelector('.cal-detail'); if(!box) return;
+      const [y,m,d]=k.split('-').map(Number), list=EV[k]||[], hol=TN_HOLIDAYS[k];
+      const isMeet=dow(y,m-1,d)===MEET.weekday;
+      const rows=[];
+      if(isMeet&&!hol&&!meetCancel(k)) rows.push(`<div class="cdt-row"><b>Club meet</b>${MEET.time?' · '+esc(MEET.time):''}${MEET.venue?' · '+esc(MEET.venue):''}</div>`);
+      if(hol) rows.push(`<div class="cdt-row">${isMeet?'<b>No meet</b> · ':''}${esc(hol)}</div>`);
+      list.forEach(e=>{ const cx=e.status==='cancelled', tm=istTime(e.starts_at);
+        rows.push(`<div class="cdt-row${cx?' cx':''}">${cx?'<span class="cdt-x">CANCELLED</span> ':''}<b>${esc(e.title)}</b>${tm?' · '+esc(tm):''}${e.venue?' · '+esc(e.venue):''}${cx&&e.cancel_reason?`<div class="cdt-why">Reason: ${esc(e.cancel_reason)}</div>`:''}</div>`); });
+      box.innerHTML=`<div class="cdt-date">${esc(nice({y,m:m-1,d}))}</div>${rows.join('')||'<div class="cdt-row">Nothing planned.</div>'}`;
+      box.hidden=false;
+    }
     function draw(){
       const first=(dow(vy,vm,1)+6)%7, days=new Date(Date.UTC(vy,vm+1,0)).getUTCDate();
       let g=DOW.map((n,i)=>`<div class="cal-dow${(i+1)%7===MEET.weekday?' tue':''}">${n}</div>`).join('');
       for(let i=0;i<first;i++) g+='<div class="cal-d cd-blank"></div>';
       for(let d=1;d<=days;d++){
         const k=key(vy,vm,d), w=dow(vy,vm,d), hol=TN_HOLIDAYS[k], past=k<TODAY; let c='cal-d', t='', lab=`${d} ${MONTHS[vm]}`;
-        if(w===MEET.weekday){ if(hol){ c+=' cd-off'; t=`No meet: ${hol}`; } else { c+=' cd-on'; t='Club meet'; } }
+        const cx=w===MEET.weekday&&!hol?meetCancel(k):null, others=(EV[k]||[]).filter(e=>e!==cx);
+        if(w===MEET.weekday){ if(hol){ c+=' cd-off'; t=`No meet: ${hol}`; } else if(cx){ c+=' cd-off cd-cx'; t='No meet: cancelled'+(cx.cancel_reason?' ('+cx.cancel_reason+')':''); } else { c+=' cd-on'; t='Club meet'; } }
         else if(hol){ c+=' cd-hol'; t=hol; }
-        if(past) c+=' cd-past'; if(k===TODAY) c+=' cd-today';
+        if(others.length){ c+=' cd-ev'+(others.every(e=>e.status==='cancelled')?' cd-evx':''); t+=(t?' · ':'')+others.map(e=>(e.status==='cancelled'?'Cancelled: ':'')+e.title).join(', '); }
+        if(past) c+=' cd-past'; if(k===TODAY) c+=' cd-today'; if(k===picked) c+=' cd-picked';
         const isNext=next&&k===next.k; if(isNext) c+=' cd-next';
-        g+=`<div class="${c}" title="${esc(t)}" aria-label="${esc(lab+(t?', '+t:''))}">${d}${isNext?'<span class="cd-tag">NEXT</span>':''}</div>`;
+        const tap=!!(cx||others.length||hol||w===MEET.weekday);
+        g+=`<div class="${c}" data-k="${k}" title="${esc(t)}" aria-label="${esc(lab+(t?', '+t:''))}"${tap?' role="button" tabindex="0"':''}>${d}${isNext?'<span class="cd-tag">NEXT</span>':''}${cx?'<span class="cd-tag cx">OFF</span>':''}</div>`;
       }
       const atStart=vy===TY&&vm===TM, maxM=(TY*12+TM)+11;
       cal.innerHTML=`<div class="cal-head"><button class="cal-nav" type="button" aria-label="Previous month" ${atStart?'disabled':''}>‹</button>
         <div class="cal-title" aria-live="polite">${MONTHS[vm]} ${vy}<small>MEET EVERY TUESDAY</small></div>
         <button class="cal-nav" type="button" aria-label="Next month" ${vy*12+vm>=maxM?'disabled':''}>›</button></div>
         <div class="cal-grid">${g}</div>
-        <div class="cal-legend"><span><i style="background:#c4243f"></i>Club meet</span><span><i style="background:repeating-linear-gradient(135deg,#efe2d4 0 3px,#d9c3ae 3px 6px)"></i>Holiday, no meet</span><span><i style="background:#9a6420;border-radius:50%;width:7px;height:7px;margin:0 6px 1px 3px"></i>TN holiday</span></div>`;
+        <div class="cal-detail" aria-live="polite" hidden></div>
+        <div class="cal-legend"><span><i style="background:#c4243f"></i>Club meet</span><span><i style="background:repeating-linear-gradient(135deg,#efe2d4 0 3px,#d9c3ae 3px 6px)"></i>Holiday, no meet</span><span><i style="background:repeating-linear-gradient(135deg,#f6d3da 0 3px,#e0a3af 3px 6px);outline:1px solid #c4243f"></i>Meet cancelled</span><span><i style="background:#e6c06f;border-radius:50%;width:7px;height:7px;margin:0 6px 1px 3px"></i>Club event</span><span><i style="background:#9a6420;border-radius:50%;width:7px;height:7px;margin:0 6px 1px 3px"></i>TN holiday</span></div>`;
       const [pv,nx]=cal.querySelectorAll('.cal-nav');
       pv.onclick=()=>{ if(--vm<0){vm=11;vy--;} draw(); }; nx.onclick=()=>{ if(++vm>11){vm=0;vy++;} draw(); };
+      cal.querySelectorAll('.cal-d[role="button"]').forEach(el=>{
+        const go=()=>{ picked=el.dataset.k; cal.querySelectorAll('.cd-picked').forEach(x=>x.classList.remove('cd-picked')); el.classList.add('cd-picked'); detail(picked); };
+        el.addEventListener('click',go); el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+      });
+      if(picked&&picked.slice(0,7)===`${vy}-${pad(vm+1)}`) detail(picked);
     }
-    draw();
-    // card
-    const lim=new Date(Date.UTC(TY,TM+6,TD)), limK=key(lim.getUTCFullYear(),lim.getUTCMonth(),lim.getUTCDate());
-    const soon=skipped.filter(s=>s.k<=limK).slice(0,3);
-    card.innerHTML=`<span class="ev-tag" style="align-self:flex-start">WEEKLY MEET</span>
+    function drawCard(){
+      const lim=new Date(Date.UTC(TY,TM+6,TD)), limK=key(lim.getUTCFullYear(),lim.getUTCMonth(),lim.getUTCDate());
+      const soon=skipped.filter(s=>s.k<=limK).slice(0,4);
+      card.innerHTML=`<span class="ev-tag" style="align-self:flex-start">WEEKLY MEET</span>
       <div class="big">Every Tuesday</div>
       ${next?`<div class="next">Next meet: <b>${nice(next)}</b></div>`:''}
       <div class="meta">${MEET.time?esc(MEET.time)+(MEET.venue?' · ':''):''}${MEET.venue?esc(MEET.venue):''}${MEET.time||MEET.venue?'<br>':''}${esc(MEET.note)}</div>
       <div class="skipnote">${soon.length?'No meet on '+soon.map(s=>`<b>${nice(s)}</b> (${esc(s.why)})`).join(', ')+'.':'No Tuesday holidays in the next few months, so every Tuesday is on!'}</div>
       <div class="btns"><a class="wa" href="${WA_LINK}" target="_blank" rel="noopener">JOIN ON WHATSAPP ↗</a><a id="meetG" target="_blank" rel="noopener">GOOGLE CAL</a><button type="button" id="meetIcs">ADD .ICS</button></div>`;
-    // recurring calendar entries (all-day unless MEET.time is set)
-    if(next){
-      const ymd=(o)=>`${o.y}${pad(o.m+1)}${pad(o.d)}`, nd=new Date(Date.UTC(next.y,next.m,next.d+1));
-      const end1={y:nd.getUTCFullYear(),m:nd.getUTCMonth(),d:nd.getUTCDate()};
-      const tz=(t)=>t.replace(':','')+'00';
-      const dates=MEET.time?`${ymd(next)}T${tz(MEET.time)}/${ymd(next)}T${tz(MEET.end||MEET.time)}`:`${ymd(next)}/${ymd(end1)}`;
-      $('#meetG').href=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('SIMATS Anime Club meet')}&dates=${dates}${MEET.time?'&ctz=Asia/Kolkata':''}&recur=${encodeURIComponent('RRULE:FREQ=WEEKLY;BYDAY=TU')}&details=${encodeURIComponent(MEET.note)}&location=${encodeURIComponent(MEET.venue||'SIMATS')}`;
-      $('#meetIcs').onclick=()=>{
-        const ex=skipped.map(s=>MEET.time?`EXDATE;TZID=Asia/Kolkata:${ymd(s)}T${tz(MEET.time)}`:`EXDATE;VALUE=DATE:${ymd(s)}`);
-        const st=MEET.time?[`DTSTART;TZID=Asia/Kolkata:${ymd(next)}T${tz(MEET.time)}`,`DTEND;TZID=Asia/Kolkata:${ymd(next)}T${tz(MEET.end||MEET.time)}`]:[`DTSTART;VALUE=DATE:${ymd(next)}`,`DTEND;VALUE=DATE:${ymd(end1)}`];
-        const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//SIMATS Anime Club//EN','BEGIN:VEVENT','UID:simats-weekly-meet@simats-anime-club',
-          'DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),...st,'RRULE:FREQ=WEEKLY;BYDAY=TU',...ex,
-          'SUMMARY:SIMATS Anime Club meet','LOCATION:'+(MEET.venue||'SIMATS'),'DESCRIPTION:'+MEET.note,'END:VEVENT','END:VCALENDAR'].join('\r\n');
-        const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); a.download='simats-anime-club-tuesday-meet.ics'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);
-      };
+      // recurring calendar entries (all-day unless MEET.time is set); skipped Tuesdays (holidays, cancellations) are left out of the .ics
+      if(next){
+        const ymd=(o)=>`${o.y}${pad(o.m+1)}${pad(o.d)}`, nd=new Date(Date.UTC(next.y,next.m,next.d+1));
+        const end1={y:nd.getUTCFullYear(),m:nd.getUTCMonth(),d:nd.getUTCDate()};
+        const tz=(t)=>t.replace(':','')+'00';
+        const dates=MEET.time?`${ymd(next)}T${tz(MEET.time)}/${ymd(next)}T${tz(MEET.end||MEET.time)}`:`${ymd(next)}/${ymd(end1)}`;
+        $('#meetG').href=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('SIMATS Anime Club meet')}&dates=${dates}${MEET.time?'&ctz=Asia/Kolkata':''}&recur=${encodeURIComponent('RRULE:FREQ=WEEKLY;BYDAY=TU')}&details=${encodeURIComponent(MEET.note)}&location=${encodeURIComponent(MEET.venue||'SIMATS')}`;
+        $('#meetIcs').onclick=()=>{
+          const ex=skipped.map(s=>MEET.time?`EXDATE;TZID=Asia/Kolkata:${ymd(s)}T${tz(MEET.time)}`:`EXDATE;VALUE=DATE:${ymd(s)}`);
+          const st=MEET.time?[`DTSTART;TZID=Asia/Kolkata:${ymd(next)}T${tz(MEET.time)}`,`DTEND;TZID=Asia/Kolkata:${ymd(next)}T${tz(MEET.end||MEET.time)}`]:[`DTSTART;VALUE=DATE:${ymd(next)}`,`DTEND;VALUE=DATE:${ymd(end1)}`];
+          const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//SIMATS Anime Club//EN','BEGIN:VEVENT','UID:simats-weekly-meet@simats-anime-club',
+            'DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),...st,'RRULE:FREQ=WEEKLY;BYDAY=TU',...ex,
+            'SUMMARY:SIMATS Anime Club meet','LOCATION:'+(MEET.venue||'SIMATS'),'DESCRIPTION:'+MEET.note,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+          const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); a.download='simats-anime-club-tuesday-meet.ics'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);
+        };
+      }
+    }
+    plan(); draw(); drawCard();
+    // club events from the database (scheduled, postponed and cancelled, from the start of this month)
+    const cfg=window.CLUB_CONFIG||{};
+    if(cfg.supabaseUrl&&cfg.supabaseKey){
+      const from=new Date(Date.UTC(TY,TM,1)-5.5*3600e3).toISOString();
+      fetch(cfg.supabaseUrl+'/rest/v1/events?select=id,title,starts_at,venue,category,status,cancel_reason&status=in.(scheduled,postponed,cancelled)&starts_at=gte.'+encodeURIComponent(from)+'&order=starts_at.asc&limit=300',{headers:{apikey:cfg.supabaseKey}})
+        .then(r=>r.ok?r.json():[]).then(list=>{
+          if(!Array.isArray(list)||!list.length) return;
+          EV={}; list.forEach(e=>{ if(!e||!e.starts_at||!e.title) return; (EV[istKey(e.starts_at)]=EV[istKey(e.starts_at)]||[]).push(e); });
+          plan(); draw(); drawCard();
+        }).catch(()=>{});
     }
   })();
 

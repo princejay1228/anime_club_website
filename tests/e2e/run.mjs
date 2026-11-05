@@ -362,6 +362,46 @@ await step('office bearers, notices under the bell, and cancelling a meeting wit
   assert.equal(await visitor.$eval('.bell-badge', (b) => b.hidden), true);
 });
 
+await step('cancelling a Tuesday meet marks it on the home calendar; events show on the calendar', async () => {
+  await adminPage.goto(BASE + '/admin#events');
+  await waitText(adminPage, '#view', /Cancel a Tuesday meet/);
+  await clickText(adminPage, '#view', 'Cancel a Tuesday meet');
+  await adminPage.waitForSelector('dialog[open] select');
+  const day = await adminPage.evaluate(() => { const s = document.querySelector('dialog[open] select'); const o = [...s.options].filter((x) => !x.disabled)[1]; s.value = o.value; return o.value; });
+  await clickText(adminPage, 'dialog[open]', 'Cancel this meet');
+  assert.match(await text(adminPage, 'dialog[open] .note.err'), /why/i);             // reason required
+  await adminPage.type('dialog[open] textarea', 'College fest in the auditorium');
+  await clickText(adminPage, 'dialog[open]', 'Cancel this meet');
+  await adminPage.waitForFunction(() => !document.querySelector('dialog[open]'), { timeout: 8000 });
+  const ev = (await db.query(`select title, category, status, cancel_reason, to_char(starts_at at time zone 'Asia/Kolkata', 'YYYY-MM-DD') as d from events where category = 'WEEKLY MEET'`)).rows;
+  assert.deepEqual(ev, [{ title: 'Tuesday meet', category: 'WEEKLY MEET', status: 'cancelled', cancel_reason: 'College fest in the auditorium', d: day }]);
+
+  const home = await pageAs(null);
+  await home.goto(BASE + '/');
+  await home.waitForSelector('#meetCal .cal-d');
+  // the calendar re-draws once the events arrive; find the cancelled Tuesday (it may be next month)
+  const found = await home.waitForFunction((k) => {
+    if (document.querySelector(`#meetCal .cal-d.cd-cx[data-k="${k}"]`)) return true;
+    const nx = [...document.querySelectorAll('#meetCal .cal-nav')][1]; if (nx && !nx.disabled) nx.click(); return false;
+  }, { timeout: 10000, polling: 500 }, day).then(() => true, () => false);
+  assert.ok(found, 'cancelled Tuesday is marked on the calendar');
+  await home.evaluate((k) => document.querySelector(`#meetCal .cal-d[data-k="${k}"]`).click(), day);
+  await waitText(home, '#meetCal .cal-detail', /CANCELLED[\s\S]*Tuesday meet[\s\S]*Reason: College fest in the auditorium/);
+  assert.match(await text(home, '#meetCard'), /College fest in the auditorium/, 'the meet card lists it under "No meet on"');
+  await home.evaluate(() => document.querySelector('#events .meet-wrap').scrollIntoView({ block: 'center' }));
+  await (await home.$('#events .meet-wrap')).screenshot({ path: path.join(OUT, '14g-home-calendar-cancelled.png') });
+  // a club event day has a marker; tapping it shows the event
+  const quizDay = (await db.query(`select to_char(starts_at at time zone 'Asia/Kolkata', 'YYYY-MM-DD') as d from events where title = 'Spin-the-Wheel Quiz'`)).rows[0].d;
+  await home.evaluate(() => { const pv = document.querySelectorAll('#meetCal .cal-nav')[0]; for (let i = 0; i < 3; i++) if (!pv.disabled) pv.click(); });
+  const shown = await home.waitForFunction((k) => {
+    if (document.querySelector(`#meetCal .cal-d.cd-ev[data-k="${k}"]`)) return true;
+    const nx = [...document.querySelectorAll('#meetCal .cal-nav')][1]; if (nx && !nx.disabled) nx.click(); return false;
+  }, { timeout: 10000, polling: 500 }, quizDay).then(() => true, () => false);
+  assert.ok(shown, 'event day has a marker');
+  await home.evaluate((k) => document.querySelector(`#meetCal .cal-d[data-k="${k}"]`).click(), quizDay);
+  await waitText(home, '#meetCal .cal-detail', /Spin-the-Wheel Quiz[\s\S]*3:30/);
+});
+
 await step('gallery: Drive items replace the built-in photos; admins hide items; uploads need setup', async () => {
   await db.query(`insert into gallery_items (drive_id, folder_id, name, kind, width, height, sort_time) values
     ('PHOTO_meet_00001', 'FOLDER_main_000', 'quiz.jpg', 'photo', 1600, 1200, now() - interval '1 day'),

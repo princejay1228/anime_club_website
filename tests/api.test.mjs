@@ -9,7 +9,7 @@ import { readEventSheet, getGoogleAccessToken } from '../api/_lib/drive-source.j
 import { runSync } from '../api/sync-events.js';
 import syncHandler from '../api/sync-events.js';
 import notifyHandler, { notify, buildEmail } from '../api/notify-admin.js';
-import { notifyMembers, buildNoticeEmail, BATCH } from '../api/notify-members.js';
+import { notifyMembers, buildNoticeEmail } from '../api/notify-members.js';
 import { requireAdmin, redact, safeEqual } from '../api/_lib/server.js';
 
 // ---------- a tiny fake Supabase client ----------
@@ -318,29 +318,35 @@ const fakeTransport = (sentLog, failOn = -1) => () => ({
   close() {},
 });
 
-test('member notice email: BCC in batches, escaped, from the club Gmail, claimed once', async () => {
-  const members = Array.from({ length: BATCH + 5 }, (_, i) => ({ email: `m${i}@example.com` }))
+test('member notice email: one copy per member (no BCC), unsubscribe header, escaped, claimed once', async () => {
+  const members = Array.from({ length: 7 }, (_, i) => ({ email: `m${i}@example.com` }))
     .concat([{ email: 'M0@Example.com' }, { email: 'not-an-email' }, { email: null }]);
   const sent = [];
   const sb = noticeSb({ members });
   const env = { GMAIL_APP_PASSWORD: 'abcd efgh ijkl mnop', SITE_URL: 'https://simats-anime-club.vercel.app' };
   const out = await notifyMembers({ sb, env, noticeId: 7, makeTransport: fakeTransport(sent) });
-  assert.deepEqual(out, { sent: BATCH + 5, failed: 0 });
-  assert.equal(sent.length, 2, 'two batches');
-  assert.equal(sent[0].bcc.length, BATCH);
-  assert.equal(sent[0].to, 'animeclubsimats@gmail.com', 'members are only in BCC');
+  assert.deepEqual(out, { sent: 7, failed: 0 });
+  assert.equal(sent.length, 7, 'one email per member, duplicates and bad addresses dropped');
+  assert.deepEqual(sent.map((m) => m.to).sort(), Array.from({ length: 7 }, (_, i) => `m${i}@example.com`).sort());
+  assert.ok(sent.every((m) => !m.bcc), 'no BCC lists');
   assert.match(sent[0].from, /animeclubsimats@gmail\.com/);
-  assert.ok(!sent.flatMap((m) => m.bcc).includes('not-an-email'));
-  assert.equal(new Set(sent.flatMap((m) => m.bcc)).size, BATCH + 5, 'duplicates removed');
+  assert.equal(sent[0].replyTo, 'animeclubsimats@gmail.com');
+  assert.match(sent[0].headers['List-Unsubscribe'], /^<mailto:animeclubsimats@gmail\.com\?subject=Unsubscribe/);
   assert.match(sent[0].html, /Room &lt;change&gt;/);
   assert.doesNotMatch(sent[0].html, /<b>snacks<\/b>/);
   assert.match(sent[0].html, /\/members#notices/);
+  assert.match(sent[0].text, /reply with "unsubscribe"/);
   const final = sb.calls.filter((c) => c.table === 'notices' && op(c, 'update')).pop();
-  assert.equal(op(final, 'update')[0].email_count, BATCH + 5);
+  assert.equal(op(final, 'update')[0].email_count, 7);
   // already claimed: nothing is sent again
   const again = await notifyMembers({ sb: noticeSb({ members, claim: false }), env, noticeId: 7, makeTransport: fakeTransport(sent) });
   assert.equal(again.reason, 'already-emailed-or-missing');
-  assert.equal(sent.length, 2);
+  assert.equal(sent.length, 7);
+  // one bad address doesn't stop the rest
+  const some = [];
+  const partly = await notifyMembers({ sb: noticeSb({ members }), env, noticeId: 7, makeTransport: fakeTransport(some, 1) });
+  assert.equal(partly.sent, 6);
+  assert.equal(partly.reason, 'partly-sent');
 });
 
 test('member notice email: not configured, bad id, failure releases the claim and hides the password', async () => {

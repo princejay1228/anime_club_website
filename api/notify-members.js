@@ -2,14 +2,17 @@
 // Emails a notice (or a meeting cancellation) to every approved member, from
 // the club Gmail account, using a Gmail app password (GMAIL_APP_PASSWORD).
 // Each notice is emailed at most once: the notice row is claimed first.
-// Members are BCC'd, so nobody sees anyone else's address.
+// Every member gets their own copy addressed to them (no BCC lists: mail sent
+// "to yourself, BCC everyone" is a classic spam pattern), with a List-Unsubscribe
+// header, which Gmail and other providers expect from club mailings.
 // If email isn't set up or fails, the notice is still on the site (bell icon).
 import nodemailer from 'nodemailer';
 import { serviceClient, requireAdmin, redact, send, wrap, HttpError } from './_lib/server.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const EMAIL_RE = /^[^\s@<>(),;:"\[\]\\]+@[^\s@<>(),;:"\[\]\\]+\.[a-z]{2,}$/i;
-export const BATCH = 90;                         // BCC recipients per message (Gmail allows up to 500)
+export const PARALLEL = 3;                       // copies sent at the same time over one pooled Gmail connection
+const STOP_AFTER = 3;                            // give up after this many failures in a row (bad password, daily limit)
 
 export function gmailUser(env) { return (env.GMAIL_USER || 'animeclubsimats@gmail.com').trim(); }
 
@@ -20,7 +23,7 @@ export function buildNoticeEmail(notice, siteUrl) {
   const tag = cancelled ? 'MEETING CANCELLED' : 'CLUB NOTICE';
   const subject = (cancelled ? notice.title : `Notice: ${notice.title}`).replace(/[\r\n]+/g, ' ').slice(0, 140);
   const text = `${tag}\n\n${notice.title}\n\n${notice.body}\n\nSee all notices: ${link}\n\n`
-    + `You get this because you're an approved member of SIMATS Anime Club.\n`;
+    + `You get this because you're an approved member of SIMATS Anime Club. To stop these emails, reply with "unsubscribe".\n`;
   const paras = String(notice.body).split(/\n{2,}/).map((p) =>
     `<p style="margin:0 0 12px;line-height:1.55">${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
   const html = `<div style="font-family:Arial,sans-serif;background:#0b0305;color:#fff1eb;padding:24px;border-radius:12px;max-width:560px">
@@ -28,14 +31,14 @@ export function buildNoticeEmail(notice, siteUrl) {
   <h2 style="color:#f6dca0;margin:14px 0 12px">${esc(notice.title)}</h2>
   <div style="font-size:15px;color:#efdcdd">${paras}</div>
   <a href="${esc(link)}" style="display:inline-block;margin-top:8px;background:#a8001c;color:#fff3dc;padding:12px 20px;text-decoration:none;font-weight:bold;letter-spacing:2px;font-size:12px">OPEN THE MEMBER LOUNGE</a>
-  <p style="color:#9c8487;font-size:11px;margin-top:20px">You get this because you're an approved member of SIMATS Anime Club.</p>
+  <p style="color:#9c8487;font-size:11px;margin-top:20px">You get this because you're an approved member of SIMATS Anime Club. To stop these emails, reply with "unsubscribe".</p>
 </div>`;
   return { subject, text, html };
 }
 
 export function defaultTransport(env) {
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com', port: 465, secure: true,
+    host: 'smtp.gmail.com', port: 465, secure: true, pool: true, maxConnections: PARALLEL, maxMessages: 100,
     auth: { user: gmailUser(env), pass: String(env.GMAIL_APP_PASSWORD).replace(/\s+/g, '') },
   });
 }
@@ -66,18 +69,21 @@ export async function notifyMembers({ sb, env, noticeId, makeTransport = default
   const mail = buildNoticeEmail(notice, env.SITE_URL);
   const from = gmailUser(env);
   const transport = makeTransport(env);
-  let sent = 0, failure = null;
-  for (let i = 0; i < to.length; i += BATCH) {
-    const bcc = to.slice(i, i + BATCH);
-    try {
-      await transport.sendMail({ from: `SIMATS Anime Club <${from}>`, to: from, bcc, subject: mail.subject, text: mail.text, html: mail.html });
-      sent += bcc.length;
-    } catch (e) {
-      failure = redact(e?.response || e?.message || e, env).slice(0, 300);
-      console.error('[notify-members] batch failed', failure);
-      break;                                       // stop on the first failure (bad password, daily limit)
+  const headers = { 'List-Unsubscribe': `<mailto:${from}?subject=Unsubscribe%20from%20club%20notices>` };
+  let sent = 0, failed = 0, streak = 0, failure = null, stopped = false;
+  for (let i = 0; i < to.length && !stopped; i += PARALLEL) {
+    const group = to.slice(i, i + PARALLEL);
+    const results = await Promise.allSettled(group.map((addr) => transport.sendMail({
+      from: `SIMATS Anime Club <${from}>`, to: addr, replyTo: from, subject: mail.subject, text: mail.text, html: mail.html, headers })));
+    for (const r of results) {
+      if (r.status === 'fulfilled') { sent++; streak = 0; continue; }
+      failed++; streak++;
+      failure = redact(r.reason?.response || r.reason?.message || r.reason, env).slice(0, 300);
+      console.error('[notify-members] send failed', failure);
     }
+    if (streak >= STOP_AFTER) stopped = true;           // something is wrong for everyone, not just one address
   }
+  failed = to.length - sent;
   transport.close?.();
 
   if (!sent) {
