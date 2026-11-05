@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script>/* a Google sign-in that returns here is finished on the members page */
+    if (/[?&](code|error_description)=/.test(location.search)) location.replace('/members' + location.search);</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
   <meta name="description" content="OFFICIAL WEBSITE OF SIMATS ANIME CLUB" />
@@ -265,6 +267,10 @@
     .foot-logos a, .foot-logos img { display:block; }
     .foot-eng img { height:30px; width:auto; }
     .foot-seal { width:48px; height:auto; }
+    .eng-logo { position:fixed; z-index:53; left:clamp(12px,3vw,40px); top:25px; height:36px; display:flex; align-items:center; padding:4px 10px; background:#fff; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .2s; }
+    .eng-logo.on { opacity:1; pointer-events:auto; }
+    .eng-logo img { height:100%; width:auto; display:block; }
+    @media (max-width:760px) { .eng-logo { height:30px; padding:3px 7px; } }
     .hub-chip { position:fixed; z-index:53; right:clamp(12px,3vw,40px); top:25px; height:36px; display:flex; align-items:center; gap:8px; padding:0 14px 0 4px; opacity:0; pointer-events:none; transition:opacity .2s;
       border:1px solid rgba(230,192,111,.7); background:rgba(10,4,4,.75); color:#f6dca0; text-decoration:none; font-size:10px; font-weight:800; letter-spacing:.22em; }
     .hub-chip.on { opacity:1; pointer-events:auto; }
@@ -667,6 +673,7 @@
 
   <div class="fixed-logo" id="fixedLogo" role="img" aria-label="SIMATS Anime Club"></div>
   <div class="fixed-topbar" id="fixedTopbar" aria-hidden="true"></div>
+  <a class="eng-logo" id="engLogo" href="https://simatsengineering.com" target="_blank" rel="noopener" aria-label="SIMATS Engineering website"><img src="assets/logos/simats-engineering.webp" alt="SIMATS Engineering" /></a>
   <a class="hub-chip" id="hubChip" href="/members" aria-label="Member lounge: polls, events and comments"><span class="hc-av" aria-hidden="true">★</span><span class="hc-t">MEMBER LOUNGE</span></a>
   <canvas id="sakuraBurst" aria-hidden="true" hidden></canvas>
   <div class="welcome" id="welcome" role="dialog" aria-label="Welcome back">
@@ -1198,7 +1205,7 @@
     const r=logoSvg.getBoundingClientRect(), st=stage.getBoundingClientRect();
     logoBox={cy:r.top-st.top+r.height/2, h:r.height};
     { const hs=headerH*.86/r.height, w=r.width*hs, h=r.height*hs, cx=r.left-st.left+r.width/2, fl=$('#fixedLogo');   // the header position (same maths as renderTeam)
-      Object.assign(fl.style,{left:(cx-w/2)+'px',top:(headerH/2+6-h/2)+'px',width:w+'px',height:h+'px'}); $('#fixedTopbar').style.height=(headerH+8)+'px'; const hc=$('#hubChip'); if(hc) hc.style.top=Math.max(6,headerH/2+6-18)+'px'; }
+      Object.assign(fl.style,{left:(cx-w/2)+'px',top:(headerH/2+6-h/2)+'px',width:w+'px',height:h+'px'}); $('#fixedTopbar').style.height=(headerH+8)+'px'; const hc=$('#hubChip'); if(hc) hc.style.top=Math.max(6,headerH/2+6-18)+'px'; const eg=$('#engLogo'); if(eg) eg.style.top=Math.max(6,headerH/2+6-18)+'px'; }
     lastTeamKey='';
   }
 
@@ -1589,7 +1596,7 @@
     fin('path[pathLength="1"]',el=>el.setAttribute('stroke-dashoffset','0'));                  // slash line drawn,
     fixedLogo.appendChild(c); }
   function updateFixedLogo(){ const on=stage.getBoundingClientRect().top<-.5;   // the sticky stage has started to scroll away
-    if(on!==fixedLogo.classList.contains('on')){ fixedLogo.classList.toggle('on',on); fixedTopbar.classList.toggle('on',on); $('#hubChip')?.classList.toggle('on',on); } }
+    if(on!==fixedLogo.classList.contains('on')){ fixedLogo.classList.toggle('on',on); fixedTopbar.classList.toggle('on',on); $('#hubChip')?.classList.toggle('on',on); $('#engLogo')?.classList.toggle('on',on); } }
   addEventListener('scroll',updateFixedLogo,{passive:true}); addEventListener('resize',updateFixedLogo,{passive:true});
 
   settledY=window.scrollY; updateTouchMode(); updateFixedLogo(); addEventListener('resize',updateTouchMode,{passive:true});
