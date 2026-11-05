@@ -92,13 +92,28 @@ Create a free Resend account **with animeclubsimats@gmail.com** and set `RESEND_
 
 ## Update: office bearers, notices and meeting cancellation (5 Nov 2026)
 
-**Live database:** Supabase > SQL Editor > New query > paste all of **`supabase/update_2026_11_05_notices.sql`** > Run. It is safe to run more than once and deletes nothing. (New databases get it from `setup_all.sql`.)
+**Live database:** Supabase > SQL Editor > New query > paste all of **`supabase/update_2026_11_05.sql`** > Run. It is safe to run more than once and deletes nothing. (New databases get it from `setup_all.sql`.)
 
 **Emails:** set `GMAIL_APP_PASSWORD` (Secret) in Vercel to an App password of animeclubsimats@gmail.com (Google Account > Security > 2-Step Verification on > App passwords). Optional `GMAIL_USER` if you send from another Gmail. Gmail allows about 500 emails a day from a normal account; members are BCC'd in groups of 90, and each notice is emailed at most once. Without the password, notices still appear under the bell.
 
 - **Office bearers:** Admin > Members > title menu on an approved member (President, Vice President, Secretary, Treasurer; one person each, giving it to someone else takes it from the current holder). Titles show on the member's card, next to their comments and in the "Office bearers" strip of the lounge.
 - **Notices:** Admin > Notices: title + message, optionally emailed to every approved member. Members see them under the bell (lounge, admin header and next to My Lounge on the home page) with date and time; new ones are highlighted and counted until opened. Admins can delete a notice (it stays in the admin history).
 - **Cancel a meeting:** Admin > Events > Cancel meeting. A reason is required. The meeting leaves the upcoming calendar (home page and lounge), shows under Recent with the reason, a cancellation notice is posted and emailed, and the weekly Drive sync will not bring it back. The edit form can no longer set "Cancelled" without a reason; setting a cancelled event back to Scheduled clears the reason.
+
+## Gallery from Google Drive ("Recent meets")
+
+The home-page strip shows the photos and videos in the club Drive folder (newest first). Until the folder is connected, the built-in photos stay. Photos load from Google's image servers and videos play in Google's player, so the gallery does not use Vercel bandwidth. Uploads from Admin > Gallery go **straight from the admin's browser to Google Drive**; Vercel only hands out a short-lived permission.
+
+Setup (use the same Google Cloud project you made for Google sign-in):
+1. **Share the folder**: Drive > the gallery folder > Share > General access: *Anyone with the link* > Viewer. Default folder id: `1SbYh3V2DKlD7jmJiPRBp4tkXIoaSGbBj` (change with `GALLERY_FOLDER_ID`; several ids can be comma-separated). Only files directly inside the folder are shown.
+2. **Enable the Drive API**: console.cloud.google.com > APIs & Services > Library > Google Drive API > Enable.
+3. **API key** (reading the folder): Credentials > Create credentials > API key > Edit > API restrictions: Google Drive API. Vercel: `GOOGLE_API_KEY`.
+4. **Uploads from the dashboard** (optional):
+   - Google Auth Platform (OAuth consent screen) > Data access > Add scope `.../auth/drive.file` ("only files this app creates"). Audience > **Publish app** (otherwise the connection expires every 7 days).
+   - Clients > Create client > Web application > Authorised redirect URI `https://simats-anime-club.vercel.app/api/gallery`. Vercel: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` (Secret).
+   - `TOKEN_ENC_KEY` (Secret, any long random text): the key that encrypts the saved Drive connection (AES-256-GCM). If unset, `CRON_SECRET` is used. Changing it means pressing Connect again.
+   - Redeploy, then Admin > Gallery > **Connect Google Drive** and sign in as animeclubsimats@gmail.com. The site creates a "SIMATS Anime Club — website uploads" folder (shared "anyone with the link") and lists it in the gallery too.
+5. Admin > Gallery > **Refresh from Drive** (it also refreshes every Monday with the event sync). Hide any item you don't want on the home page.
 
 ## Admin quick guide
 - **Approvals**: approve or reject each request (or tick several and "Approve selected"). Rejected members see your note and can re-apply.

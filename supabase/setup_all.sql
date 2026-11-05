@@ -1,7 +1,7 @@
 -- =====================================================================
 -- SIMATS Anime Club — ONE-PASTE DATABASE SETUP
 -- Supabase > SQL Editor > New query > paste ALL of this > Run.
--- It is the six files in supabase/migrations/ in order, plus a safety
+-- It is the seven files in supabase/migrations/ in order, plus a safety
 -- check at the top: it finishes an earlier setup that stopped part-way, and
 -- once everything is installed, running it again stops without touching data.
 -- =====================================================================
@@ -13,8 +13,9 @@ begin
   -- fully installed already (the last migration's function exists)? stop without changing anything
   if to_regprocedure('public.apply_event_sync(bigint,jsonb)') is not null
      and to_regprocedure('public.admin_list_log(text,text,integer)') is not null then
-    if to_regprocedure('public.admin_cancel_event(uuid,text)') is null then
-      raise exception 'The club database is already set up. Nothing was changed. To add notices, office bearers and meeting cancellation, run supabase/update_2026_11_05_notices.sql instead.';
+    if to_regprocedure('public.admin_cancel_event(uuid,text)') is null
+       or to_regprocedure('public.apply_gallery_sync(jsonb,text[])') is null then
+      raise exception 'The club database is already set up. Nothing was changed. To add the newest features (notices, office bearers, meeting cancellation, Drive gallery), run supabase/update_2026_11_05.sql instead.';
     end if;
     raise exception 'The club database is already set up and complete. Nothing was changed. Reload the website (if the admin page is missing, run supabase/fix_admin.sql).';
   end if;
@@ -23,7 +24,7 @@ begin
      or to_regclass('public.club_settings') is not null then
     drop trigger if exists on_auth_user_created on auth.users;
     drop trigger if exists on_auth_user_updated on auth.users;
-    drop table if exists public.notices, public.event_sync_logs, public.moderation_log, public.comments, public.votes, public.poll_options,
+    drop table if exists public.drive_connection, public.gallery_items, public.notices, public.event_sync_logs, public.moderation_log, public.comments, public.votes, public.poll_options,
       public.polls, public.events, public.profiles, public.club_settings, public.admin_allowlist cascade;
     foreach f in array array['_log','_require_admin','_require_member','_clean_text','_poll_phase','_check_comment_body',
       '_create_profile','touch_updated_at','is_admin','is_approved_member','handle_new_user','submit_membership','get_polls',
@@ -33,7 +34,8 @@ begin
       'admin_set_comment_premoderation','admin_save_event','admin_delete_event','admin_release_event_override',
       'admin_list_log','apply_event_sync','_promote_allowlisted_admin','handle_user_updated',
       'list_notices','notice_unread_count','mark_notices_seen','list_office_bearers','admin_set_position',
-      'admin_post_notice','admin_delete_notice','admin_list_notices','admin_cancel_event'] loop
+      'admin_post_notice','admin_delete_notice','admin_list_notices','admin_cancel_event',
+      'apply_gallery_sync','admin_set_gallery_hidden'] loop
       execute format('drop function if exists public.%I cascade', f);
     end loop;
     raise notice 'Cleared an unfinished earlier setup; installing fresh.';
@@ -1664,5 +1666,109 @@ grant execute on function public.admin_post_notice(text, text)         to authen
 grant execute on function public.admin_delete_notice(bigint, text)     to authenticated;
 grant execute on function public.admin_list_notices(int)               to authenticated;
 grant execute on function public.admin_cancel_event(uuid, text)        to authenticated;
+
+
+
+-- ===================== 20261105000007_gallery.sql =====================
+-- =====================================================================
+-- SIMATS Anime Club — "Recent meets" gallery from Google Drive
+--   * gallery_items: photos and videos listed from the club's Drive
+--     folder(s); the home page shows the ones that are not hidden
+--   * drive_connection: the club Google account's Drive authorisation for
+--     uploads from the admin dashboard. The token is stored AES-256-GCM
+--     encrypted by the server; the website roles cannot read this table.
+-- Safe to run more than once.
+-- =====================================================================
+
+alter table public.moderation_log drop constraint if exists moderation_log_target_type_check;
+alter table public.moderation_log add constraint moderation_log_target_type_check
+  check (target_type in ('member','comment','poll','event','settings','sync','notice','gallery'));
+
+create table if not exists public.gallery_items (
+  id            uuid primary key default gen_random_uuid(),
+  drive_id      text not null unique check (drive_id ~ '^[A-Za-z0-9_-]{10,200}$'),
+  folder_id     text check (folder_id is null or folder_id ~ '^[A-Za-z0-9_-]{10,200}$'),
+  name          text check (name is null or char_length(name) <= 300),
+  kind          text not null check (kind in ('photo','video')),
+  mime_type     text check (mime_type is null or char_length(mime_type) <= 100),
+  width         int,
+  height        int,
+  sort_time     timestamptz not null default now(),   -- when the photo was taken (or uploaded)
+  hidden        boolean not null default false,
+  last_seen_at  timestamptz not null default now(),
+  created_at    timestamptz not null default now()
+);
+create index if not exists gallery_items_shown on public.gallery_items (sort_time desc) where not hidden;
+
+alter table public.gallery_items enable row level security;
+revoke insert, update, delete on public.gallery_items from anon, authenticated;
+drop policy if exists "public gallery" on public.gallery_items;
+create policy "public gallery" on public.gallery_items for select to anon, authenticated using (not hidden);
+drop policy if exists "admins read gallery" on public.gallery_items;
+create policy "admins read gallery" on public.gallery_items for select to authenticated using (public.is_admin());
+
+create table if not exists public.drive_connection (
+  id                 int primary key default 1 check (id = 1),
+  refresh_token_enc  text not null,                    -- encrypted by the server, never readable from the website
+  account_email      text,
+  upload_folder_id   text,
+  connected_by       uuid references public.profiles (id) on delete set null,
+  connected_at       timestamptz not null default now()
+);
+alter table public.drive_connection enable row level security;
+revoke all on public.drive_connection from anon, authenticated;
+-- no policies: only the server (service role) uses it
+
+-- ---------------------------------------------------------------------
+-- Server only: replace the gallery list with what is in the Drive folders now.
+-- p_items: [{"drive_id","folder_id","name","kind","mime_type","width","height","sort_time"}]
+-- Files that disappeared from the listed folders are removed; admin "hidden" choices are kept.
+-- ---------------------------------------------------------------------
+create or replace function public.apply_gallery_sync(p_items jsonb, p_folders text[])
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_added int := 0; v_updated int := 0; v_removed int := 0; v_item jsonb; v_id text; v_new boolean;
+begin
+  if jsonb_typeof(coalesce(p_items, '[]'::jsonb)) <> 'array' then raise exception 'Items must be a list.'; end if;
+  perform pg_advisory_xact_lock(hashtext('gallery_sync'));
+  for v_item in select * from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) loop
+    v_id := v_item ->> 'drive_id';
+    if v_id is null or v_id !~ '^[A-Za-z0-9_-]{10,200}$' or (v_item ->> 'kind') not in ('photo','video') then continue; end if;
+    select not exists (select 1 from public.gallery_items where drive_id = v_id) into v_new;
+    insert into public.gallery_items (drive_id, folder_id, name, kind, mime_type, width, height, sort_time, last_seen_at)
+    values (v_id, v_item ->> 'folder_id', left(v_item ->> 'name', 300), v_item ->> 'kind', left(v_item ->> 'mime_type', 100),
+            nullif(v_item ->> 'width', '')::int, nullif(v_item ->> 'height', '')::int,
+            coalesce(nullif(v_item ->> 'sort_time', '')::timestamptz, now()), now())
+    on conflict (drive_id) do update set folder_id = excluded.folder_id, name = excluded.name, kind = excluded.kind,
+      mime_type = excluded.mime_type, width = excluded.width, height = excluded.height, sort_time = excluded.sort_time,
+      last_seen_at = now();
+    if v_new then v_added := v_added + 1; else v_updated := v_updated + 1; end if;
+  end loop;
+  delete from public.gallery_items g
+  where g.folder_id = any(coalesce(p_folders, '{}'))
+    and not exists (select 1 from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) x where x ->> 'drive_id' = g.drive_id);
+  get diagnostics v_removed = row_count;
+  return jsonb_build_object('added', v_added, 'updated', v_updated, 'removed', v_removed,
+                            'total', (select count(*) from public.gallery_items));
+end $$;
+
+create or replace function public.admin_set_gallery_hidden(p_id uuid, p_hidden boolean)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare v public.gallery_items;
+begin
+  perform public._require_admin();
+  select * into v from public.gallery_items where id = p_id for update;
+  if not found then raise exception 'Gallery item not found.'; end if;
+  update public.gallery_items set hidden = coalesce(p_hidden, false) where id = p_id;
+  perform public._log(case when p_hidden then 'gallery_hidden' else 'gallery_shown' end, 'gallery', p_id::text, null,
+                      jsonb_build_object('name', v.name, 'kind', v.kind));
+end $$;
+
+revoke execute on function public.apply_gallery_sync(jsonb, text[])      from public, anon, authenticated;
+revoke execute on function public.admin_set_gallery_hidden(uuid, boolean) from public, anon, authenticated;
+grant execute on function public.apply_gallery_sync(jsonb, text[])       to service_role;
+grant execute on function public.admin_set_gallery_hidden(uuid, boolean)  to authenticated;
 
 select 'SIMATS Anime Club database is ready. Sign in as animeclubsimats@gmail.com to become admin.' as result;

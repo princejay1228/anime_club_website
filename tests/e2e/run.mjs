@@ -340,6 +340,47 @@ await step('office bearers, notices under the bell, and cancelling a meeting wit
   assert.equal(await home.$eval('#hubBell', (b) => b.getAttribute('href')), '/members#notices');
 });
 
+await step('gallery: Drive items replace the built-in photos; admins hide items; uploads need setup', async () => {
+  await db.query(`insert into gallery_items (drive_id, folder_id, name, kind, width, height, sort_time) values
+    ('PHOTO_meet_00001', 'FOLDER_main_000', 'quiz.jpg', 'photo', 1600, 1200, now() - interval '1 day'),
+    ('VIDEO_meet_00001', 'FOLDER_main_000', 'cosplay.mp4', 'video', 1920, 1080, now() - interval '2 day'),
+    ('PHOTO_meet_00002', 'FOLDER_main_000', 'secret.jpg', 'photo', 1600, 1200, now() - interval '3 day')
+    on conflict do nothing`);
+  // admin tab: setup still needed (no Google keys in this test), items listed, hide one
+  await adminPage.goto(BASE + '/admin#gallery');
+  await waitText(adminPage, '#view', /Still to set up in Vercel: GOOGLE_API_KEY/);
+  await waitText(adminPage, '#view', /3 items · 3 on the home page/);
+  assert.equal(await adminPage.$eval('#view .g-tile', () => true), true);
+  const uploadDisabled = await adminPage.evaluate(() => [...document.querySelectorAll('#view button')].find((b) => /upload photos/i.test(b.innerText))?.disabled);
+  assert.equal(uploadDisabled, true, 'upload needs Drive to be connected');
+  await adminPage.evaluate(() => {
+    const t = [...document.querySelectorAll('#view .g-tile')].find((x) => x.innerText.includes('secret.jpg'));
+    [...t.querySelectorAll('button')].find((b) => /hide/i.test(b.innerText)).click();
+  });
+  await waitText(adminPage, '#view', /3 items · 2 on the home page/);
+  await shot(adminPage, '14e-admin-gallery');
+  // members cannot use the gallery API
+  const deny = await alicePage.evaluate(() => Club.api('/api/gallery', { action: 'status' }).then(() => 'ok', (e) => e.message));
+  assert.match(deny, /Only club admins/);
+  // home page: the two shown Drive items replace the built-in ones; the video opens in Google's player
+  const home = await pageAs(null);
+  await home.goto(BASE + '/');
+  await home.waitForFunction(() => document.querySelector('#meetsTrack .meet[data-drive]'), { timeout: 10000 });
+  const g = await home.evaluate(() => {
+    const figs = [...document.querySelectorAll('#meetsTrack .meet')];
+    return { total: figs.length, drive: figs.filter((f) => f.dataset.drive).length, ids: [...new Set(figs.map((f) => f.dataset.drive))],
+      photo: figs.find((f) => f.dataset.kind === 'photo').querySelector('img').getAttribute('src'), builtIn: !!document.querySelector('#meetsTrack video') };
+  });
+  assert.deepEqual(g.ids.sort(), ['PHOTO_meet_00001', 'VIDEO_meet_00001'], 'hidden item is not shown');
+  assert.equal(g.total, g.drive);
+  assert.equal(g.builtIn, false);
+  assert.match(g.photo, /^https:\/\/lh3\.googleusercontent\.com\/d\/PHOTO_meet_00001=w1100$/);
+  await home.evaluate(() => { const v = document.querySelector('#meetsTrack .meet[data-kind="video"]'); v.scrollIntoView(); v.click(); });
+  await home.waitForSelector('#lightbox.open iframe');
+  assert.match(await home.$eval('#lightbox iframe', (f) => f.src), /^https:\/\/drive\.google\.com\/file\/d\/VIDEO_meet_00001\/preview$/);
+  await home.keyboard.press('Escape');
+});
+
 await step('phone layout: hub and dashboard', async () => {
   const p = await pageAs(ALICE, { width: 390, height: 844 });
   await p.goto(BASE + '/members');

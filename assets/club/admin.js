@@ -5,7 +5,7 @@
   const C = window.Club;
   const { h, $, $$, toast, busy, ask, rpc, state } = C;
   const view = $('#view');
-  const TABS = ['overview', 'approvals', 'members', 'polls', 'comments', 'events', 'notices', 'log'];
+  const TABS = ['overview', 'approvals', 'members', 'polls', 'comments', 'events', 'notices', 'gallery', 'log'];
   const OFFICES = C.OFFICES;
   let tab = 'overview';
   let started = false;
@@ -632,6 +632,153 @@
       list.length ? h('div', { class: 'card' }, h('div', { class: 'list' }, list.map(row))) : empty('No notices yet', 'Post one above. Cancelled meetings show up here too.'));
   }
 
+  // ======================= GALLERY (Google Drive) =======================
+  const driveThumb = (id, w = 600) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+  const MAX_UPLOAD = 2 * 1024 ** 3;                  // 2 GB per file
+  const mb = (n) => (n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(1) + ' GB' : Math.max(0.1, n / 1024 ** 2).toFixed(1) + ' MB');
+
+  // Upload one file straight from this browser to Google Drive (resumable upload).
+  // Vercel only hands out the short-lived permission; the file itself never passes through it.
+  async function uploadToDrive(file, tok, onProgress) {
+    const start = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,mimeType', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${tok.access_token}`, 'content-type': 'application/json; charset=UTF-8',
+        'x-upload-content-type': file.type || 'application/octet-stream', 'x-upload-content-length': String(file.size) },
+      body: JSON.stringify({ name: file.name, parents: [tok.folder_id] }),
+    });
+    if (!start.ok) {
+      const b = await start.json().catch(() => ({}));
+      throw new Error(b?.error?.message || `Google refused the upload (${start.status}).`);
+    }
+    const session = start.headers.get('location');
+    if (!session) throw new Error('Google did not return an upload address.');
+    return new Promise((resolve, reject) => {
+      const x = new XMLHttpRequest();
+      x.open('PUT', session);
+      x.setRequestHeader('content-type', file.type || 'application/octet-stream');
+      x.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+      x.onload = () => (x.status >= 200 && x.status < 300 ? resolve(JSON.parse(x.responseText || '{}')) : reject(new Error(`Upload failed (${x.status}).`)));
+      x.onerror = () => reject(new Error('Connection lost during the upload.'));
+      x.send(file);
+    });
+  }
+
+  async function renderGallery() {
+    loading();
+    let st, items;
+    try {
+      const [a, b] = await Promise.all([
+        C.api('/api/gallery', { action: 'status' }),
+        C.sb.from('gallery_items').select('*').order('sort_time', { ascending: false }).limit(500),
+      ]);
+      if (b.error) throw new Error(C.friendly(b.error));
+      st = a; items = b.data || [];
+    } catch (e) { return failed(e, renderGallery); }
+
+    // ---- Drive connection + refresh ----
+    const syncBtn = btn('↻ Refresh from Drive', null, 'primary');
+    syncBtn.disabled = !st.listing;
+    syncBtn.addEventListener('click', () => busy(syncBtn, async () => {
+      try { const r = await C.api('/api/gallery', { action: 'sync' }); toast(`Gallery refreshed: ${r.total} item${r.total === 1 ? '' : 's'} (${r.added} new, ${r.removed} removed).`, 'ok'); renderGallery(); }
+      catch (e) { toast(e.message, 'err'); }
+    }));
+    const connectBtn = btn(st.connected ? 'Reconnect Google Drive' : 'Connect Google Drive', null, st.connected ? 'ghost' : 'primary');
+    connectBtn.disabled = !st.uploads;
+    connectBtn.addEventListener('click', () => busy(connectBtn, async () => {
+      try { const { url } = await C.api('/api/gallery', { action: 'connect-url' }); location.href = url; } catch (e) { toast(e.message, 'err'); }
+    }));
+    const discBtn = st.connected ? btn('Disconnect', null, 'danger') : null;
+    discBtn?.addEventListener('click', async () => {
+      if (await ask({ title: 'Disconnect Google Drive?', text: 'Uploads from this page stop until you connect again. Photos already in Drive stay in the gallery.', confirm: 'Disconnect', danger: true }))
+        act(discBtn, () => C.api('/api/gallery', { action: 'disconnect' }), 'Google Drive disconnected.');
+    });
+    const setup = [];
+    if (!st.listing) setup.push('GOOGLE_API_KEY (lets the site read the Drive folder)');
+    if (!st.uploads) setup.push('GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET (for uploads from this page)');
+    const folderLinks = (st.folders || []).map((f, i) => h('a', { href: `https://drive.google.com/drive/folders/${encodeURIComponent(f)}`, target: '_blank', rel: 'noopener',
+      text: f === st.upload_folder_id ? 'Website uploads folder ↗' : (i === 0 ? 'Gallery folder ↗' : 'Folder ↗') }));
+
+    // ---- upload ----
+    const input = h('input', { type: 'file', accept: 'image/*,video/*', multiple: true, hidden: true });
+    const pick = btn('⇪ Upload photos / videos', () => input.click(), 'primary');
+    pick.disabled = !st.connected || !st.uploads;
+    const queue = h('div', { class: 'upl-list' });
+    input.addEventListener('change', async () => {
+      const files = [...input.files]; input.value = '';
+      if (!files.length) return;
+      const rows = files.map((f) => {
+        const bar = h('div', { class: 'upl-bar' }, h('span'));
+        const state = h('span', { class: 'upl-state', text: 'Waiting…' });
+        const row = h('div', { class: 'upl-row' }, h('div', { class: 'upl-name', text: `${f.name} · ${mb(f.size)}` }), bar, state);
+        queue.append(row);
+        return { f, bar, state, row };
+      });
+      pick.disabled = true;
+      let tok, done = 0;
+      try { tok = await C.api('/api/gallery', { action: 'upload-token' }); }
+      catch (e) { toast(e.message, 'err'); rows.forEach((r) => { r.state.textContent = 'Not uploaded'; r.row.classList.add('err'); }); pick.disabled = false; return; }
+      for (const r of rows) {
+        if (!/^(image|video)\//.test(r.f.type)) { r.state.textContent = 'Skipped: not a photo or video'; r.row.classList.add('err'); continue; }
+        if (r.f.size > MAX_UPLOAD) { r.state.textContent = 'Skipped: bigger than 2 GB'; r.row.classList.add('err'); continue; }
+        // the permission lasts about an hour; get a fresh one for long upload sessions
+        if (Date.now() > (tok._t || (tok._t = Date.now())) + (tok.expires_in - 300) * 1000) {
+          try { tok = await C.api('/api/gallery', { action: 'upload-token' }); tok._t = Date.now(); } catch (e) { r.state.textContent = e.message; r.row.classList.add('err'); continue; }
+        }
+        r.state.textContent = 'Uploading…';
+        try {
+          await uploadToDrive(r.f, tok, (p) => { r.bar.firstChild.style.width = Math.round(p * 100) + '%'; r.state.textContent = Math.round(p * 100) + '%'; });
+          r.bar.firstChild.style.width = '100%'; r.state.textContent = 'Uploaded ✓'; r.row.classList.add('ok'); done++;
+        } catch (e) { r.state.textContent = e.message; r.row.classList.add('err'); }
+      }
+      pick.disabled = false;
+      if (done) {
+        toast(`${done} file${done === 1 ? '' : 's'} uploaded to Drive. Updating the gallery…`, 'ok');
+        try { await C.api('/api/gallery', { action: 'sync' }); } catch (e) { toast(e.message, 'err'); }
+        setTimeout(renderGallery, 600);
+      }
+    });
+
+    // ---- items ----
+    const tile = (it) => {
+      const tog = btn(it.hidden ? 'Show' : 'Hide', null, it.hidden ? 'primary' : 'ghost');
+      tog.addEventListener('click', () => act(tog, () => rpc('admin_set_gallery_hidden', { p_id: it.id, p_hidden: !it.hidden }),
+        it.hidden ? 'Shown on the home page.' : 'Hidden from the home page.'));
+      return h('div', { class: 'g-tile' + (it.hidden ? ' hidden-item' : '') },
+        h('a', { class: 'g-thumb', href: `https://drive.google.com/file/d/${encodeURIComponent(it.drive_id)}/view`, target: '_blank', rel: 'noopener', title: 'Open in Drive' },
+          h('img', { src: driveThumb(it.drive_id), alt: it.name || '', loading: 'lazy', referrerpolicy: 'no-referrer', onerror: (e) => { e.currentTarget.replaceWith(h('span', { class: 'g-noimg', text: it.kind === 'video' ? '▶' : '🖼' })); } }),
+          it.kind === 'video' ? h('span', { class: 'vtag', text: '▶ VIDEO' }) : null),
+        h('div', { class: 'g-meta' }, h('div', { class: 'g-name', text: it.name || it.drive_id }),
+          h('div', { class: 'sub', text: `${C.fmtDate(it.sort_time)}${it.hidden ? ' · hidden' : ''}` })),
+        h('div', { class: 'row' }, tog));
+    };
+    const shown = items.filter((i) => !i.hidden).length;
+
+    view.replaceChildren(
+      section('Gallery', 'The "Recent meets" strip on the home page shows the photos and videos in the club Drive folder, newest first. Add files in Drive or upload them here.'),
+      setup.length ? h('div', { class: 'note warn', style: 'margin-bottom:14px' }, 'Still to set up in Vercel: ' + setup.join('; ') + '. See BACKEND.md → Gallery.') : null,
+      h('div', { class: 'grid2' },
+        h('div', { class: 'card' }, h('h3', { text: 'Google Drive' }),
+          h('p', { class: 'hint', text: st.connected ? `Uploads go to the club Drive (${st.account_email || 'connected'}), into the "website uploads" folder.` : 'Connect the club Google account once to upload from this page. Reading the folder works without it.' }),
+          folderLinks.length ? h('div', { class: 'row', style: 'margin:6px 0 4px' }, folderLinks) : null,
+          h('div', { class: 'row', style: 'margin-top:10px' }, syncBtn, connectBtn, discBtn),
+          h('p', { class: 'hint', style: 'margin-top:10px', text: 'The gallery also refreshes by itself every Monday with the event sync.' })),
+        h('div', { class: 'card' }, h('h3', { text: 'Upload' }),
+          h('p', { class: 'hint', text: 'Photos and videos go straight from your device to Google Drive (Vercel bandwidth is not used). Up to 2 GB per file.' }),
+          h('div', { class: 'row', style: 'margin-top:8px' }, pick), input, queue)),
+      h('div', { class: 'filters', style: 'margin-top:22px' }, h('span', { class: 'hint', text: `${items.length} item${items.length === 1 ? '' : 's'} · ${shown} on the home page` })),
+      items.length ? h('div', { class: 'g-grid' }, items.map(tile))
+        : empty('The gallery is empty', st.listing ? 'Add photos to the Drive folder (shared as "Anyone with the link"), then press Refresh from Drive.' : 'Set up the Google API key first, then refresh.'));
+  }
+
+  // Back from Google's sign-in page
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (!q.has('drive')) return;
+    if (q.get('drive') === 'connected') setTimeout(() => toast('Google Drive connected. You can upload photos and videos now.', 'ok'), 300);
+    else setTimeout(() => toast('Google Drive was not connected: ' + (q.get('msg') || 'unknown error'), 'err'), 300);
+    history.replaceState(null, '', location.pathname + location.hash);
+  })();
+
   // ======================= ACTIVITY LOG =======================
   const ACTION = {
     admin_bootstrapped: 'Admin account set up', member_approved: 'Approved member', member_rejected: 'Rejected request',
@@ -645,6 +792,8 @@
     event_cancelled: 'Cancelled meeting', event_uncancelled: 'Un-cancelled meeting',
     position_assigned: 'Gave office-bearer title', position_removed: 'Removed office-bearer title',
     notice_posted: 'Posted notice', notice_deleted: 'Deleted notice',
+    gallery_hidden: 'Hid gallery item', gallery_shown: 'Showed gallery item', gallery_synced: 'Refreshed gallery from Drive',
+    gallery_sync_failed: 'Gallery refresh failed', drive_connected: 'Connected Google Drive', drive_disconnected: 'Disconnected Google Drive',
   };
   const describe = (l) => (l.details?.position && OFFICES[l.details.position] ? `${l.details.name || l.target_name || 'Member'} — ${OFFICES[l.details.position]}` : '')
     || l.target_name || l.details?.question || l.details?.title || (l.details?.body ? `"${l.details.body}"` : '') || l.details?.name || '';
@@ -660,7 +809,7 @@
     let list;
     try { list = await rpc('admin_list_log', { p_target_type: logFilter || null, p_target_id: null, p_limit: 300 }); } catch (e) { return failed(e, renderLog); }
     const sel = h('select', { class: 'input', 'aria-label': 'Filter activity' },
-      [['', 'Everything'], ['member', 'Members'], ['comment', 'Comments'], ['poll', 'Polls'], ['event', 'Events'], ['notice', 'Notices'], ['sync', 'Drive sync'], ['settings', 'Settings']].map(([v, t]) => h('option', { value: v, text: t })));
+      [['', 'Everything'], ['member', 'Members'], ['comment', 'Comments'], ['poll', 'Polls'], ['event', 'Events'], ['notice', 'Notices'], ['gallery', 'Gallery'], ['sync', 'Drive sync'], ['settings', 'Settings']].map(([v, t]) => h('option', { value: v, text: t })));
     sel.value = logFilter;
     sel.addEventListener('change', () => { logFilter = sel.value; renderLog(); });
     view.replaceChildren(section('Activity log', 'Every admin action, newest first. Entries cannot be edited or deleted from the website.'),
@@ -680,7 +829,7 @@
   }
 
   // ======================= routing & gate =======================
-  const RENDER = { overview: renderOverview, approvals: renderApprovals, members: renderMembers, polls: renderPolls, comments: renderComments, events: renderEvents, notices: renderNotices, log: renderLog };
+  const RENDER = { overview: renderOverview, approvals: renderApprovals, members: renderMembers, polls: renderPolls, comments: renderComments, events: renderEvents, notices: renderNotices, gallery: renderGallery, log: renderLog };
   function render() { return RENDER[tab](); }
   function route() {
     const t = location.hash.replace('#', '');

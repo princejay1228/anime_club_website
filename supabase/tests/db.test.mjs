@@ -557,6 +557,45 @@ test('cancelling a meeting needs a reason, posts a notice and survives the Drive
   assert.deepEqual(after, { status: 'cancelled', cancel_reason: 'Venue not available', title: 'Drive Tuesday meet' });
 });
 
+// ---------- gallery ----------
+test('gallery: server-only sync, public sees shown items, admins hide, Drive connection is locked away', async () => {
+  const items = [
+    { drive_id: 'PHOTO_one_12345', folder_id: 'FOLDER_main_123', name: 'a.jpg', kind: 'photo', mime_type: 'image/jpeg', width: 1600, height: 1200, sort_time: '2026-11-01T10:00:00+05:30' },
+    { drive_id: 'VIDEO_one_12345', folder_id: 'FOLDER_main_123', name: 'b.mp4', kind: 'video', mime_type: 'video/mp4', width: '', height: '', sort_time: '' },
+    { drive_id: 'bad id', folder_id: 'FOLDER_main_123', kind: 'photo' },
+    { drive_id: 'DOC_one_1234567', folder_id: 'FOLDER_main_123', kind: 'document' },
+  ];
+  await rejects(rpc(ADMIN, 'apply_gallery_sync', [JSON.stringify(items), ['FOLDER_main_123']]), /permission denied/);
+  await rejects(rpc(null, 'apply_gallery_sync', [JSON.stringify(items), ['FOLDER_main_123']]), /permission denied/);
+  let [{ apply_gallery_sync: r }] = await rpc('service', 'apply_gallery_sync', [JSON.stringify(items), ['FOLDER_main_123']]);
+  assert.deepEqual([r.added, r.updated, r.removed, r.total], [2, 0, 0, 2]);
+  const pub = await one(null, `select drive_id, kind from gallery_items order by sort_time desc`);
+  assert.equal(pub.length, 2);
+  // nobody writes the list directly
+  await rejects(one(ADMIN, `insert into gallery_items (drive_id, kind) values ('FAKE_item_12345', 'photo')`), /permission denied/);
+  await rejects(one(PRES1, `update gallery_items set hidden = true`), /permission denied/);
+  // admins hide an item: gone for visitors, kept through the next sync
+  const [{ id }] = await one(ADMIN, `select id from gallery_items where drive_id = 'VIDEO_one_12345'`);
+  await rejects(rpc(PRES1, 'admin_set_gallery_hidden', [id, true]), /Only club admins/);
+  await rpc(ADMIN, 'admin_set_gallery_hidden', [id, true]);
+  assert.equal((await one(null, `select * from gallery_items`)).length, 1);
+  assert.equal((await one(ADMIN, `select * from gallery_items`)).length, 2, 'admins still see hidden items');
+  [{ apply_gallery_sync: r }] = await rpc('service', 'apply_gallery_sync', [JSON.stringify(items.slice(0, 2)), ['FOLDER_main_123']]);
+  assert.equal((await db.query(`select hidden from gallery_items where drive_id='VIDEO_one_12345'`)).rows[0].hidden, true);
+  // a file removed from Drive disappears; items from folders not being synced are left alone
+  await rpc('service', 'apply_gallery_sync', [JSON.stringify([{ ...items[0], drive_id: 'OTHER_one_12345', folder_id: 'FOLDER_up_12345' }]), ['FOLDER_up_12345']]);
+  [{ apply_gallery_sync: r }] = await rpc('service', 'apply_gallery_sync', [JSON.stringify([items[0]]), ['FOLDER_main_123']]);
+  assert.equal(r.removed, 1);
+  assert.deepEqual((await db.query(`select drive_id from gallery_items order by drive_id`)).rows.map((x) => x.drive_id), ['OTHER_one_12345', 'PHOTO_one_12345']);
+  const log = await db.query(`select action from moderation_log where target_type='gallery' and target_id=$1`, [id]);
+  assert.deepEqual(log.rows.map((x) => x.action), ['gallery_hidden']);
+  // the Drive connection (encrypted token) is not readable from the website at all
+  await db.query(`insert into drive_connection (id, refresh_token_enc) values (1, 'v1.x.y.z') on conflict (id) do nothing`);
+  await rejects(one(ADMIN, `select * from drive_connection`), /permission denied/);
+  await rejects(one(null, `select * from drive_connection`), /permission denied/);
+  await rejects(one(ADMIN, `delete from drive_connection`), /permission denied/);
+});
+
 test('only the intended functions are callable from the website', async () => {
   const q = (role) => db.query(`
     select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -564,7 +603,7 @@ test('only the intended functions are callable from the website', async () => {
   const anon = (await q('anon')).rows.map((r) => r.proname);
   assert.deepEqual(anon, ['event_comment_counts', 'get_polls', 'is_admin', 'is_approved_member', 'list_event_comments', 'list_office_bearers']);
   const authed = (await q('authenticated')).rows.map((r) => r.proname);
-  for (const internal of ['_log', '_require_admin', '_require_member', 'handle_new_user', 'apply_event_sync', 'touch_updated_at']) {
+  for (const internal of ['_log', '_require_admin', '_require_member', 'handle_new_user', 'apply_event_sync', 'apply_gallery_sync', 'touch_updated_at']) {
     assert.ok(!authed.includes(internal), internal + ' must not be callable');
   }
   await rejects(rpc(ALICE, '_log', ['fake', 'member', 'x', null, '{}']), /permission denied/);
