@@ -506,16 +506,22 @@ test('notices: admins post, approved members read, the bell counts unread', asyn
   await rpc(PRES1, 'mark_notices_seen');
   assert.equal((await rpc(PRES1, 'notice_unread_count'))[0].notice_unread_count, 0);
   assert.equal((await rpc(PRES1, 'list_notices', [50]))[0].is_new, false);
-  // not for pending members or visitors, and nobody writes notices directly
-  await rejects(rpc(PENDING, 'list_notices', [50]), /tell us your name/);
+  // notices are public: visitors and pending members read them too (the "new" marker is only for members)
+  const pub = await rpc(null, 'list_notices', [50]);
+  assert.equal(pub[0].title, 'Room change');
+  assert.equal(pub[0].is_new, false);
+  assert.equal((await rpc(PENDING, 'list_notices', [50]))[0].title, 'Room change');
   assert.equal((await rpc(PENDING, 'notice_unread_count'))[0].notice_unread_count, 0);
   await rejects(rpc(null, 'notice_unread_count'), /permission denied/);
-  await rejects(rpc(null, 'list_notices', [50]), /permission denied/);
+  await rejects(rpc(null, 'mark_notices_seen'), /permission denied/);
+  await rejects(rpc(PENDING, 'mark_notices_seen'), /tell us your name/);
+  // nobody writes notices directly
   assert.equal((await one(PRES1, `select * from notices`)).length, 0, 'members read notices only through list_notices');
   await rejects(one(PRES1, `insert into notices (title, body) values ('Fake', 'Fake notice')`), /permission denied/);
   // admins delete; the notice disappears for members but stays in the admin history
   await rpc(ADMIN, 'admin_delete_notice', [n1, 'Posted by mistake']);
   assert.equal((await rpc(PRES1, 'list_notices', [50])).length, 0);
+  assert.equal((await rpc(null, 'list_notices', [50])).length, 0, 'deleted notices are hidden from visitors too');
   const hist = await rpc(ADMIN, 'admin_list_notices', [100]);
   assert.ok(hist.find((n) => String(n.id) === String(n1))?.deleted_at);
 });
@@ -601,7 +607,7 @@ test('only the intended functions are callable from the website', async () => {
     select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and has_function_privilege($1, p.oid, 'execute') order by 1`, [role]);
   const anon = (await q('anon')).rows.map((r) => r.proname);
-  assert.deepEqual(anon, ['event_comment_counts', 'get_polls', 'is_admin', 'is_approved_member', 'list_event_comments', 'list_office_bearers']);
+  assert.deepEqual(anon, ['event_comment_counts', 'get_polls', 'is_admin', 'is_approved_member', 'list_event_comments', 'list_notices', 'list_office_bearers']);
   const authed = (await q('authenticated')).rows.map((r) => r.proname);
   for (const internal of ['_log', '_require_admin', '_require_member', 'handle_new_user', 'apply_event_sync', 'apply_gallery_sync', 'touch_updated_at']) {
     assert.ok(!authed.includes(internal), internal + ' must not be callable');

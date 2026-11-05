@@ -1,7 +1,7 @@
 -- =====================================================================
 -- SIMATS Anime Club — ONE-PASTE DATABASE SETUP
 -- Supabase > SQL Editor > New query > paste ALL of this > Run.
--- It is the seven files in supabase/migrations/ in order, plus a safety
+-- It is the eight files in supabase/migrations/ in order, plus a safety
 -- check at the top: it finishes an earlier setup that stopped part-way, and
 -- once everything is installed, running it again stops without touching data.
 -- =====================================================================
@@ -14,8 +14,9 @@ begin
   if to_regprocedure('public.apply_event_sync(bigint,jsonb)') is not null
      and to_regprocedure('public.admin_list_log(text,text,integer)') is not null then
     if to_regprocedure('public.admin_cancel_event(uuid,text)') is null
-       or to_regprocedure('public.apply_gallery_sync(jsonb,text[])') is null then
-      raise exception 'The club database is already set up. Nothing was changed. To add the newest features (notices, office bearers, meeting cancellation, Drive gallery), run supabase/update_2026_11_05.sql instead.';
+       or to_regprocedure('public.apply_gallery_sync(jsonb,text[])') is null
+       or coalesce(not has_function_privilege('anon', to_regprocedure('public.list_notices(integer)'), 'execute'), true) then
+      raise exception 'The club database is already set up. Nothing was changed. To add the newest features (notices, office bearers, meeting cancellation, Drive gallery), run supabase/update_2026_11_05.sql and then supabase/update_2026_11_05b_public_notices.sql instead.';
     end if;
     raise exception 'The club database is already set up and complete. Nothing was changed. Reload the website (if the admin page is missing, run supabase/fix_admin.sql).';
   end if;
@@ -1770,5 +1771,40 @@ revoke execute on function public.apply_gallery_sync(jsonb, text[])      from pu
 revoke execute on function public.admin_set_gallery_hidden(uuid, boolean) from public, anon, authenticated;
 grant execute on function public.apply_gallery_sync(jsonb, text[])       to service_role;
 grant execute on function public.admin_set_gallery_hidden(uuid, boolean)  to authenticated;
+
+
+
+-- ===================== 20261105000008_public_notices.sql =====================
+-- =====================================================================
+-- SIMATS Anime Club — notices are public
+-- Everyone (visitors too) can read club notices; the "new" marker still
+-- comes from the database for approved members (any device), and from the
+-- visitor's own browser otherwise. Emails still go to approved members only.
+-- Safe to run more than once.
+-- =====================================================================
+create or replace function public.list_notices(p_limit int default 50)
+returns table (id bigint, kind text, title text, body text, event_id uuid, created_at timestamptz,
+               author_name text, author_position text, is_new boolean)
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_member boolean := public.is_approved_member();
+  v_seen   timestamptz;
+begin
+  if v_member then
+    select notices_seen_at into v_seen from public.profiles where profiles.id = auth.uid();
+  end if;
+  return query
+    select n.id, n.kind, n.title, n.body, n.event_id, n.created_at,
+           coalesce(p.full_name, 'Club admin'), p.office,
+           v_member and n.created_at > coalesce(v_seen, '-infinity'::timestamptz)
+    from public.notices n
+    left join public.profiles p on p.id = n.created_by
+    where n.deleted_at is null
+    order by n.created_at desc
+    limit least(greatest(coalesce(p_limit, 50), 1), 200);
+end $$;
+
+revoke execute on function public.list_notices(int) from public, anon, authenticated;
+grant execute on function public.list_notices(int) to anon, authenticated;
 
 select 'SIMATS Anime Club database is ready. Sign in as animeclubsimats@gmail.com to become admin.' as result;

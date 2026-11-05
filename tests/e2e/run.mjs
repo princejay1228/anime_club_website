@@ -337,7 +337,29 @@ await step('office bearers, notices under the bell, and cancelling a meeting wit
   await home.waitForFunction(() => document.querySelector('#evList')?.innerText.includes('Spin-the-Wheel Quiz'), { timeout: 10000 });
   assert.doesNotMatch(await text(home, '#evList'), /Tuesday meet/);
   await home.waitForFunction(() => document.getElementById('hubBell') && !document.getElementById('hubBell').hidden, { timeout: 8000 });
-  assert.equal(await home.$eval('#hubBell', (b) => b.getAttribute('href')), '/members#notices');
+  assert.equal(await home.$eval('#hubBell', (b) => b.getAttribute('href')), '#notices');
+
+  // notices are public: a visitor sees the notice board and the bell, on the home page and in the lounge
+  const visitor = await pageAs(null);
+  await visitor.goto(BASE + '/');
+  await visitor.waitForFunction(() => !document.getElementById('notices').hidden, { timeout: 10000 });
+  const board = await text(visitor, '#notices');
+  assert.match(board, /Cancelled: Tuesday meet[\s\S]*Reason: Internal exams this week/);
+  assert.match(board, /Room change for Tuesday/);
+  assert.match(board, /NEW/, 'a first-time visitor sees them as new');
+  await visitor.waitForFunction(() => document.querySelector('#hubBell .hb-n:not([hidden])')?.innerText === '2', { timeout: 8000 });
+  await visitor.evaluate(() => document.getElementById('notices').scrollIntoView());
+  await (await visitor.$('#notices')).screenshot({ path: path.join(OUT, '14f-home-notice-board.png') });
+  await visitor.goto(BASE + '/members');
+  await visitor.waitForSelector('.bell-btn');
+  await visitor.waitForFunction(() => document.querySelector('.bell-badge:not([hidden])')?.innerText === '2', { timeout: 8000 });
+  await visitor.click('.bell-btn');
+  await waitText(visitor, '.bell-panel', /Room change for Tuesday/);
+  await visitor.waitForFunction(() => document.querySelector('.bell-badge')?.hidden === true, { timeout: 5000 });
+  await visitor.goto(BASE + '/members');                      // remembered in this browser
+  await visitor.waitForSelector('.bell-btn');
+  await new Promise((r) => setTimeout(r, 1200));
+  assert.equal(await visitor.$eval('.bell-badge', (b) => b.hidden), true);
 });
 
 await step('gallery: Drive items replace the built-in photos; admins hide items; uploads need setup', async () => {

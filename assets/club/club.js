@@ -239,13 +239,14 @@
     const render = () => {
       slot.replaceChildren();
       if (!state.ready) return;
+      if (canSeeNotices()) {
+        slot.append(bell.el || buildBell());
+        const who = (state.user?.id || 'visitor') + (isMember() ? ':m' : ':v');
+        if (bell.forUser !== who) { bell.forUser = who; refreshBell(); }
+      }
       if (!state.user) { slot.append(googleButton('Sign in')); return; }
       const p = state.profile || {};
       const name = p.full_name || p.google_name || state.user.email;
-      if (canSeeNotices()) {
-        slot.append(bell.el || buildBell());
-        if (bell.forUser !== state.user.id) { bell.forUser = state.user.id; refreshBell(); }
-      }
       const wrap = h('div', { class: 'acct' });
       const menu = h('div', { class: 'acct-menu', role: 'menu' },
         h('div', { class: 'who' }, name, h('small', { text: state.user.email })),
@@ -269,7 +270,13 @@
   // ---------- notices bell (approved members) ----------
   const bell = { el: null, badge: null, btn: null, list: null, forUser: null };
   const BELL_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6v-5a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>';
-  const canSeeNotices = () => !!(state.user && state.profile?.membership_status === 'approved');
+  // Notices are public. Approved members get the "new" marker from the database (same on every device);
+  // everyone else gets it from this browser.
+  const canSeeNotices = () => !!sb;
+  const isMember = () => !!(state.user && state.profile?.membership_status === 'approved');
+  const SEEN_KEY = 'club.noticesSeenAt';
+  const localSeen = () => { try { return localStorage.getItem(SEEN_KEY) || ''; } catch { return ''; } };
+  const setLocalSeen = (t) => { try { if (t && t > localSeen()) localStorage.setItem(SEEN_KEY, t); } catch { /* storage unavailable */ } };
   function buildBell() {
     const badge = h('span', { class: 'bell-badge', hidden: true });
     const btn = h('button', { class: 'bell-btn', type: 'button', 'aria-label': 'Notices', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' });
@@ -294,7 +301,12 @@
   }
   async function refreshBell() {
     if (!canSeeNotices() || !bell.el) return;
-    try { setUnread((await rpc('notice_unread_count')) || 0); } catch { /* keep the last count */ }
+    try {
+      if (isMember()) { setUnread((await rpc('notice_unread_count')) || 0); return; }
+      const seen = localSeen();
+      const list = (await rpc('list_notices', { p_limit: 30 })) || [];
+      setUnread(list.filter((n) => !seen || n.created_at > seen).length);
+    } catch { /* keep the last count */ }
   }
   async function toggleBell(force) {
     if (!bell.el) return;
@@ -305,11 +317,13 @@
     if (!open) return;
     bell.list.replaceChildren(h('div', { class: 'bell-empty', text: 'Loading notices…' }));
     try {
-      const items = (await rpc('list_notices', { p_limit: 50 })) || [];
+      let items = (await rpc('list_notices', { p_limit: 50 })) || [];
+      if (!isMember()) { const seen = localSeen(); items = items.map((n) => ({ ...n, is_new: !seen || n.created_at > seen })); }
       bell.list.replaceChildren(...(items.length ? items.map(noticeItem)
         : [h('div', { class: 'bell-empty', text: 'No notices yet. Club announcements and cancelled meetings show up here.' })]));
       setUnread(0);
-      if (items.some((n) => n.is_new)) rpc('mark_notices_seen').catch(() => {});
+      if (items.length) setLocalSeen(items[0].created_at);
+      if (isMember() && items.some((n) => n.is_new)) rpc('mark_notices_seen').catch(() => {});
     } catch (e) { bell.list.replaceChildren(h('div', { class: 'bell-empty', text: e.message })); }
   }
   function noticeItem(n) {
