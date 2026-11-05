@@ -390,11 +390,12 @@
 
   // ======================= start =======================
   C.mountAccount($('#acctSlot'));
-  let first = true;
+  let first = true, who = null;
   C.on(() => {
     renderAccount();
     if (!state.ready) return;
-    loadPolls();                      // results visibility depends on who is signed in
+    const now = (state.user?.id || '') + '|' + (state.profile?.membership_status || '');
+    if (now !== who) { who = now; loadPolls(); }   // results visibility depends on who is signed in
     if (first) { first = false; loadEvents(); } else renderEvents();
   });
   renderAccount();

@@ -146,20 +146,36 @@
     return out;
   }
 
+  // The last profile this browser saw for this account, shown instantly on the next visit while the
+  // fresh copy loads. Display only: every action is checked again by the database.
+  const PROFILE_KEY = 'club.profile.';
+  function readCachedProfile(uid) {
+    try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY + uid) || 'null'); return p && p.id === uid ? p : null; } catch { return null; }
+  }
+  function cacheProfile(uid, p) {
+    try { if (p) localStorage.setItem(PROFILE_KEY + uid, JSON.stringify(p)); else localStorage.removeItem(PROFILE_KEY + uid); } catch { /* storage unavailable */ }
+  }
+  function clearCachedProfiles() {
+    try { Object.keys(localStorage).filter((k) => k.startsWith(PROFILE_KEY)).forEach((k) => localStorage.removeItem(k)); } catch { /* storage unavailable */ }
+  }
+
   async function loadProfile() {
     if (!state.user) { state.profile = null; return; }
+    const uid = state.user.id;
     for (let i = 0; i < 3; i++) {
-      const { data, error } = await sb.from('profiles').select('*').eq('id', state.user.id).maybeSingle();
-      if (error) { console.error(error); break; }
-      if (data) { state.profile = data; return; }
+      const { data, error } = await sb.from('profiles').select('*').eq('id', uid).maybeSingle();
+      if (error) { console.error(error); if (!state.profile) state.profile = null; return; }   // keep the cached copy on a network error
+      if (data) { state.profile = data; cacheProfile(uid, data); return; }
       await new Promise((r) => setTimeout(r, 600));   // the sign-up trigger can lag a moment on first sign-in
     }
-    state.profile = null;
+    state.profile = null; cacheProfile(uid, null);
   }
   async function refreshProfile() { await loadProfile(); emit(); return state.profile; }
 
   async function setSession(session) {
     state.session = session; state.user = session?.user || null;
+    state.profile = state.user ? readCachedProfile(state.user.id) : null;
+    if (state.profile) { state.ready = true; emit(); }   // paint straight away from the last visit
     await loadProfile();
     state.ready = true;
     emit();
@@ -194,6 +210,7 @@
     if (error) toast(friendly(error), 'err');
   }
   async function signOut() {
+    clearCachedProfiles();
     if (sb) await sb.auth.signOut();
     toast('Signed out. Mata ne!');
   }

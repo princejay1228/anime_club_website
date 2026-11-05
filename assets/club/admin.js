@@ -570,6 +570,7 @@
     if (!started) { started = true; addEventListener('hashchange', route); route(); refreshBadges(); C.every(60000, refreshBadges); }
   }
 
+  { const yr = $('#yr'); if (yr) yr.textContent = new Date().getFullYear(); }
   C.mountAccount($('#acctSlot'));
   C.on(gate);
   gate();
