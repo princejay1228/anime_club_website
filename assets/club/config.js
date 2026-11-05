@@ -1,0 +1,12 @@
+// Public Supabase settings for the browser.
+// These two values are SAFE to publish: the publishable (anon) key can only do
+// what the database's Row Level Security and functions allow.
+// NEVER put the service role / secret key here.
+//
+// Find them in Supabase > Project Settings > API Keys:
+//   supabaseUrl  = Project URL
+//   supabaseKey  = "Publishable key" (sb_publishable_...) or the legacy "anon public" key
+window.CLUB_CONFIG = {
+  supabaseUrl: 'https://kfpcqjjwsrveqzlzvlml.supabase.co',
+  supabaseKey: 'sb_publishable_YsWR9SQDiY5Q-1cbp7kRGA_4PR1C-8G',
+};

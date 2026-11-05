@@ -6,10 +6,10 @@
    or mouths), and no eye or mouth piece is ever positioned separately.
 
    Files (copied unchanged from the kit, same folder and file names):
-     03_BLINK_FRAME_STRIPS/frame_00..08_561x701.png   the 9-frame blink (00 = her original face)
-     09_WORKING_WEBSITE_DEMO/talk_open__*.png         talking, eyes open
-     09_WORKING_WEBSITE_DEMO/talk_closed__*.png       talking, eyes closed (a blink beat during speech)
-     09_WORKING_WEBSITE_DEMO/emotion_*.png            expression presets
+     03_BLINK_FRAME_STRIPS/frame_00..08_561x701.webp   the 9-frame blink (00 = her original face)
+     09_WORKING_WEBSITE_DEMO/talk_open__*.webp         talking, eyes open
+     09_WORKING_WEBSITE_DEMO/talk_closed__*.webp       talking, eyes closed (a blink beat during speech)
+     09_WORKING_WEBSITE_DEMO/emotion_*.webp            expression presets
 
    API: const b=new BenioV4(img, 'assets/benio-v4/');
         b.blink()                     the 9 frames at the kit's exact timings (0..330 ms), back to the resting face
@@ -39,9 +39,9 @@
       this.cache=new Map(); this.busy=false; this.mode='idle'; this.exprT=0; this.talkT=0; this.autoT=0; this.n=0;
       this.rest=this.blinkSrc(0); this.preloadBlink();
     }
-    blinkSrc(i){ return `${this.root}03_BLINK_FRAME_STRIPS/frame_${String(i).padStart(2,'0')}_561x701.png`; }
-    talkSrc(eyes,shape){ return `${this.root}09_WORKING_WEBSITE_DEMO/talk_${eyes}__${shape}.png`; }
-    emotionSrc(name){ return `${this.root}09_WORKING_WEBSITE_DEMO/emotion_${name}.png`; }
+    blinkSrc(i){ return `${this.root}03_BLINK_FRAME_STRIPS/frame_${String(i).padStart(2,'0')}_561x701.webp`; }
+    talkSrc(eyes,shape){ return `${this.root}09_WORKING_WEBSITE_DEMO/talk_${eyes}__${shape}.webp`; }
+    emotionSrc(name){ return `${this.root}09_WORKING_WEBSITE_DEMO/emotion_${name}.webp`; }
     load(src){ let p=this.cache.get(src); if(!p){ const im=new Image(); im.decoding='async'; im.src=R(src);
       p={im,ready:false}; p.promise=(im.decode?im.decode():new Promise((r,j)=>{ im.onload=r; im.onerror=j; })).then(()=>{ p.ready=true; }).catch(()=>{}); this.cache.set(src,p); } return p; }
     // show a picture only once it has loaded, so the image never flashes empty mid-animation

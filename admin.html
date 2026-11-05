@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin · SIMATS Anime Club</title>
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="stylesheet" href="assets/club/club.css" />
+</head>
+<body>
+  <header class="club-top">
+    <a class="club-brand" href="/">SIMATS <span>ANIME CLUB</span></a>
+    <nav class="club-nav" aria-label="Site">
+      <a href="/">HOME</a>
+      <a href="/members">CLUB HUB</a>
+      <a href="/admin" aria-current="page">ADMIN</a>
+    </nav>
+    <div id="acctSlot"></div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero" style="padding-bottom:10px">
+      <span class="kicker">管理 · ADMIN</span>
+      <h1 class="title">DASHBOARD</h1>
+    </section>
+    <div id="gate"><div class="skeleton"></div></div>
+    <div id="app" hidden>
+      <nav class="admin-tabs" role="tablist" aria-label="Admin sections">
+        <a href="#overview" role="tab" data-tab="overview">Overview</a>
+        <a href="#approvals" role="tab" data-tab="approvals">Approvals<span class="badge" id="bAppr" hidden></span></a>
+        <a href="#members" role="tab" data-tab="members">Members</a>
+        <a href="#polls" role="tab" data-tab="polls">Polls</a>
+        <a href="#comments" role="tab" data-tab="comments">Comments<span class="badge" id="bCmt" hidden></span></a>
+        <a href="#events" role="tab" data-tab="events">Events</a>
+        <a href="#log" role="tab" data-tab="log">Activity log</a>
+      </nav>
+      <div id="view" aria-live="polite"></div>
+    </div>
+  </main>
+
+  <footer class="club-foot">
+    <img src="assets/benio-face-192.webp" alt="" width="54" height="54" />
+    Every action here is checked again by the server and recorded in the activity log.
+  </footer>
+
+  <script src="assets/club/vendor/supabase.js"></script>
+  <script src="assets/club/config.js"></script>
+  <script src="assets/club/club.js"></script>
+  <script src="assets/club/admin.js"></script>
+</body>
+</html>

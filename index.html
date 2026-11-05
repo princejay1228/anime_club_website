@@ -142,7 +142,7 @@
     .chapter { min-height:75vh; background:radial-gradient(ellipse at 50% 0%,rgba(144,0,24,.28),transparent 55%),#050203; padding:110px 24px 130px; display:grid; place-items:center; text-align:center; border-top:1px solid rgba(201,149,69,.25); }
     .chapter h2 { font-family:"Dela Gothic One",Manrope,sans-serif; font-weight:400; font-size:clamp(34px,6vw,72px); line-height:1.15; margin:0 0 20px; color:#f6dca0; }
     .chapter p { font-size:14px; line-height:2; color:#dbbdbe; max-width:540px; margin:auto; font-weight:500; }
-    .chapter .cta { display:inline-block; margin-top:30px; border:1px solid rgba(230,192,111,.75); padding:14px 28px; color:#f6dca0; text-decoration:none; font-size:11px; letter-spacing:.32em; font-weight:800; background:rgba(10,4,4,.6); transition:background .2s,box-shadow .2s; }
+    .chapter .cta { display:inline-block; margin:30px 6px 0; border:1px solid rgba(230,192,111,.75); padding:14px 28px; color:#f6dca0; text-decoration:none; font-size:11px; letter-spacing:.32em; font-weight:800; background:rgba(10,4,4,.6); transition:background .2s,box-shadow .2s; }
     .chapter .cta:hover,.chapter .cta:focus-visible { background:rgba(144,0,24,.85); box-shadow:0 0 24px rgba(220,6,40,.45); outline:none; }
     /* What we do */
     .wwd { background:radial-gradient(ellipse at 50% 0%,rgba(144,0,24,.22),transparent 60%),#050203; padding:80px clamp(18px,5vw,70px) 70px; border-top:1px solid rgba(201,149,69,.18); }
@@ -261,6 +261,15 @@
     .welcome button.primary { background:#a8001c; border-color:#a8001c; color:#fff3dc; }
     .welcome button:hover, .welcome button:focus-visible { outline:none; box-shadow:0 0 0 2px rgba(230,192,111,.6); }
     @media (max-width:560px) { .welcome { flex-wrap:wrap; justify-content:center; text-align:center; } .welcome .wt { flex:1 1 60%; text-align:left; } }
+    /* Club hub chip in the header bar (members area: polls, events, comments) */
+    .hub-chip { position:fixed; z-index:53; right:clamp(12px,3vw,40px); top:25px; height:36px; display:flex; align-items:center; gap:8px; padding:0 14px 0 4px; opacity:0; pointer-events:none; transition:opacity .2s;
+      border:1px solid rgba(230,192,111,.7); background:rgba(10,4,4,.75); color:#f6dca0; text-decoration:none; font-size:10px; font-weight:800; letter-spacing:.22em; }
+    .hub-chip.on { opacity:1; pointer-events:auto; }
+    .hub-chip:hover, .hub-chip:focus-visible { background:rgba(144,0,24,.85); box-shadow:0 0 20px rgba(220,6,40,.4); outline:none; }
+    .hub-chip .hc-av { width:28px; height:28px; border-radius:50%; object-fit:cover; display:grid; place-items:center; background:#2a0a12; font-family:"Dela Gothic One",Manrope,sans-serif; font-size:11px; letter-spacing:0; color:#f6dca0; }
+    @media (max-width:760px) { .hub-chip { padding:0 4px; } .hub-chip .hc-t { display:none; } }
+    .ev .ev-talk { display:inline-block; margin-top:8px; color:#ff9fb2; font-size:11px; font-weight:800; letter-spacing:.18em; text-decoration:none; }
+    .ev .ev-talk:hover, .ev .ev-talk:focus-visible { text-decoration:underline; outline:none; }
     .sound-toggle { position:fixed; z-index:55; left:clamp(12px,3vw,28px); bottom:clamp(14px,3vh,28px); width:38px; height:38px; opacity:.85; border-radius:50%; border:1px solid rgba(230,192,111,.55); background:rgba(10,3,5,.7); color:#f6dca0; cursor:pointer; display:grid; place-items:center; padding:0; }
     .sound-toggle svg { width:20px; height:20px; }
     .mplayer { position:fixed; z-index:56; left:clamp(12px,3vw,28px); bottom:calc(clamp(14px,3vh,28px) + 48px); width:min(300px,calc(100vw - 24px)); padding:14px 16px 12px; border-radius:16px; overflow:hidden;
@@ -593,6 +602,7 @@
       <h2>YOUR NEXT CHAPTER<br />STARTS HERE.</h2>
       <p>Screenings, cosplay, fan art, quizzes and fests, run by students who love anime. Everyone at SIMATS is welcome.</p>
       <a class="cta" href="https://chat.whatsapp.com/GHwQzTsmPQr5xxNzGjINWb?s=cl&amp;p=a&amp;mlu=4&amp;ilr=4&amp;iam=2" target="_blank" rel="noopener">JOIN THE CLUB ↗</a>
+      <a class="cta" href="/members">VOTE &amp; COMMENT →</a>
     </div>
   </section>
 
@@ -654,9 +664,10 @@
 
   <div class="fixed-logo" id="fixedLogo" role="img" aria-label="SIMATS Anime Club"></div>
   <div class="fixed-topbar" id="fixedTopbar" aria-hidden="true"></div>
+  <a class="hub-chip" id="hubChip" href="/members" aria-label="Club hub: polls, events and comments"><span class="hc-av" aria-hidden="true">★</span><span class="hc-t">CLUB HUB</span></a>
   <canvas id="sakuraBurst" aria-hidden="true" hidden></canvas>
   <div class="welcome" id="welcome" role="dialog" aria-label="Welcome back">
-    <img src="assets/benio-face-192.png" alt="" width="46" height="46" />
+    <img src="assets/benio-face-192.webp" alt="" width="46" height="46" />
     <div class="wt">Okaeri! Welcome back <small>Watch the intro again, or jump straight to the crew?</small></div>
     <button type="button" id="wReplay">REPLAY INTRO</button>
     <button type="button" class="primary" id="wSkip">SKIP TO CREW</button>
@@ -703,6 +714,8 @@
         <h3>Explore</h3>
         <a href="#experience">Intro</a>
         <a href="#club">Join the club</a>
+        <a href="/members">Club hub: polls &amp; events</a>
+        <a href="/members#polls">Vote: what's next?</a>
       </nav>
       <div class="foot-col">
         <h3>Contact</h3>
@@ -718,7 +731,7 @@
       <figure class="foot-mascot" id="footMascot">
         <div class="benio-say" id="benioSay" role="status" aria-live="polite"></div>
         <div class="rigbox" id="benioBox" role="button" tabindex="0" aria-label="Sakuraba Benio, the club mascot, making a heart with her hands. Tap her!">
-          <img id="benioImg" src="assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00_561x701.png" alt="" width="561" height="701" loading="lazy" decoding="async" />
+          <img id="benioImg" src="assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00_561x701.webp" alt="" width="561" height="701" loading="lazy" decoding="async" />
         </div>
         <svg class="heart" id="footHeart" viewBox="0 0 64 58" aria-hidden="true"><defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a76"/><stop offset="1" stop-color="#b0122f"/></linearGradient></defs>
           <path d="M32 56 C 12 40, 0 30, 0 16 C 0 6, 8 0, 17 0 C 24 0, 29 4, 32 9 C 35 4, 40 0, 47 0 C 56 0, 64 6, 64 16 C 64 30, 52 40, 32 56 Z" fill="url(#hg)" stroke="#fff3f5" stroke-width="2.5"/>
@@ -735,6 +748,20 @@
   </footer>
 </main>
 
+<script src="assets/club/config.js"></script>
+<script>
+  // Header chip: say "MY HUB" with the member's photo if they're signed in on this browser.
+  (()=>{ try{
+    const c=window.CLUB_CONFIG||{}; if(!c.supabaseUrl) return;
+    const raw=localStorage.getItem('sb-'+new URL(c.supabaseUrl).hostname.split('.')[0]+'-auth-token'); if(!raw) return;
+    const u=(JSON.parse(raw)||{}).user; if(!u) return;
+    const chip=document.getElementById('hubChip'), av=chip.querySelector('.hc-av'), m=u.user_metadata||{};
+    chip.querySelector('.hc-t').textContent='MY HUB';
+    const pic=m.avatar_url||m.picture;
+    if(pic&&/^https:\/\//.test(pic)){ const i=document.createElement('img'); i.className='hc-av'; i.alt=''; i.referrerPolicy='no-referrer'; i.src=pic; i.onerror=()=>i.replaceWith(av); av.replaceWith(i); }
+    else av.textContent=((m.full_name||u.email||'?').trim()[0]||'?').toUpperCase();
+  }catch(e){} })();
+</script>
 <script src="assets/oni-mask.js"></script>
 <script src="assets/quotes.js"></script>
 <script src="assets/music.js"></script>
@@ -767,7 +794,7 @@
     {role:'Treasurer',      name:'Lohithaksha D',   photo:'assets/team/treasurer-lohithaksha.webp', cutout:true, photoH:'100%', photoL:'17%', photoHm:'47%', photoBm:'26.5%', photoLm:'38%', line:"And Lohithaksha D, our Treasurer! He manages the club budget, so every screening, cosplay meet and fest stall has what it needs."},
   ];
   // Her playful self-introduction after the closing line. She switches to her chibi form for this beat.
-  const SELF={who:'桜庭 紅緒 · Sakuraba Benio', line:"Ahh!! I forgot to introduce myself, watashi wa SAKURABA Benio desu!! ❤️❤️", image:'assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00_561x701.png'};   // Benio V4: complete pre-rendered frames only
+  const SELF={who:'桜庭 紅緒 · Sakuraba Benio', line:"Ahh!! I forgot to introduce myself, watashi wa SAKURABA Benio desu!! ❤️❤️", image:'assets/benio-v4/03_BLINK_FRAME_STRIPS/frame_00_561x701.webp'};   // Benio V4: complete pre-rendered frames only
   const OUTRO={who:'SIMATS Anime Club', line:"Together, we're SIMATS Anime Club: anime screenings, cosplay, art jams, quizzes and fests all year. Keep scrolling and join the crew!"};
   // Footer contact links: fill in the club's handles to show them (leave '' to hide).
   // Footer mascot: Benio making a heart with her hands, animated by the V4 kit (assets/benio-v4/): one <img>
@@ -1167,7 +1194,7 @@
     const r=logoSvg.getBoundingClientRect(), st=stage.getBoundingClientRect();
     logoBox={cy:r.top-st.top+r.height/2, h:r.height};
     { const hs=headerH*.86/r.height, w=r.width*hs, h=r.height*hs, cx=r.left-st.left+r.width/2, fl=$('#fixedLogo');   // the header position (same maths as renderTeam)
-      Object.assign(fl.style,{left:(cx-w/2)+'px',top:(headerH/2+6-h/2)+'px',width:w+'px',height:h+'px'}); $('#fixedTopbar').style.height=(headerH+8)+'px'; }
+      Object.assign(fl.style,{left:(cx-w/2)+'px',top:(headerH/2+6-h/2)+'px',width:w+'px',height:h+'px'}); $('#fixedTopbar').style.height=(headerH+8)+'px'; const hc=$('#hubChip'); if(hc) hc.style.top=Math.max(6,headerH/2+6-18)+'px'; }
     lastTeamKey='';
   }
 
@@ -1558,7 +1585,7 @@
     fin('path[pathLength="1"]',el=>el.setAttribute('stroke-dashoffset','0'));                  // slash line drawn,
     fixedLogo.appendChild(c); }
   function updateFixedLogo(){ const on=stage.getBoundingClientRect().top<-.5;   // the sticky stage has started to scroll away
-    if(on!==fixedLogo.classList.contains('on')){ fixedLogo.classList.toggle('on',on); fixedTopbar.classList.toggle('on',on); } }
+    if(on!==fixedLogo.classList.contains('on')){ fixedLogo.classList.toggle('on',on); fixedTopbar.classList.toggle('on',on); $('#hubChip')?.classList.toggle('on',on); } }
   addEventListener('scroll',updateFixedLogo,{passive:true}); addEventListener('resize',updateFixedLogo,{passive:true});
 
   settledY=window.scrollY; updateTouchMode(); updateFixedLogo(); addEventListener('resize',updateTouchMode,{passive:true});
@@ -1693,20 +1720,21 @@
   })();
 
   // ---------- Upcoming events ----------
-  (()=>{
+  // EVENTS above, plus events from the club's Drive sheet (synced weekly into Supabase, see README).
+  const renderEvents=(extra=[])=>{
     const list=$('#evList'), now=Date.now(), MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-    const ist=(t)=>new Date(t+(t.length<=16?':00':'')+'+05:30');
-    const up=EVENTS.map(e=>({...e,s:ist(e.start),e2:ist(e.end||e.start)})).filter(e=>e.e2.getTime()>=now).sort((a,b)=>a.s-b.s);
+    const ist=(t)=>/(Z|[+-]\d\d:?\d\d)$/.test(t)?new Date(t):new Date(t+(t.length<=16?':00':'')+'+05:30');
+    const up=EVENTS.concat(extra).map(e=>({...e,s:ist(e.start),e2:ist(e.end||e.start)})).filter(e=>e.e2.getTime()>=now).sort((a,b)=>a.s-b.s);
     const gfmt=(d)=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
     if(!up.length){ list.innerHTML=''; return; }
     list.innerHTML='';
     up.forEach((e,i)=>{
       const d=e.s.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit'}), m=MON[+e.s.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',month:'numeric'})-1];
-      const time=e.s.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',hour:'numeric',minute:'2-digit'});
+      const time=e.allDay?e.s.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short'})+', time TBA':e.s.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',hour:'numeric',minute:'2-digit'});
       const g=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${gfmt(e.s)}/${gfmt(e.e2>e.s?e.e2:new Date(e.s.getTime()+7200000))}&details=${encodeURIComponent((e.desc||'')+'\nSIMATS Anime Club')}&location=${encodeURIComponent(e.venue||'')}`;
       const el=document.createElement('article'); el.className='ev';
       el.innerHTML=`<div class="ev-date"><div class="d">${esc(d)}</div><div class="m">${m}</div></div>
-        <div>${e.tag?`<span class="ev-tag">${esc(e.tag)}</span>`:''}<h3>${esc(e.title)}</h3><div class="meta">${esc(time)}${e.venue?' · '+esc(e.venue):''}</div>${e.desc?`<div class="desc">${esc(e.desc)}</div>`:''}</div>
+        <div>${e.tag?`<span class="ev-tag">${esc(e.tag)}</span>`:''}<h3>${esc(e.title)}</h3><div class="meta">${esc(time)}${e.venue?' · '+esc(e.venue):''}</div>${e.desc?`<div class="desc">${esc(e.desc)}</div>`:''}${e.id?`<a class="ev-talk" href="/members#event-${esc(e.id)}">💬 TALK ABOUT IT →</a>`:''}</div>
         <div class="ev-cal"><a href="${g}" target="_blank" rel="noopener">GOOGLE CAL</a><button type="button">ADD .ICS</button></div>`;
       el.querySelector('button').addEventListener('click',()=>{
         const end=e.e2>e.s?e.e2:new Date(e.s.getTime()+7200000), x=(t)=>String(t).replace(/[,;\\]/g,m=>'\\'+m).replace(/\n/g,'\\n');
@@ -1715,6 +1743,21 @@
       });
       list.appendChild(el);
     });
+  };
+  renderEvents();
+  // Live events from the members area. Read-only, public data; nothing is sent about the visitor.
+  (()=>{
+    const cfg=window.CLUB_CONFIG||{};
+    if(!cfg.supabaseUrl||!cfg.supabaseKey||/PASTE_/.test(cfg.supabaseKey)) return;
+    const ctl=new AbortController(); setTimeout(()=>ctl.abort(),8000);
+    fetch(cfg.supabaseUrl+'/rest/v1/events?select=id,title,starts_at,ends_at,venue,description,category,status&status=in.(scheduled,postponed)&order=starts_at.asc&limit=60',
+      {headers:{apikey:cfg.supabaseKey},signal:ctl.signal})
+      .then(r=>r.ok?r.json():[])
+      .then(rows=>{ if(!Array.isArray(rows)||!rows.length) return;
+        const midnight=(t)=>new Date(t).toLocaleString('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false}).replace(/^24/,'00')==='00:00';
+        renderEvents(rows.map(r=>({id:r.id,title:r.title,start:r.starts_at,end:r.ends_at||'',venue:r.venue||'',desc:r.description||'',
+          tag:r.status==='postponed'?'POSTPONED':(r.category||''),allDay:midnight(r.starts_at)&&!r.ends_at}))); })
+      .catch(()=>{});   // offline or not set up: the static EVENTS list still shows
   })();
 
   // ---------- Sakura burst (easter egg) ----------
