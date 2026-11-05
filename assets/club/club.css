@@ -227,7 +227,7 @@ pre.warn { white-space:pre-wrap; font:600 12px/1.6 Manrope,system-ui,sans-serif;
 
 /* ---------- footer ---------- */
 .club-foot { margin-top:70px; text-align:center; color:#7f6769; font-size:11px; padding:26px 20px 34px; border-top:1px solid rgba(255,255,255,.07); font-weight:600; }
-.club-foot a { color:#bfa3a6; margin:0 8px; }
+.club-foot a { color:#bfa3a6; margin:0 8px; white-space:nowrap; display:inline-block; }
 .club-foot img { width:54px; height:54px; display:block; margin:0 auto 8px; border-radius:50%; }
 
 @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
@@ -239,5 +239,9 @@ pre.warn { white-space:pre-wrap; font:600 12px/1.6 Manrope,system-ui,sans-serif;
 @media (max-width:760px) { .club-logo img { height:26px; } }
 .foot-logos { display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; margin:0 auto 14px; }
 .foot-logos a, .foot-logos img { display:block; }
+.club-foot .foot-logos img { width:auto; margin:0; border-radius:0; }
+.club-foot .foot-eng img { height:32px; filter:drop-shadow(0 0 .6px rgba(255,255,255,.95)) drop-shadow(0 0 1.5px rgba(255,255,255,.7)) drop-shadow(0 0 7px rgba(64,150,255,.8)); }
+.club-foot .foot-seal { height:52px; }
+.club-foot .foot-note { margin:0 0 10px; }
 .foot-eng img { height:30px; width:auto; }
 .foot-seal { width:48px; height:auto; border-radius:0; }
