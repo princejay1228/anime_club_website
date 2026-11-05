@@ -231,3 +231,10 @@ pre.warn { white-space:pre-wrap; font:600 12px/1.6 Manrope,system-ui,sans-serif;
 .club-foot img { width:54px; height:54px; display:block; margin:0 auto 8px; border-radius:50%; }
 
 @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+
+.club-logo { display:inline-flex; align-items:center; flex:0 0 auto; }
+.club-logo img { height:38px; width:auto; display:block; }
+.foot-logos { display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; margin:0 auto 14px; }
+.foot-logos a, .foot-logos img { display:block; }
+.foot-eng img { height:30px; width:auto; }
+.foot-seal { width:48px; height:auto; border-radius:0; }

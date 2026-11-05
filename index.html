@@ -261,6 +261,10 @@
     .welcome button:hover, .welcome button:focus-visible { outline:none; box-shadow:0 0 0 2px rgba(230,192,111,.6); }
     @media (max-width:560px) { .welcome { flex-wrap:wrap; justify-content:center; text-align:center; } .welcome .wt { flex:1 1 60%; text-align:left; } }
     /* Club hub chip in the header bar (members area: polls, events, comments) */
+    .foot-logos { display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin:0 0 16px; }
+    .foot-logos a, .foot-logos img { display:block; }
+    .foot-eng img { height:30px; width:auto; }
+    .foot-seal { width:48px; height:auto; }
     .hub-chip { position:fixed; z-index:53; right:clamp(12px,3vw,40px); top:25px; height:36px; display:flex; align-items:center; gap:8px; padding:0 14px 0 4px; opacity:0; pointer-events:none; transition:opacity .2s;
       border:1px solid rgba(230,192,111,.7); background:rgba(10,4,4,.75); color:#f6dca0; text-decoration:none; font-size:10px; font-weight:800; letter-spacing:.22em; }
     .hub-chip.on { opacity:1; pointer-events:auto; }
@@ -663,7 +667,7 @@
 
   <div class="fixed-logo" id="fixedLogo" role="img" aria-label="SIMATS Anime Club"></div>
   <div class="fixed-topbar" id="fixedTopbar" aria-hidden="true"></div>
-  <a class="hub-chip" id="hubChip" href="/members" aria-label="Club hub: polls, events and comments"><span class="hc-av" aria-hidden="true">★</span><span class="hc-t">CLUB HUB</span></a>
+  <a class="hub-chip" id="hubChip" href="/members" aria-label="Member lounge: polls, events and comments"><span class="hc-av" aria-hidden="true">★</span><span class="hc-t">MEMBER LOUNGE</span></a>
   <canvas id="sakuraBurst" aria-hidden="true" hidden></canvas>
   <div class="welcome" id="welcome" role="dialog" aria-label="Welcome back">
     <img src="assets/benio-face-192.webp" alt="" width="46" height="46" />
@@ -707,13 +711,14 @@
       <div class="foot-brand">
         <div class="foot-name">SIMATS <span>ANIME CLUB</span></div>
         <p>A student-run anime community at Saveetha School of Engineering, SIMATS, Chennai.</p>
+        <div class="foot-logos"><a class="foot-eng" href="https://simatsengineering.com" target="_blank" rel="noopener"><img src="assets/logos/simats-engineering.webp" alt="SIMATS Engineering" height="30" /></a><img class="foot-seal" src="assets/logos/saveetha-seal.webp" alt="Saveetha Institute of Medical and Technical Sciences" width="48" height="45" /></div>
         <p class="foot-host">Hosted by our mascot, <strong>Sakuraba Benio</strong> <span lang="ja">桜庭 紅緒</span>.</p>
       </div>
       <nav class="foot-col" aria-label="Explore">
         <h3>Explore</h3>
         <a href="#experience">Intro</a>
         <a href="#club">Join the club</a>
-        <a href="/members">Club hub: polls &amp; events</a>
+        <a href="/members">Member lounge: polls &amp; events</a>
         <a href="/members#polls">Vote: what's next?</a>
       </nav>
       <div class="foot-col">
@@ -749,13 +754,13 @@
 
 <script src="assets/club/config.js"></script>
 <script>
-  // Header chip: say "MY HUB" with the member's photo if they're signed in on this browser.
+  // Header chip: say "MY LOUNGE" with the member's photo if they're signed in on this browser.
   (()=>{ try{
     const c=window.CLUB_CONFIG||{}; if(!c.supabaseUrl) return;
     const raw=localStorage.getItem('sb-'+new URL(c.supabaseUrl).hostname.split('.')[0]+'-auth-token'); if(!raw) return;
     const u=(JSON.parse(raw)||{}).user; if(!u) return;
     const chip=document.getElementById('hubChip'), av=chip.querySelector('.hc-av'), m=u.user_metadata||{};
-    chip.querySelector('.hc-t').textContent='MY HUB';
+    chip.querySelector('.hc-t').textContent='MY LOUNGE';
     const pic=m.avatar_url||m.picture;
     if(pic&&/^https:\/\//.test(pic)){ const i=document.createElement('img'); i.className='hc-av'; i.alt=''; i.referrerPolicy='no-referrer'; i.src=pic; i.onerror=()=>i.replaceWith(av); av.replaceWith(i); }
     else av.textContent=((m.full_name||u.email||'?').trim()[0]||'?').toUpperCase();

@@ -66,7 +66,7 @@
         h('h3', { text: title }), text ? h('p', { text }) : null, ...rest));
 
     if (!state.user) {
-      box.replaceChildren(card(BENIO, ['MEMBERS'], 'Join the club hub',
+      box.replaceChildren(card(BENIO, ['MEMBERS'], 'Join the member lounge',
         'Sign in with your Google account to vote in polls and comment on events. After you sign in, tell us your name and an admin will approve your membership.',
         h('div', { class: 'row' }, C.googleButton())));
       return;

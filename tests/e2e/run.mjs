@@ -64,7 +64,7 @@ const BOB = await addUser('bob@example.com', 'Bob');
 await step('visitor sees the hub with sign-in and empty states', async () => {
   const p = await pageAs(null);
   await p.goto(BASE + '/members');
-  await waitText(p, '#accountCard', /Join the club hub/);
+  await waitText(p, '#accountCard', /Join the member lounge/);
   await waitText(p, '#pollList', /No polls right now/);
   await waitText(p, '#eventList', /No upcoming events/);
   assert.match(await text(p, '#acctSlot'), /SIGN IN/i);
