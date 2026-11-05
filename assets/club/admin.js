@@ -563,7 +563,7 @@
     if (!state.profile?.is_admin || state.profile.membership_status !== 'approved') {
       return show(h('div', { class: 'state' }, h('img', { src: 'assets/benio-face-192.webp', alt: '' }), h('span', { class: 'big', text: 'Admins only' }),
         `You're signed in as ${state.user.email}, which is not an admin account.`,
-        h('div', { class: 'row', style: 'justify-content:center;margin-top:14px' }, h('a', { class: 'btn', href: '/members', text: 'Go to the club hub' }),
+        h('div', { class: 'row', style: 'justify-content:center;margin-top:14px' }, h('a', { class: 'btn', href: '/members', text: 'Go to the member lounge' }),
           h('button', { class: 'btn ghost', type: 'button', text: 'Switch account', onclick: async () => { await C.signOut(); } }))));
     }
     g.hidden = true; app.hidden = false;

@@ -227,7 +227,7 @@
       const wrap = h('div', { class: 'acct' });
       const menu = h('div', { class: 'acct-menu', role: 'menu' },
         h('div', { class: 'who' }, name, h('small', { text: state.user.email })),
-        h('a', { href: '/members#account', role: 'menuitem', text: 'My membership' }),
+        h('a', { href: '/members', role: 'menuitem', text: 'My membership' }),
         p.is_admin ? h('a', { href: '/admin', role: 'menuitem', text: 'Admin dashboard' }) : null,
         h('a', { href: '/', role: 'menuitem', text: 'Back to the site' }),
         h('button', { type: 'button', role: 'menuitem', text: 'Sign out', onclick: () => signOut() }));

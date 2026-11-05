@@ -49,7 +49,7 @@ In Supabase → **SQL Editor → New query**, paste all of **`supabase/setup_all
 1. **Authentication → Sign In / Providers → Google**: already enabled.
 2. **Authentication → URL Configuration**
    - Site URL: `https://simats-anime-club.vercel.app`
-   - Redirect URLs: `https://simats-anime-club.vercel.app/**` (and `https://*-princejay1228s-projects.vercel.app/**` if you want preview deployments to sign in; check your real preview domain in Vercel).
+   - Redirect URLs: `https://simats-anime-club.vercel.app/**` and `https://*-princejay122008-8495s-projects.vercel.app/**` so preview deployments return to the page you signed in from.
 3. Recommended: turn off the **Email** provider so Google is the only way in.
 4. In Google Cloud → **OAuth consent screen**, publish the app (or add testers) so students can sign in.
 

@@ -231,3 +231,13 @@ pre.warn { white-space:pre-wrap; font:600 12px/1.6 Manrope,system-ui,sans-serif;
 .club-foot img { width:54px; height:54px; display:block; margin:0 auto 8px; border-radius:50%; }
 
 @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+
+.club-logo { position:relative; z-index:0; display:inline-flex; align-items:center; flex:0 0 auto; }
+.club-logo::after { content:''; position:absolute; z-index:-1; left:6%; right:6%; bottom:-7px; height:12px; border-radius:50%; background:radial-gradient(ellipse at center, rgba(70,155,255,.75) 0%, rgba(70,155,255,.25) 45%, transparent 72%); filter:blur(3px); pointer-events:none; }
+.club-logo img { height:34px; width:auto; display:block; filter:drop-shadow(0 0 .6px rgba(255,255,255,.95)) drop-shadow(0 0 1.5px rgba(255,255,255,.7)) drop-shadow(0 0 7px rgba(64,150,255,.8)); transition:filter .2s; }
+.club-logo:hover img, .club-logo:focus-visible img { filter:drop-shadow(0 0 .6px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 0 12px rgba(64,150,255,1)); }
+@media (max-width:760px) { .club-logo img { height:26px; } }
+.foot-logos { display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; margin:0 auto 14px; }
+.foot-logos a, .foot-logos img { display:block; }
+.foot-eng img { height:30px; width:auto; }
+.foot-seal { width:48px; height:auto; border-radius:0; }
