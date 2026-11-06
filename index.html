@@ -6,7 +6,7 @@
     if (/[?&](code|error_description)=/.test(location.search)) location.replace('/members' + location.search);</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
-  <meta name="description" content="SIMATS Anime Club is the student-run anime community at Saveetha School of Engineering (SIMATS), Chennai: weekly Tuesday meets, screenings, cosplay, art jams, quizzes and fests. Join the club, see upcoming events and vote on what we do next." />
+  <meta name="description" content="SIMATS Anime Club: the student anime community of Saveetha School of Engineering, Chennai. Weekly Tuesday meets, screenings, cosplay, art jams and quizzes." />
   <meta name="google-site-verification" content="eaa5YQPOZmUDL9FuthptRaemAB9OIjv05DZLGTZ7Cds" />
   <title>SIMATS Anime Club · Anime community at Saveetha School of Engineering, Chennai</title>
   <link rel="icon" href="favicon.ico" sizes="any" />
@@ -15,7 +15,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SIMATS Anime Club" />
   <meta property="og:title" content="SIMATS Anime Club · Saveetha School of Engineering, Chennai" />
-  <meta property="og:description" content="SIMATS Anime Club is the student-run anime community at Saveetha School of Engineering (SIMATS), Chennai: weekly Tuesday meets, screenings, cosplay, art jams, quizzes and fests. Join the club, see upcoming events and vote on what we do next." />
+  <meta property="og:description" content="SIMATS Anime Club: the student anime community of Saveetha School of Engineering, Chennai. Weekly Tuesday meets, screenings, cosplay, art jams and quizzes." />
   <meta property="og:url" content="https://simats-anime-club.vercel.app/" />
   <meta property="og:image" content="https://simats-anime-club.vercel.app/assets/icon-512.png" />
   <meta name="twitter:card" content="summary" />
@@ -400,6 +400,7 @@
     .foot-name { font-family:"Dela Gothic One",Manrope,sans-serif; font-size:clamp(17px,1.55vw,22px); white-space:nowrap; color:#2a0a12; letter-spacing:.04em; }
     .foot-name span { color:#b0122f; }
     .foot-brand p { margin:10px 0 0; max-width:340px; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
     .foot-motto { font-size:13px; color:#5a3a3e; }
     .foot-motto strong { color:#b0122f; font-family:"Dela Gothic One",sans-serif; font-weight:400; letter-spacing:.04em; }
     .foot-motto span { color:#9a6420; white-space:nowrap; }
@@ -462,6 +463,7 @@
 </head>
 <body>
 <main>
+  <h1 class="sr-only">SIMATS Anime Club, the student anime community of Saveetha School of Engineering (SIMATS), Chennai</h1>
   <section id="experience" class="experience" aria-label="SIMATS Anime Club opening — scroll to play">
     <div id="stage" class="stage">
       <div class="layer sky" id="sky"></div>

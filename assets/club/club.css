@@ -305,3 +305,9 @@ pre.warn { white-space:pre-wrap; font:600 12px/1.6 Manrope,system-ui,sans-serif;
 .upl-row.ok .upl-bar span { background:#3fbf73; }
 .upl-row.err .upl-state { color:#ffc2cc; }
 .note.warn { background:rgba(230,192,111,.12); border-left:3px solid var(--gold); color:var(--gold2); }
+
+/* member lounge intro points */
+.lede-points { list-style:none; margin:16px auto 0; padding:0; max-width:760px; display:grid; gap:8px; text-align:left; }
+.lede-points li { color:var(--ink2); font-size:14px; font-weight:600; line-height:1.55; padding-left:18px; position:relative; }
+.lede-points li::before { content:"✿"; position:absolute; left:0; top:0; color:var(--gold); font-size:12px; }
+.lede-points b { color:var(--gold2); }
