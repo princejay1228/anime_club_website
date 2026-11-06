@@ -28,8 +28,8 @@
       h('div', { class: 'grid2' },
         h('label', { class: 'f' }, h('span', null, 'Year ', h('em', { text: '(optional)' })), year),
         h('label', { class: 'f' }, h('span', null, 'Department ', h('em', { text: '(optional)' })), dept)),
-      h('label', { class: 'check' }, agree, h('span', null, 'I agree to the club ', h('a', { href: 'conduct.html', target: '_blank', text: 'Code of Conduct' }),
-        ' and understand the admins can see my name and email (see the ', h('a', { href: 'privacy.html', target: '_blank', text: 'Privacy Policy' }), ').')),
+      h('label', { class: 'check' }, agree, h('span', null, 'I agree to the club ', h('a', { href: '/conduct', target: '_blank', text: 'Code of Conduct' }),
+        ' and understand the admins can see my name and email (see the ', h('a', { href: '/privacy', target: '_blank', text: 'Privacy Policy' }), ').')),
       err,
       h('div', { class: 'row', style: 'margin-top:16px' }, submit, onCancel ? h('button', { class: 'btn ghost', type: 'button', text: 'Cancel', onclick: onCancel }) : null));
     form.addEventListener('submit', (e) => {
