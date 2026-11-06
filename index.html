@@ -43,8 +43,9 @@
 
     html.guided { touch-action:pinch-zoom; }               /* inside the guided part: no native touch scrolling, only one beat per swipe */
     html.guided-edge { touch-action:pan-down pinch-zoom; } /* at the join section: touch may only scroll on down into the page */
-    .experience { height:2070vh; position:relative; } /* intro + logo hold + header move + team intro */ /* +40% scroll per scene, plus a hold on the logo */
-    .stage { position:sticky; top:0; height:100vh; height:100svh; min-height:460px; overflow:hidden; background:#000; isolation:isolate; }
+    /* window-height sizes are capped at 2400px: no real screen is taller, but Googlebot stretches its window to the page height while rendering */
+    .experience { height:2070vh; height:calc(2070 * min(1vh, 24px)); position:relative; } /* intro + logo hold + header move + team intro */ /* +40% scroll per scene, plus a hold on the logo */
+    .stage { position:sticky; top:0; height:100vh; height:min(100vh, 2400px); height:min(100svh, 2400px); min-height:460px; overflow:hidden; background:#000; isolation:isolate; }
     .layer { position:absolute; inset:0; pointer-events:none; }
 
     /* ---------- Opening: red sky + Mount Fuji ---------- */
@@ -157,7 +158,7 @@
     .bubble .tail::after { content:""; position:absolute; left:-8px; top:-15px; border-left:8px solid transparent; border-right:8px solid transparent; border-top:10px solid #12030a; }
     .bubble .sak { position:absolute; right:8px; bottom:6px; width:30px; height:30px; opacity:.85; pointer-events:none; }
 
-    .chapter { min-height:75vh; background:radial-gradient(ellipse at 50% 0%,rgba(144,0,24,.28),transparent 55%),#050203; padding:110px 24px 130px; display:grid; place-items:center; text-align:center; border-top:1px solid rgba(201,149,69,.25); }
+    .chapter { min-height:75vh; min-height:min(75vh, 1800px); background:radial-gradient(ellipse at 50% 0%,rgba(144,0,24,.28),transparent 55%),#050203; padding:110px 24px 130px; display:grid; place-items:center; text-align:center; border-top:1px solid rgba(201,149,69,.25); }
     .chapter h2 { font-family:"Dela Gothic One",Manrope,sans-serif; font-weight:400; font-size:clamp(34px,6vw,72px); line-height:1.15; margin:0 0 20px; color:#f6dca0; }
     .chapter p { font-size:14px; line-height:2; color:#dbbdbe; max-width:540px; margin:auto; font-weight:500; }
     .chapter .cta { display:inline-block; margin:30px 6px 0; border:1px solid rgba(230,192,111,.75); padding:14px 28px; color:#f6dca0; text-decoration:none; font-size:11px; letter-spacing:.32em; font-weight:800; background:rgba(10,4,4,.6); transition:background .2s,box-shadow .2s; }
@@ -459,7 +460,7 @@
     @media (max-width:760px) { .foot-mascot { grid-column:1 / -1; justify-self:center; margin:4px 0 0; width:170px; } .site-footer { padding-top:128px; } .foot-kumo { width:130px; height:46px; } .foot-kumo.k1 { top:70px; right:4%; } .foot-kumo.k2 { top:74px; left:4%; } .foot-sakura { display:none; } .foot-grid { grid-template-columns:1fr 1fr; gap:28px; } .foot-brand { grid-column:1 / -1; } .foot-bottom { flex-direction:column; } }
 
     @media (max-width:700px) {
-      .experience { height:1920vh; }
+      .experience { height:1920vh; height:calc(1920 * min(1vh, 24px)); }
       .fuji { left:22%; width:110%; height:26%; bottom:3%; }
       .sun { left:77%; top:70%; width:30vw; }
       .hud.right span:first-child { display:none; }
